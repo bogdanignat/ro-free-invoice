@@ -15,8 +15,7 @@ QWBE Invoicing is a self-hosted invoicing application that:
   `company-lookup` as optional plugins (`required: false`, active by default; `QWBE_PLUGINS` switches them off
   at startup, and a plugin that is off keeps its data), while the QWBE mother installs nothing;
 - is distributed primarily as versioned Docker images and a Docker Compose bundle;
-- issues and preserves Romanian invoices without implementing direct ANAF transport in the first release;
-- keeps the data model compatible with a later RO e-Factura workflow;
+- issues and preserves Romanian invoices and submits them, and their stornos, to RO e-Factura (ANAF SPV) one by one through the `efactura` plugin;
 - treats issued invoices as immutable legal snapshots.
 
 The first release targets a single self-hosted installation. All business data is
@@ -33,16 +32,31 @@ model are extension seams, not first-release UI capabilities.
 
 The application can create, issue, render, preserve, correct, and track payment of
 invoices. It can also issue, render, preserve, list, and convert non-fiscal proformas.
-The first release does **not** submit invoices to RO e-Factura.
-
-This distinction must be visible in product documentation: taxpayers subject to
-RO e-Factura obligations need another compliant channel for XML submission until
-the ANAF integration is delivered. A generated PDF is a visual representation and
-is not a substitute for the structured XML required by RO e-Factura.
+With the `efactura` plugin on and the company connected to ANAF through OAuth, it also
+submits invoices and stornos to RO e-Factura (SPV), one document at a time, and keeps
+ANAF's status and receipt. With the plugin off, the application produces no XML (its
+routes answer 404). With the plugin on but no connection, the XML is available only
+through the API (`GET /api/invoices/{id}/efactura.xml`, `GET /api/corrections/{id}/efactura.xml`);
+the interface has no download button. A generated PDF is a visual
+representation and is not a substitute for the structured XML required by RO e-Factura.
 
 This document is a product and engineering baseline, not legal or tax advice.
 Special VAT regimes, cross-border transactions, cash-register rules, and sector
 specific obligations require validation with an accountant or tax specialist.
+
+### Who it is for and what it does not do
+
+- **Issuers outside the VAT-on-collection system.** The invoice has no "TVA la încasare"
+  mention. Whoever needs it can extend the application or pay for the development.
+- **One user.** One access token, one organization. Multi-user is not planned for now.
+- **Self-host, not SaaS.** Each installation keeps its data with whoever installs it.
+  Nothing is deleted automatically; the administrator deletes backup archives.
+- **One product, no free/paid split.** Customer-specific work (for example online payments
+  and invoices for a particular site) lives in separate private repositories, after the
+  first stable version.
+- **Outside the first version:** discounts, partial storno (a storno reverses the whole
+  invoice), the 0% rate, exemptions other than the Article 310 non-VAT case, reverse
+  charge, multi-user and VAT on collection.
 
 ## 3. MVP capabilities
 
@@ -152,7 +166,6 @@ Each line supports:
 - item name and description;
 - quantity and coded unit of measure;
 - unit price excluding VAT;
-- line-level allowance or charge;
 - taxable amount;
 - tax category and tax rate;
 - tax exemption or reverse-charge reason and legal basis where applicable;
@@ -344,22 +357,21 @@ Deferred. Cash collection and fiscal cash-register obligations depend on activit
 payment channel, and applicable exceptions. An invoice does not universally replace
 a fiscal receipt.
 
-## 5. RO e-Factura readiness without ANAF integration
+## 5. RO e-Factura
 
 The invoice owns immutable fiscal facts exposed through its public document contract;
-the future e-Factura cube consumes those facts, not private tables or current profiles.
+the e-Factura cube consumes those facts, not private tables or current profiles.
 County/sector, canonical CUI and explicit party VAT registration now round-trip through
 registry, drafts, issued snapshots, proformas and full corrections. VAT treatment is
 explicit and frozen: S for positive standard/reduced rates, E/0.00 with legal reason
 text generated automatically for the supported non-VAT/Article 310 workflow, without
 asking for a second confirmation after the issuer registration setting. Other VAT
 categories/exemptions remain unsupported. This is not complete EN 16931/CIUS-RO
-readiness: no XML exporter or full XML/business-rule validation is included yet.
+readiness: the local checks cover the rules in [EFACTURA.md](docs/EFACTURA.md), and only ANAF decides validity.
 The scope and inspected rule evidence are recorded in [VAT_TREATMENT.md](docs/VAT_TREATMENT.md).
 
-The target commercial invoice model must eventually preserve the information needed
-by EN 16931 and the Romanian CIUS profile; this list is a target, not a claim that all
-fields are currently implemented:
+The commercial invoice model targets the information needed by EN 16931 and the Romanian
+CIUS profile; this list is a target, not a claim that all fields are implemented:
 
 - invoice identifier, issue date, and invoice type code;
 - seller and buyer names, addresses, tax identifiers, and electronic endpoints;
@@ -372,7 +384,7 @@ fields are currently implemented:
 - legal monetary totals;
 - attachments and supporting-document references.
 
-ANAF transport will be a separate durable workflow with its own records:
+ANAF transport is a durable workflow with its own records:
 
 ```text
 issued invoice
@@ -384,13 +396,11 @@ issued invoice
   -> accepted or rejected
 ```
 
-The future transmission record needs profile/version, XML hash, idempotency key,
-submission identifier, timestamps, status, validation errors, response hash, and
-retry metadata. `submitted` never means `accepted`. The in-memory QWBE event bus is
-not the source of truth for this workflow.
-
-The exact current RO CIUS version, ANAF schemas, supported codes, credentials, and
-submission obligations must be researched again immediately before that integration.
+A submission record keeps the XML and its hash, status, ANAF's messages and the
+response. `submitted` never means `accepted`. The in-memory QWBE event bus is not the
+source of truth for this workflow. Routes, states and the ANAF connection are in
+[EFACTURA.md](docs/EFACTURA.md) and [ANAF.md](docs/ANAF.md); the CIUS version, codes and
+obligations must be revalidated against ANAF before each release.
 
 ## 6. Initial lifecycle
 
@@ -537,8 +547,7 @@ Required tests precede implementation and cover:
 - boundary and size gates from `FOUNDATION.md`.
 
 PDF rendering, payment recording, correction documents, and the proforma workflow
-are implemented. Direct ANAF integration begins only after the invoice core and
-durable workflow seam are stable.
+are implemented. The e-Factura submission workflow is implemented.
 
 ## 10. Initial delivery phases
 
@@ -578,15 +587,6 @@ durable workflow seam are stable.
 - security review and audit-log verification;
 - local package contract checks (`FOUNDATION.md` section 13); compatibility with the
   `qwbe-core/package` checker is not claimed.
-
-### Later — RO e-Factura
-
-- current ANAF/RO CIUS research;
-- deterministic XML mapping and validation;
-- credential and authorization adapter;
-- durable outbox/workflow journal;
-- idempotent submit, poll, download, retry, and reconciliation;
-- operational dashboard and failure recovery.
 
 ## 11. Open product decisions
 

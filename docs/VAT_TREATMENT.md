@@ -186,17 +186,13 @@ older schema is upgraded by new migrations and their backfills (README, "Schema 
 A real/local data reset is a separate operational action; running the tests does
 not reset the existing app.
 
-## Remaining work
+## What is built on top
 
-- **T-1345 — XML export:** deterministic UBL generation from public snapshots,
-  official XSD/Schematron CIUS-RO validation and fixtures for supported S/O,
-  SRL/PFA and B2B/B2C cases. The inspected SCH materials are the package above.
-- **T-1346 — ANAF transport:** authentication, submission, status/response handling,
-  safe retries, idempotency and audit. Separate from producing the XML file.
-- **T-1371 — company lookup API:** verify/autocomplete company details from CUI.
-  The requested provider is recalled as offering 100 free requests per month;
-  its identity and current terms still need verification.
-- **T-1374 — local activation:** integrate and run the new version locally.
-  The existing local app/database was not updated by this implementation.
-  The schema moves forward only by migrations; any database recreation requires a separately
-  confirmed operational action, never an implicit reset during deployment.
+- **XML export:** deterministic UBL/CIUS-RO generation from frozen snapshots, with local
+  rule checks and fixtures for the supported S/O cases ([EFACTURA.md](EFACTURA.md)).
+- **ANAF transport:** OAuth connection, one-by-one submission of invoices and stornos,
+  status, receipt and reconciliation ([EFACTURA.md](EFACTURA.md), [ANAF.md](ANAF.md)).
+- **Company lookup from a CUI:** the optional `company-lookup` plugin (ANAF and openapi.ro
+  providers).
+
+Other VAT categories and exemptions stay unsupported.

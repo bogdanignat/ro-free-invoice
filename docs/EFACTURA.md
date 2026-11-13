@@ -1,16 +1,16 @@
-# e-Factura XML generation (T-1345)
+# e-Factura: XML and submission to ANAF
 
-Scope of this step: a pure generator that turns a frozen fiscal snapshot into
-UBL 2.1 / CIUS-RO XML, plus the host mapping from the invoicing model and
-synthetic fixtures for the official validator.
+The `efactura` plugin turns a frozen fiscal snapshot into UBL 2.1 / CIUS-RO XML (a pure
+generator, a host mapping from the invoicing model, and synthetic fixtures for the
+official validator) and submits invoices and stornos to the ANAF SPV, one document at a
+time and only when the user asks. It was accepted on the ANAF TEST environment. See
+[Submitting to ANAF](#submitting-to-anaf-t-1346).
 
-**Nothing is transmitted.** The only thing exposed is a download: `GET
-/api/invoices/{id}/efactura.xml` and `GET /api/corrections/{id}/efactura.xml`.
-Both routes read a frozen snapshot and render it on the spot — no migration, no
-write to `eFacturaStatus`, nothing stored and nothing sent. They stay for tests
-and debugging; the interface no longer calls them (its button now submits, and
-the exact XML of a submission is downloaded from its history). Transport to the SPV is
-T-1346: see [Submitting to ANAF](#submitting-to-anaf-t-1346).
+Two download routes remain: `GET /api/invoices/{id}/efactura.xml` and `GET
+/api/corrections/{id}/efactura.xml`. They read a frozen snapshot and render it on the
+spot: nothing is stored, sent or written to `eFacturaStatus`. They serve tests and
+debugging; the interface submits instead, and downloads the exact XML of a submission
+from its history.
 
 Both routes belong to the `efactura` plugin. With it off (`QWBE_PLUGINS` without
 `efactura`) they answer 404, are absent from OpenAPI, and every invoice response

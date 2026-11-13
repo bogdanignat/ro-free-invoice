@@ -856,7 +856,8 @@ number and id, registries by name and id, so a cursor stays valid while new reco
 keeps its invoice-only contract. Every row has `kind`, its own `id`, series, number,
 issue date, customer name, currency and stored total. Invoice rows expose nullable
 `dueDate` and their `eFacturaStatus` (`null` when the e-Factura plugin is off), and omit `originalReference`. Correction
-rows retain their negative total, expose `dueDate: null`, `eFacturaStatus: null`, and
+rows retain their negative total, expose `dueDate: null` and their own `eFacturaStatus` (`not_sent`, `queued`, …;
+`null` when the e-Factura plugin is off), and
 reference the organization-scoped original invoice by id, series and number. The mixed
 register uses a dedicated opaque cursor that also contains `kind`; invoice-list cursors
 are rejected rather than interpreted in a different ordering.
