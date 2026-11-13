@@ -40,12 +40,12 @@ const insertProforma = (sql: RawSql, id: string, organizationId = "org-1", numbe
   sql.query(proformaStatement, [id, organizationId, number, customerId])
 
 const invoiceStatement = `INSERT INTO issued_invoices(
-  id,draft_id,source_proforma_id,organization_id,fiscal_year,document_type,series,number,issue_date,issued_at,currency,
+  id,draft_id,source_proforma_id,organization_id,fiscal_year,document_type,series,number,issue_date,supply_date,issued_at,currency,
   issuer_legal_name,issuer_tax_identifier,issuer_country_code,issuer_city,issuer_street,issuer_county,customer_party_type,
   customer_legal_name,customer_tax_identifier,customer_country_code,customer_city,customer_street,customer_county,customer_vat_registered,
   total_excluding_tax,tax_total,total_including_tax,issuer_legal_form,issuer_trade_registry_number,
   issuer_iban,issuer_bank_name,issuer_social_capital,actor_id,issuer_vat_registered)
-  VALUES($1,$2,$3,$4,2026,'invoice',$5,$6,'2026-09-01','2026-09-01T11:00:00.000Z','RON',
+  VALUES($1,$2,$3,$4,2026,'invoice',$5,$6,'2026-09-01','2026-09-01','2026-09-01T11:00:00.000Z','RON',
   'Furnizor SRL','12345674','RO','Iași','Strada 2','RO-IS','company','Client SRL','87654329','RO','Iași','Strada 1','RO-IS',1,
   0,0,0,'srl','J22/123/2020','','',100000,'user-1',1)`
 

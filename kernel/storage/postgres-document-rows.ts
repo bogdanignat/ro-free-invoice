@@ -19,9 +19,10 @@ export const issuedInvoiceFrom = async (client: TransactionClient, value: Row): 
     id, draftId: nullableText(value, "draft_id"), sourceProformaId: nullableText(value, "source_proforma_id"),
     organizationId: text(value, "organization_id"), ...(source === undefined ? {} : { source }),
     series: text(value, "series"), number: integer(value, "number"), issueDate: text(value, "issue_date"),
-    dueDate: nullableText(value, "due_date"), issuedAt: text(value, "issued_at"), actorId: text(value, "actor_id"),
-    currency: text(value, "currency"), notes: nullableText(value, "notes"), issuer: issuerFrom(value, "issuer_branding"),
-    customer: buyerFrom(value, "customer_"), lines: await loadLines(client, "issued_lines", id),
+    dueDate: nullableText(value, "due_date"), supplyDate: text(value, "supply_date"), issuedAt: text(value, "issued_at"),
+    actorId: text(value, "actor_id"), currency: text(value, "currency"), notes: nullableText(value, "notes"),
+    issuer: issuerFrom(value, "issuer_branding"), customer: buyerFrom(value, "customer_"),
+    lines: await loadLines(client, "issued_lines", id),
     vatBreakdown: await taxBreakdownFrom(client, "issued_tax_breakdown", "invoice_id", id),
     totalExcludingVat: money(value, "total_excluding_tax"), vatTotal: money(value, "tax_total"),
     totalIncludingVat: money(value, "total_including_tax"),
@@ -64,10 +65,12 @@ export const draftFrom = async (
   const organizationId = text(value, "organization_id")
   const customerId = optionalText(value, "customer_id")
   const source = sourceFrom(value)
+  const supplyDate = optionalText(value, "supply_date")
   const lines = await loadLines(client, "draft_lines", id)
   return {
     id, organizationId, sourceProformaId: nullableText(value, "source_proforma_id"),
     ...(source === undefined ? {} : { source }), ...(customerId === undefined ? {} : { customerId }),
+    ...(supplyDate === undefined ? {} : { supplyDate }),
     customer: buyerFrom(value, "customer_"), series: text(value, "series"), issueDate: text(value, "issue_date"),
     dueDate: nullableText(value, "due_date"), currency: text(value, "currency"), notes: nullableText(value, "notes"),
     status: draftStatus(value), lines, ...calculateTotals(lines),

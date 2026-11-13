@@ -137,6 +137,8 @@ export interface DraftInvoice extends DocumentContent {
   readonly sourceProformaId: string | null
   readonly customerId?: string
   readonly series: string
+  /** Data livrarii (art. 319 alin. (20) lit. c) Cod fiscal); absent = issue date. */
+  readonly supplyDate?: string
   readonly status: "draft" | "issued" | "proforma_issued"
 }
 
@@ -184,6 +186,8 @@ export type EFacturaStatus = (typeof E_FACTURA_STATUSES)[number]
 export interface IssuedInvoice extends NumberedDocumentSnapshot {
   readonly draftId: string | null
   readonly sourceProformaId: string | null
+  /** Data livrarii (art. 319 alin. (20) lit. c) Cod fiscal), never after the issue date. */
+  readonly supplyDate: string
   readonly eFacturaStatus: EFacturaStatus
 }
 

@@ -57,7 +57,7 @@ export const createProformaConversionOperations = (
       yield* ensureChronology(transaction, context.organization.id, "invoice", input.invoiceSeries, issueDate, issueDate)
       const id = yield* dependencies.ids.next
       const invoice: IssuedInvoice = {
-        draftId: null, sourceProformaId: proforma.id, eFacturaStatus: "not_sent",
+        draftId: null, sourceProformaId: proforma.id, supplyDate: issueDate, eFacturaStatus: "not_sent",
         ...numberedSnapshot({ ...proforma, issueDate, dueDate }, proforma.issuer, { id, series: input.invoiceSeries,
           number: yield* transaction.allocateDocumentNumber(context.organization.id, "invoice", input.invoiceSeries),
           issuedAt: convertedAt, actorId: context.identity.id }),

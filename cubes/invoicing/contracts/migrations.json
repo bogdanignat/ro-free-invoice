@@ -117,5 +117,18 @@
       "CREATE OR REPLACE FUNCTION qwbe_proforma_lines_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.proformas WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.proforma_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='proforma lines are sealed'; END IF; RETURN NEW; END $qwbe$",
       "CREATE OR REPLACE FUNCTION qwbe_proforma_tax_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.proformas WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.proforma_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='proforma tax breakdown is sealed'; END IF; RETURN NEW; END $qwbe$"
     ]
+  },
+  {
+    "name": "invoicing-003-supply-date",
+    "statements": [
+      "ALTER TABLE invoice_drafts ADD COLUMN supply_date TEXT",
+      "ALTER TABLE issued_invoices ADD COLUMN supply_date TEXT",
+      "UPDATE issued_invoices SET supply_date=issue_date WHERE supply_date IS NULL",
+      "ALTER TABLE issued_invoices ALTER COLUMN supply_date SET NOT NULL",
+      "ALTER TABLE invoice_drafts ADD CONSTRAINT invoice_drafts_supply_date_not_after_issue CHECK(supply_date IS NULL OR supply_date<=issue_date)",
+      "ALTER TABLE issued_invoices ADD CONSTRAINT issued_invoices_supply_date_not_after_issue CHECK(supply_date<=issue_date)",
+      "DROP TRIGGER issued_invoices_no_update ON issued_invoices",
+      "CREATE TRIGGER issued_invoices_no_update BEFORE UPDATE OF id,draft_id,source_proforma_id,organization_id,fiscal_year,document_type,series,number,issue_date,due_date,supply_date,issued_at,currency,issuer_legal_name,issuer_tax_identifier,issuer_country_code,issuer_city,issuer_street,issuer_county,issuer_sector,issuer_postal_code,issuer_legal_form,issuer_trade_registry_number,issuer_iban,issuer_bank_name,issuer_social_capital,issuer_vat_registered,issuer_branding,customer_party_type,customer_legal_name,customer_tax_identifier,customer_country_code,customer_city,customer_street,customer_county,customer_sector,customer_postal_code,customer_vat_registered,total_excluding_tax,tax_total,total_including_tax,notes ON issued_invoices FOR EACH ROW EXECUTE FUNCTION qwbe_abort('issued invoices are immutable except e_factura_status')"
+    ]
   }
 ]

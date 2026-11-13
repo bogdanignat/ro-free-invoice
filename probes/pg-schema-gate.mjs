@@ -209,6 +209,8 @@ const main = async () => {
       "invoice_payments_method_length", "invoice_payments_external_reference_length", "invoice_payments_note_length",
       // T-2678: the seal flag of issued invoices and corrections.
       "issued_invoices_sealed_valid", "correction_documents_sealed_valid",
+      // T-2679: the supply date is never after the issue date, on a draft and on an issued invoice.
+      "invoice_drafts_supply_date_not_after_issue", "issued_invoices_supply_date_not_after_issue",
     ]
     const goldenTables = [...golden.plans.flatMap((plan) => plan.tables.map(({ name }) => name)), ...postCaptureTables].sort()
     const goldenIndexes = [...golden.plans.flatMap((plan) => plan.explicitIndexes.map(({ name }) => name)), ...postCaptureIndexes].sort()
@@ -230,8 +232,8 @@ const main = async () => {
     // archived flag of a series (T-2082), whose draft trigger gained a function, plus
     // the 11 item-code, EAN and product-kind checks of T-2074 and the 3 payment-text
     // checks of T-2129, each present by name; T-2678 added the 4 late-insert guards
-    // of issued invoices and corrections.
-    check("76 triggers, 223 named checks, 12 functions", () => {
+    // of issued invoices and corrections, T-2679 the 2 supply-date checks.
+    check("76 triggers, 225 named checks, 12 functions", () => {
       assert.equal(countOf(inventoryA, "trigger"), 76)
       for (const name of postCaptureChecks) assert.ok(inventoryA.some((entry) => entry.startsWith(`check ${name} `)), name)
       assert.equal(countOf(inventoryA, "check"), 207 + postCaptureChecks.length)
@@ -298,6 +300,16 @@ const main = async () => {
       // dynamic SELECT and the refusal an `IS DISTINCT FROM 0` on its result (an invisible parent too).
       proforma_lines_no_late_insert: { when: "parent_sealed IS DISTINCT FROM 0" },
       proforma_tax_no_late_insert: { when: "parent_sealed IS DISTINCT FROM 0" },
+      // T-2679: the supply date is as immutable as the issue date it follows.
+      issued_invoices_no_update: {
+        updateOf: ["id", "draft_id", "source_proforma_id", "organization_id", "fiscal_year", "document_type", "series", "number",
+          "issue_date", "due_date", "supply_date", "issued_at", "currency", "issuer_legal_name", "issuer_tax_identifier",
+          "issuer_country_code", "issuer_city", "issuer_street", "issuer_county", "issuer_sector", "issuer_postal_code",
+          "issuer_legal_form", "issuer_trade_registry_number", "issuer_iban", "issuer_bank_name", "issuer_social_capital",
+          "issuer_vat_registered", "issuer_branding", "customer_party_type", "customer_legal_name", "customer_tax_identifier",
+          "customer_country_code", "customer_city", "customer_street", "customer_county", "customer_sector", "customer_postal_code",
+          "customer_vat_registered", "total_excluding_tax", "tax_total", "total_including_tax", "notes"],
+      },
     }
     const changedWith = (property) => Object.entries(changedAfterCapture)
       .filter(([, change]) => change[property] !== undefined && change[property] !== false).map(([name]) => name)
@@ -693,13 +705,13 @@ const main = async () => {
       let deferredCode
       try {
         await behaviourClient.query(`INSERT INTO issued_invoices(id,draft_id,organization_id,fiscal_year,
-          document_type,series,number,issue_date,issued_at,currency,issuer_legal_name,issuer_tax_identifier,
+          document_type,series,number,issue_date,supply_date,issued_at,currency,issuer_legal_name,issuer_tax_identifier,
           issuer_country_code,issuer_city,issuer_street,issuer_county,customer_legal_name,
           customer_tax_identifier,customer_country_code,customer_city,customer_street,customer_county,
           total_excluding_tax,tax_total,total_including_tax,customer_party_type,customer_vat_registered,
           source_proforma_id,issuer_legal_form,issuer_trade_registry_number,issuer_iban,issuer_bank_name,
           issuer_social_capital,actor_id,issuer_vat_registered)
-          VALUES('inv-deferred',NULL,'org-1',2026,'invoice','INV',7,'2026-09-01','t','RON','F','1','RO','X',
+          VALUES('inv-deferred',NULL,'org-1',2026,'invoice','INV',7,'2026-09-01','2026-09-01','t','RON','F','1','RO','X',
           'Y','RO-IS','C','2','RO','X','Y','RO-IS',100,0,100,'company',1,'pf-1','srl','J','I','B',
           100,'operator',1)`)
       } catch (error) {

@@ -43,6 +43,7 @@ const invoice: IssuedInvoice = {
   number: 7,
   issueDate: "2026-09-01",
   dueDate: "2026-09-16",
+  supplyDate: "2026-09-01",
   issuedAt: "2026-09-01T10:00:00.000Z",
   actorId: "user-1",
   currency: "RON",

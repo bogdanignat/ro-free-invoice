@@ -45,6 +45,10 @@
       {
         "name": "invoicing-002-seal-issued-documents",
         "sha256": "fd0a23defc3547de061f1804537cf3a523525d6e5287d57273182335e204dcaa"
+      },
+      {
+        "name": "invoicing-003-supply-date",
+        "sha256": "4fe1e5aa6fa3919e3216257e22f449c49eb2dc98805cff572e97f91818b1c2a8"
       }
     ]
   },

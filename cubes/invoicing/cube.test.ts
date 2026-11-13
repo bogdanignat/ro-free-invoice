@@ -34,5 +34,5 @@ void test("exports a minimal authenticated QWBE cube definition", () => {
   const parts = cube.create()
   assert.equal(HttpApiGroup.isHttpApiGroup(parts.group), true)
   assert.deepEqual(parts.handlers, {})
-  assert.deepEqual(invoicingMigrations.map(({ name }) => name), ["invoicing-001-baseline", "invoicing-002-seal-issued-documents"])
+  assert.deepEqual(invoicingMigrations.map(({ name }) => name), ["invoicing-001-baseline", "invoicing-002-seal-issued-documents", "invoicing-003-supply-date"])
 })

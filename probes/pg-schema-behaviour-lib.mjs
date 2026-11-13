@@ -40,17 +40,18 @@ const proformaWith = (id, number, overrides) => {
 
 const invoiceWith = (id, number, overrides) => {
   const base = {
-    draftId: "NULL", proformaId: "NULL", issuerCounty: "'RO-IS'", issuerSector: "NULL", sourceApp: "NULL", ...overrides,
+    draftId: "NULL", proformaId: "NULL", supplyDate: "'2026-09-01'",
+    issuerCounty: "'RO-IS'", issuerSector: "NULL", sourceApp: "NULL", ...overrides,
   }
   return `INSERT INTO issued_invoices(id,draft_id,organization_id,fiscal_year,document_type,series,number,
-    issue_date,due_date,issued_at,currency,issuer_legal_name,issuer_tax_identifier,issuer_country_code,
+    issue_date,due_date,supply_date,issued_at,currency,issuer_legal_name,issuer_tax_identifier,issuer_country_code,
     issuer_city,issuer_street,issuer_county,issuer_sector,issuer_postal_code,customer_legal_name,
     customer_tax_identifier,customer_country_code,customer_city,customer_street,customer_county,
     customer_sector,customer_postal_code,total_excluding_tax,tax_total,total_including_tax,
     customer_party_type,customer_vat_registered,source_proforma_id,issuer_legal_form,
     issuer_trade_registry_number,issuer_iban,issuer_bank_name,issuer_social_capital,actor_id,
     issuer_vat_registered,source_app,source_kind,source_id)
-    VALUES('${id}',${base.draftId},'org-1',2026,'invoice','INV',${number},'2026-09-01',NULL,
+    VALUES('${id}',${base.draftId},'org-1',2026,'invoice','INV',${number},'2026-09-01',NULL,${base.supplyDate},
     '2026-09-01T10:00:00.000Z','RON','Furnizor SRL','12345674','RO','Iasi','Strada 1',
     ${base.issuerCounty},${base.issuerSector},NULL,'Client SRL','87654329','RO','Iasi','Strada 2',
     'RO-IS',NULL,NULL,10000,2100,12100,'company',1,${base.proformaId},'srl','J22/123/2020',
@@ -155,6 +156,9 @@ export const triggerRejections = [
     "invalid invoice proforma lineage"],
   ["issued_invoices_no_update", "UPDATE issued_invoices SET notes='x' WHERE id='invoice-1'",
     "issued invoices are immutable except e_factura_status"],
+  // T-2679: the supply date is part of the sealed invoice.
+  ["issued_invoices_no_update", "UPDATE issued_invoices SET supply_date='2026-08-01' WHERE id='invoice-1'",
+    "issued invoices are immutable except e_factura_status"],
   ["issued_invoices_no_delete", "DELETE FROM issued_invoices WHERE id='invoice-1'",
     "issued invoices are immutable"],
   ["issued_invoices_source_insert", invoiceWith("inv-bad-source", 8, { sourceApp: "'crm'" }),
@@ -258,6 +262,7 @@ export const acceptedWrites = [
   ["correction e-Factura status", "UPDATE correction_documents SET e_factura_status='queued' WHERE id='corr-1'"],
   ["draft notes cleared", "UPDATE invoice_drafts SET notes=NULL WHERE id='draft-2'"],
   ["open draft moved to another invoice series", "UPDATE invoice_drafts SET series='ALT' WHERE id='draft-2'"],
+  ["open draft supplied before its issue date", "UPDATE invoice_drafts SET supply_date='2026-08-15' WHERE id='draft-2'"],
   ["series archived", "UPDATE document_series SET archived=1 WHERE organization_id='org-1' AND series='INV'"],
   ["customer soft delete", "UPDATE customers SET deleted_at='2026-09-10' WHERE id='customer-1'"],
   ["sequence advance", "UPDATE invoice_sequences SET last_number=4 WHERE organization_id='org-1'"],
@@ -292,6 +297,11 @@ export const constraintCases = [
      tax_rate,vat_exemption_reason,total_excluding_tax,tax_amount,total_including_tax,unit_code,unit_name)
      VALUES('dl-bad','draft-2',9,'Servicii','1.00',10000,'RO_STANDARD','S','5.00',NULL,10000,500,
      10500,'C62','unitate')`],
+  // T-2679: the supply date is never after the issue date (2026-09-01 here).
+  ["check: draft supply date after its issue date", "23514",
+    "UPDATE invoice_drafts SET supply_date='2026-09-02' WHERE id='draft-2'"],
+  ["check: issued supply date after its issue date", "23514",
+    invoiceWith("inv-late-supply", 6, { supplyDate: "'2026-09-02'" })],
   ["check: a series is archived or not", "23514",
     "UPDATE document_series SET archived=2 WHERE organization_id='org-1' AND series='ALT'"],
   ["check: product unit price is non-negative", "23514",

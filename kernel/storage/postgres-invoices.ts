@@ -14,7 +14,7 @@ type InvoicesTransaction = Pick<InvoicingTransaction,
 
 const invoiceColumns = [
   "id", "draft_id", "source_proforma_id", "organization_id", ...sourceColumns(),
-  "fiscal_year", "document_type", "series", "number", "issue_date", "due_date", "issued_at", "currency",
+  "fiscal_year", "document_type", "series", "number", "issue_date", "due_date", "supply_date", "issued_at", "currency",
   "issuer_legal_name", "issuer_tax_identifier", ...addressColumns("issuer_"), ...issuerColumns(),
   "issuer_vat_registered", "issuer_branding",
   "customer_legal_name", "customer_tax_identifier", "customer_party_type", ...addressColumns("customer_"),
@@ -36,7 +36,7 @@ export const invoicesTransactionAdapter = (client: TransactionClient): InvoicesT
     const statement = insertStatement("issued_invoices", pairs([...invoiceColumns, "sealed"], [
       invoice.id, invoice.draftId, invoice.sourceProformaId, invoice.organizationId,
       ...sourceValues(invoice.source), Number(invoice.issueDate.slice(0, 4)), "invoice",
-      invoice.series, invoice.number, invoice.issueDate, invoice.dueDate, invoice.issuedAt, invoice.currency,
+      invoice.series, invoice.number, invoice.issueDate, invoice.dueDate, invoice.supplyDate, invoice.issuedAt, invoice.currency,
       invoice.issuer.name, invoice.issuer.fiscalIdentifier, ...addressValues(invoice.issuer.address),
       invoice.issuer.legalForm, invoice.issuer.tradeRegistryNumber, invoice.issuer.iban,
       invoice.issuer.bankName, optionalMoneyValue(invoice.issuer.socialCapital), booleanValue(invoice.issuer.vatRegistered),

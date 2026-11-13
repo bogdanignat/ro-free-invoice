@@ -194,12 +194,12 @@ void test("refuses negative payment terms and invalid preset prices, and lets an
         series,issue_date,due_date,currency,status)
         VALUES('draft-1','org-1','customer-1','company','Client SRL','87654329','RO','Iași','Strada 2','RO-IS',NULL,NULL,1,
         'INV','2026-09-01',NULL,'RON','issued');
-      INSERT INTO issued_invoices(id,draft_id,organization_id,fiscal_year,document_type,series,number,issue_date,due_date,issued_at,currency,
+      INSERT INTO issued_invoices(id,draft_id,organization_id,fiscal_year,document_type,series,number,issue_date,due_date,supply_date,issued_at,currency,
         issuer_legal_name,issuer_tax_identifier,issuer_country_code,issuer_city,issuer_street,issuer_county,issuer_sector,issuer_postal_code,
         customer_legal_name,customer_tax_identifier,customer_country_code,customer_city,customer_street,customer_county,customer_sector,customer_postal_code,
         total_excluding_tax,tax_total,total_including_tax,customer_party_type,customer_vat_registered,
         issuer_legal_form,issuer_trade_registry_number,issuer_iban,issuer_bank_name,issuer_social_capital,actor_id,issuer_vat_registered)
-        VALUES('invoice-1','draft-1','org-1',2026,'invoice','INV',1,'2026-09-01',NULL,'2026-09-01T10:00:00.000Z','RON',
+        VALUES('invoice-1','draft-1','org-1',2026,'invoice','INV',1,'2026-09-01',NULL,'2026-09-01','2026-09-01T10:00:00.000Z','RON',
         'Furnizor SRL','12345674','RO','Iași','Strada 1','RO-IS',NULL,NULL,
         'Client SRL','87654329','RO','Iași','Strada 2','RO-IS',NULL,NULL,
         10000,2100,12100,'company',1,'srl','J22/123/2020','','',100000,'operator',1);
