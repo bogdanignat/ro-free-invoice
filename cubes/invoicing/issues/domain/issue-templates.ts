@@ -22,6 +22,7 @@ export const issueTemplates = {
   currency_not_ron: "currency must be RON",
   due_date_before_issue: "dueDate cannot be before issueDate",
   due_date_required: "dueDate is required for an invoice with a positive amount due",
+  supply_date_after_issue: "supplyDate cannot be after issueDate",
   issue_date_future: "issueDate cannot be in the future",
   issue_date_before_last: "issueDate cannot be before {latest}, the last {kind} issued in series {series}",
   issue_date_before_original: "issueDate cannot be before the original invoice issueDate",

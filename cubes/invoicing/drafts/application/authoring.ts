@@ -11,8 +11,9 @@ import { isActiveCustomer, type CustomersTransaction } from "../../customers/ind
 import { validateDate, validateDocumentNotes, validateDocumentSeries, validateDocumentSource, validateLineDescription } from "../../domain/validation.ts"
 import { validateBuyer } from "../../parties/index.ts"
 import { currencyNotRon, customerChoice, dueDateBeforeIssue, required } from "../../issues/index.ts"
-import { resolveVatConfiguration, type IssuerTransaction } from "../../issuer/index.ts"
+import type { IssuerTransaction } from "../../issuer/index.ts"
 import { activeDocumentSeries } from "./active-series.ts"
+import { lineVat, validateSupplyDate } from "./supply-date.ts"
 
 // Authoring resolves the saved customer and the live issuer in the same transaction as the draft.
 export type AuthoringTransaction = InvoicingTransaction & Pick<CustomersTransaction, "findCustomer"> & Pick<IssuerTransaction, "findIssuer">
@@ -60,12 +61,14 @@ export const buyerFrom = (
   return { customer }
 })
 
-export const dates = (issueDate: string, dueDate: string | null | undefined) => checked(() => {
+export const dates = (issueDate: string, dueDate: string | null | undefined, supplyDate?: string | null) => checked(() => {
   validateDate(issueDate, "issueDate")
   const due = dueDate ?? null
   if (due !== null) validateDate(due, "dueDate")
   if (due !== null && due < issueDate) throw validationFailure([dueDateBeforeIssue()])
-  return { issueDate, dueDate: due }
+  if (supplyDate == null) return { issueDate, dueDate: due }
+  validateSupplyDate(supplyDate, issueDate)
+  return { issueDate, dueDate: due, supplyDate }
 })
 
 export const documentSource = (source: DocumentSource | undefined) => checked(() => {
@@ -90,14 +93,14 @@ export const authorDocument = (
   if (issuer === undefined) return yield* Effect.fail(missing("issuer", organizationId))
   const series = yield* activeDocumentSeries(transaction, organizationId, documentType, input.series)
   const customer = yield* buyerFrom(input, organizationId, transaction)
-  const header = yield* dates(input.issueDate, input.dueDate)
+  const header = yield* dates(input.issueDate, input.dueDate, "supplyDate" in input ? input.supplyDate : undefined)
   const source = yield* documentSource(input.source)
   // Authoring accepts a document without lines: a draft is allowed to stay
   // incomplete. Issuance is what requires at least one line (see issuanceSource).
   const lines = yield* Effect.forEach(input.lines ?? [], (line) => Effect.flatMap(ids.next, (id) =>
     checked(() => {
       validateLineDescription(line.description)
-      return calculateLine({ ...line, id, vat: resolveVatConfiguration(issuer, line.vatRateCode, input.issueDate) })
+      return calculateLine({ ...line, id, vat: lineVat(issuer, line.vatRateCode, header) })
     })))
   return { issuer, document: { organizationId, ...customer, ...(source === undefined ? {} : { source }), series: series.series, ...header, currency: "RON" as const,
     notes: input.notes ?? null, lines, ...calculateTotals(lines) } }

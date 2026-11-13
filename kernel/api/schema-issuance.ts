@@ -11,7 +11,7 @@ import {
 export const IssuedInvoice = Schema.Struct({
   actorId: Schema.String, id: Schema.String, draftId: nullableString, sourceProformaId: nullableString,
   organizationId: Schema.String, source: optional(DocumentSource), series: Schema.String, number: Schema.Int,
-  issueDate: Schema.String, dueDate: nullableString, issuedAt: Schema.String, currency: Schema.String,
+  issueDate: Schema.String, dueDate: nullableString, supplyDate: Schema.String, issuedAt: Schema.String, currency: Schema.String,
   notes: DocumentNotes, issuer: IssuerParty, customer: Buyer, lines: Schema.Array(DraftLine),
   vatBreakdown: Schema.Array(VatBreakdown), totalExcludingVat: Schema.String,
   vatTotal: Schema.String, totalIncludingVat: Schema.String,
@@ -28,7 +28,7 @@ const AuthoringFields = {
 }
 export const AuthoringDocumentInput = Schema.Struct({ ...AuthoringFields, series: InputText }).annotations(bodyObject).pipe(requireBuyer)
 export const AuthoringProformaInput = Schema.Struct({ ...AuthoringFields, proformaSeries: InputText }).annotations(bodyObject).pipe(requireBuyer)
-export const ConvertProformaInput = Schema.Struct({ invoiceSeries: InputText }).annotations(bodyObject)
+export const ConvertProformaInput = Schema.Struct({ invoiceSeries: InputText, supplyDate: optionalInput }).annotations(bodyObject)
 export const CorrectionInput = Schema.Struct({
   reason: InputNote, issueDate: optionalInput, source: optional(DocumentSourceInput),
 }).annotations(bodyObject)

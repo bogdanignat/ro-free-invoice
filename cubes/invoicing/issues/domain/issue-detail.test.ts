@@ -28,7 +28,7 @@ void test("every code's constructor fills each placeholder of its template", () 
     document_without_lines: documentIssue.documentWithoutLines(), document_totals_inconsistent: documentIssue.documentTotalsInconsistent(),
     lines_required: documentIssue.linesRequired("invoice"), customer_choice: documentIssue.customerChoice(), currency_not_ron: documentIssue.currencyNotRon(),
     currency_mismatch: documentIssue.currencyMismatch(), due_date_before_issue: documentIssue.dueDateBeforeIssue(),
-    due_date_required: documentIssue.dueDateRequired(), issue_date_future: documentIssue.issueDateFuture(),
+    due_date_required: documentIssue.dueDateRequired(), supply_date_after_issue: documentIssue.supplyDateAfterIssue(), issue_date_future: documentIssue.issueDateFuture(),
     issue_date_before_original: documentIssue.issueDateBeforeOriginal(),
     issue_date_before_last: documentIssue.issueDateBeforeLast("2026-09-01", "invoice", "QWBE"),
     vat_registration_missing: documentIssue.vatRegistrationMissing("2026-09-01"), vat_registration_changed: documentIssue.vatRegistrationChanged(),

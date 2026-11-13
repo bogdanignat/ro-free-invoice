@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Option, Schema } from "effect"
 
 import {
   bodyObject, Buyer, BuyerSelection, DocumentNotes, DocumentSource, DocumentSourceInput, InputText, linesOf, nullableString,
@@ -17,10 +17,12 @@ export const DraftLine = Schema.Struct({
 export const VatBreakdown = Schema.Struct({
   ...VatTreatmentFields, code: Schema.String, rate: Schema.String, vatBaseAmount: Schema.String, vatAmount: Schema.String,
 })
+// The draft has no supply date until one is given; the wire says null, so the VAT follows the issue date.
+const draftSupplyDate = Schema.requiredToOptional(nullableString, Schema.String, { decode: Option.fromNullable, encode: Option.getOrNull })
 export const DraftInvoice = Schema.Struct({
   id: Schema.String, organizationId: Schema.String, sourceProformaId: nullableString,
   customer: Buyer, customerId: optionalString, source: optional(DocumentSource), series: Schema.String,
-  issueDate: Schema.String, dueDate: nullableString, currency: Schema.String, notes: DocumentNotes,
+  issueDate: Schema.String, dueDate: nullableString, supplyDate: draftSupplyDate, currency: Schema.String, notes: DocumentNotes,
   status: Schema.Literal("draft", "issued", "proforma_issued"), lines: Schema.Array(DraftLine),
   vatBreakdown: Schema.Array(VatBreakdown), totalExcludingVat: Schema.String,
   vatTotal: Schema.String, totalIncludingVat: Schema.String,
@@ -34,11 +36,11 @@ export const DraftLineInput = Schema.Struct({
 // in one idempotent request. Only issuance insists on at least one line.
 export const DraftInput = Schema.Struct({
   ...BuyerSelection.fields, source: optional(DocumentSourceInput), series: InputText, issueDate: InputText,
-  currency: optionalInput, dueDate: optionalNullableInput, notes: optionalNullableNotes,
+  currency: optionalInput, dueDate: optionalNullableInput, supplyDate: optionalNullableInput, notes: optionalNullableNotes,
   lines: optional(linesOf(DraftLineInput)),
 }).annotations(bodyObject).pipe(requireBuyer)
 // `series` absent keeps the draft's series; a new one must be an active invoice series (T-2082).
 export const UpdateDraftInput = Schema.Struct({
   ...BuyerSelection.fields, source: optional(Schema.NullOr(DocumentSourceInput)), series: optionalInput, issueDate: InputText,
-  dueDate: optionalNullableInput, notes: optionalNullableNotes,
+  dueDate: optionalNullableInput, supplyDate: optionalNullableInput, notes: optionalNullableNotes,
 }).annotations(bodyObject).pipe(requireBuyer)

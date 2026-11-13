@@ -8,8 +8,9 @@ import { calculateLine } from "../../domain/calculation.ts"
 import type { DraftInvoice } from "../../domain/invoice.ts"
 import { validateLineDescription } from "../../domain/validation.ts"
 import type { AddDraftLineInput, UpdateDraftLineInput } from "../../domain/inputs.ts"
-import { resolveVatConfiguration, type IssuerTransaction } from "../../issuer/index.ts"
+import type { IssuerTransaction } from "../../issuer/index.ts"
 import { findEditable, withTotals } from "./authoring.ts"
+import { lineVat } from "./supply-date.ts"
 
 export interface DraftLineOperations {
   readonly addDraftLine: (input: AddDraftLineInput) => Effect.Effect<DraftInvoice, InvoicingFailure>
@@ -30,7 +31,7 @@ export const createDraftLineOperations = (
       if (replace && index < 0) return yield* Effect.fail(missing("draft_line", lineId))
       const issuer = yield* transaction.findIssuer(context.organization.id)
       if (issuer === undefined) return yield* Effect.fail(missing("issuer", context.organization.id))
-      const vat = yield* checked(() => resolveVatConfiguration(issuer, input.vatRateCode, draft.issueDate))
+      const vat = yield* checked(() => lineVat(issuer, input.vatRateCode, draft))
       const line = yield* checked(() => {
         validateLineDescription(input.description)
         return calculateLine({ ...input, id: lineId, vat })

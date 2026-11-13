@@ -31,6 +31,7 @@ export type CreateDraftInput = BuyerSource & {
   readonly issueDate: string
   readonly currency?: string
   readonly dueDate?: string | null
+  readonly supplyDate?: string | null
   readonly notes?: string | null
   readonly lines?: ReadonlyArray<RawDocumentLine>
 }
@@ -42,6 +43,8 @@ export type UpdateDraftInput = BuyerSource & {
   readonly source?: DocumentSource | null
   readonly issueDate: string
   readonly dueDate?: string | null
+  // Like dueDate: absent clears it, so the draft's VAT follows the issue date again.
+  readonly supplyDate?: string | null
   readonly notes?: string | null
 }
 

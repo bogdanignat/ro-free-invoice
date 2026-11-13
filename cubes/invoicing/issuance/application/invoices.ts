@@ -7,7 +7,7 @@ import type { InvoicingPermissions } from "../../contracts/permissions.ts"
 import type { DocumentSource, Idempotent, IssuedInvoice, IssuedInvoiceSummary } from "../../domain/invoice.ts"
 import type { AuthoringDocumentInput } from "../../domain/inputs.ts"
 import { calendarDate, validateDocumentSource } from "../../domain/validation.ts"
-import type { AuthoringTransaction } from "../../drafts/index.ts"
+import { effectiveSupplyDate, type AuthoringTransaction } from "../../drafts/index.ts"
 import { validateIssuerForIssuance } from "../../issuer/index.ts"
 import { ensureChronology } from "./chronology.ts"
 import { issuanceSource, numberedSnapshot } from "./snapshot.ts"
@@ -53,7 +53,7 @@ export const createInvoiceOperations = (
       const invoice: IssuedInvoice = {
         draftId: draft?.id ?? null, sourceProformaId: draft?.sourceProformaId ?? null,
         ...numberedSnapshot(document, issuer, { id: invoiceId, series: document.series, number, issuedAt, actorId: context.identity.id }),
-        supplyDate: draft?.supplyDate ?? document.issueDate, eFacturaStatus: "not_sent",
+        supplyDate: effectiveSupplyDate(document), eFacturaStatus: "not_sent",
       }
       yield* transaction.saveIssuedInvoice(invoice)
       if (draft !== undefined) yield* transaction.saveDraft({ ...draft, status: "issued" })

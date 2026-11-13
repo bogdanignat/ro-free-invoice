@@ -7,7 +7,7 @@ import type { DraftInvoice, Idempotent } from "../../domain/invoice.ts"
 import { isActiveCustomer } from "../../customers/index.ts"
 import type { AuthoringTransaction } from "../../drafts/index.ts"
 import type { ConvertProformaInput, Proforma } from "../domain/proforma.ts"
-import { conversionDates, conversionSource } from "./proforma-conversion-context.ts"
+import { conversionDates, conversionSource, conversionSupplyDate } from "./proforma-conversion-context.ts"
 import type { ProformaTransaction } from "./ports.ts"
 
 type DraftConversionTransaction = AuthoringTransaction & ProformaTransaction
@@ -35,11 +35,13 @@ export const createProformaDraftOperation = (dependencies: OperationDependencies
       yield* checked(() => { validateFiscalDocument(proforma) })
       const customerLink = yield* savedCustomer(transaction, org, proforma)
       const convertedAt = yield* dependencies.clock.now
+      const dates = conversionDates(proforma, convertedAt)
+      const supplyDate = yield* conversionSupplyDate(input, dates.issueDate)
       const id = yield* dependencies.ids.next
       // Copy the offered lines; normal draft editing/issuance will validate any later VAT/date changes.
       const lines = yield* Effect.forEach(proforma.lines, (line) => Effect.map(dependencies.ids.next, (lineId) => ({ ...structuredClone(line), id: lineId })))
       const draft: DraftInvoice = { id, organizationId: org, series: input.invoiceSeries, status: "draft",
-        sourceProformaId: proforma.id, ...conversionDates(proforma, convertedAt), currency: proforma.currency,
+        sourceProformaId: proforma.id, ...dates, ...(supplyDate === dates.issueDate ? {} : { supplyDate }), currency: proforma.currency,
         ...customerLink, customer: copyBuyer(proforma.customer), ...(proforma.source === undefined ? {} : { source: structuredClone(proforma.source) }),
         notes: proforma.notes, lines, ...calculateTotals(lines) }
       yield* transaction.saveDraft(draft)

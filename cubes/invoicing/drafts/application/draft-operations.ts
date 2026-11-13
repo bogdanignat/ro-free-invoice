@@ -7,10 +7,10 @@ import { calculateLine } from "../../domain/calculation.ts"
 import type { DocumentSource, DraftInvoice, Idempotent } from "../../domain/invoice.ts"
 import type { CreateDraftInput, UpdateDraftInput } from "../../domain/inputs.ts"
 import { validateDocumentNotes, validateDocumentSeries, validateDocumentSource } from "../../domain/validation.ts"
-import { resolveVatConfiguration } from "../../issuer/index.ts"
 import { buyerFrom, dates, documentSource, findEditable, withTotals, type AuthoringTransaction } from "./authoring.ts"
 import { activeDocumentSeries } from "./active-series.ts"
 import { createDraftOperation } from "./draft-creation.ts"
+import { lineVat } from "./supply-date.ts"
 
 export interface DraftDocumentOperations {
   readonly createDraft: (input: Idempotent<CreateDraftInput>) => Effect.Effect<DraftInvoice, InvoicingFailure>
@@ -52,15 +52,16 @@ export const createDraftDocumentOperations = (
       const issuer = yield* transaction.findIssuer(context.organization.id)
       if (issuer === undefined) return yield* Effect.fail(missing("issuer", context.organization.id))
       const buyer = yield* buyerFrom(input, context.organization.id, transaction)
-      const header = yield* dates(input.issueDate, input.dueDate)
+      const header = yield* dates(input.issueDate, input.dueDate, input.supplyDate)
       const source = input.source === undefined ? current.source : yield* documentSource(input.source ?? undefined)
-      // The line keeps what it was given (description, quantity, item identifiers); only the VAT follows the new date.
+      // The line keeps what it was given (description, quantity, item identifiers); only the VAT follows the new supply date.
       const lines = yield* Effect.forEach(current.lines, (line) => checked(() => calculateLine({
-        ...line, vat: resolveVatConfiguration(issuer, line.vatRateCode, input.issueDate),
+        ...line, vat: lineVat(issuer, line.vatRateCode, header),
       })))
       const base = { ...current }
       delete base.customerId
       delete base.source
+      delete base.supplyDate
       const notes = input.notes === undefined ? current.notes : input.notes
       const updated = withTotals({ ...base, ...buyer, ...(source === undefined ? {} : { source }), series, ...header, notes, lines })
       yield* transaction.saveDraft(updated)

@@ -138,6 +138,21 @@ void test("proforma authoring and conversion expose only their dedicated series 
   assert.throws(() => Schema.decodeUnknownSync(S.ConvertProformaInput)({}))
 })
 
+void test("supply date is optional on draft and conversion input, null on a draft without one, required on an invoice", () => {
+  assert.deepEqual(Schema.decodeUnknownSync(S.ConvertProformaInput)({ invoiceSeries: "INV", supplyDate: "2026-08-20" }),
+    { invoiceSeries: "INV", supplyDate: "2026-08-20" })
+  const header = { customerId: "customer-1", series: "INV", issueDate: "2026-09-01" }
+  assert.equal(Schema.decodeUnknownSync(S.DraftInput)({ ...header, supplyDate: null }).supplyDate, null)
+  assert.equal(Schema.decodeUnknownSync(S.UpdateDraftInput)({ ...header, supplyDate: "2026-08-20" }).supplyDate, "2026-08-20")
+  const draft = { id: "draft-1", organizationId: "org-1", sourceProformaId: null, series: "INV", issueDate: "2026-09-01",
+    dueDate: null, currency: "RON", notes: null, status: "draft" as const, lines: [], vatBreakdown: [],
+    totalExcludingVat: "0.00", vatTotal: "0.00", totalIncludingVat: "0.00", customer: { partyType: "individual" as const,
+      name: "Ion", fiscalIdentifier: "", vatRegistered: false, address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" } } }
+  assert.equal(Schema.encodeSync(S.DraftInvoice)(draft).supplyDate, null)
+  assert.equal(Schema.encodeSync(S.DraftInvoice)({ ...draft, supplyDate: "2026-08-20" }).supplyDate, "2026-08-20")
+  assert.ok(SchemaAST.getPropertySignatures(S.IssuedInvoice.ast).some((field) => field.name === "supplyDate" && !field.isOptional))
+})
+
 void test("issuer VAT status is required on document responses but absent from issuer configuration", () => {
   const company = {
     name: "Furnizor SRL", fiscalIdentifier: "12345674", legalForm: "srl" as const,

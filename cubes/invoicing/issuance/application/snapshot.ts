@@ -6,7 +6,7 @@ import type { IdGenerator } from "../../contracts/host.ts"
 import type { DraftInvoice, IssuerSnapshot } from "../../domain/invoice.ts"
 import { validateFiscalDocument } from "../../domain/calculation.ts"
 import type { AuthoringDocumentInput } from "../../domain/inputs.ts"
-import { activeDocumentSeries, authorDocument, type AuthoringTransaction } from "../../drafts/index.ts"
+import { activeDocumentSeries, authorDocument, effectiveSupplyDate, validateSupplyDate, type AuthoringTransaction } from "../../drafts/index.ts"
 import { currentVatRegistration, validateVatForIssuance, type IssuerProfile } from "../../issuer/index.ts"
 import type { AuthoringProformaInput } from "../domain/proforma.ts"
 import { documentWithoutLines, linesRequired, vatRegistrationMissing } from "../../issues/index.ts"
@@ -21,11 +21,14 @@ export interface NumberedIdentity {
   readonly issuedAt: Date
 }
 
-const issuerAtIssuance = (issuer: IssuerProfile, document: SnapshotContent) => checked((): IssuerSnapshot => {
+// An invoice's VAT follows its supply date; a proforma is not a supply, so it keeps the issue date.
+const issuerAtIssuance = (issuer: IssuerProfile, document: SnapshotContent, kind: "invoice" | "proforma") => checked((): IssuerSnapshot => {
   validateFiscalDocument(document)
-  validateVatForIssuance(issuer, document.issueDate, document.lines)
-  const registration = currentVatRegistration(issuer.vatConfigurations, document.issueDate)
-  if (registration === undefined) throw validationFailure([vatRegistrationMissing(document.issueDate)])
+  if (kind === "invoice" && document.supplyDate !== undefined) validateSupplyDate(document.supplyDate, document.issueDate)
+  const vatDate = kind === "invoice" ? effectiveSupplyDate(document) : document.issueDate
+  validateVatForIssuance(issuer, vatDate, document.lines)
+  const registration = currentVatRegistration(issuer.vatConfigurations, vatDate)
+  if (registration === undefined) throw validationFailure([vatRegistrationMissing(vatDate)])
   return copyIssuerSnapshot({ ...issuer, vatRegistered: registration.registered })
 })
 
@@ -48,7 +51,7 @@ export const issuanceSource = (
     // Drafts may be empty; a document being issued may not. The rule lives on
     // the issuance path only, so authoring stays shared with draft creation.
     if (source.document.lines.length === 0) return yield* Effect.fail(validationFailure([documentWithoutLines()]))
-    return { ...source, issuer: yield* issuerAtIssuance(source.issuer, source.document) }
+    return { ...source, issuer: yield* issuerAtIssuance(source.issuer, source.document, kind) }
   }
   const draft = yield* transaction.findDraft(organizationId, input.draftId)
   if (draft === undefined) return yield* Effect.fail(missing("draft", input.draftId))
@@ -64,5 +67,5 @@ export const issuanceSource = (
   if (draft.lines.length === 0) return yield* Effect.fail(validationFailure([linesRequired(kind)]))
   const issuer = yield* transaction.findIssuer(organizationId)
   if (issuer === undefined) return yield* Effect.fail(missing("issuer", organizationId))
-  return { document: draft, issuer: yield* issuerAtIssuance(issuer, draft), draft }
+  return { document: draft, issuer: yield* issuerAtIssuance(issuer, draft, kind), draft }
 })

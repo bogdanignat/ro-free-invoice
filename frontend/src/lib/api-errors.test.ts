@@ -125,6 +125,13 @@ void test("a payment amount, a storno reason and a future issue date read in Rom
   assert.equal(read("issue_date_future", "issueDate"), "Data emiterii nu poate fi în viitor.")
 })
 
+void test("a supply after the issue and a VAT regime missing on the supply date read in Romanian", () => {
+  const read = (details: unknown) => parseApiFailure({ error: "ValidationFailure", issues: ["x"], details }, 400).message
+  assert.equal(read([{ code: "supply_date_after_issue", field: "supplyDate" }]), "Data livrării nu poate fi după data emiterii.")
+  assert.equal(read([{ code: "date_invalid", field: "supplyDate" }]).includes("data livrării"), true)
+  assert.match(read([{ code: "vat_registration_missing", params: { date: "2025-07-20" } }]), /2025-07-20.*Setări/u)
+})
+
 void test("the first coded detail wins, and an unclassified one leaves the English issue", () => {
   const issues = ["first", "second"]
   assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "unclassified" }, { code: "quantity_zero", field: "quantity" }] }, 400).message,

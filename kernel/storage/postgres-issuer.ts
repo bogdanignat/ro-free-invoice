@@ -64,6 +64,7 @@ export const issuerTransactionAdapter = (client: TransactionClient): IssuerTrans
   }),
   // No row lock: the business lock every store transaction takes already orders this against issuance.
   hasIssuedDocuments: (organizationId, from) => read("find issued documents", async () => {
+    // supply_date <= issue_date (cubes/invoicing/drafts supply-date.ts), so issue_date >= from covers every VAT date from on.
     const { rows } = await client.query(
       `SELECT EXISTS (SELECT 1 FROM issued_invoices WHERE organization_id = $1 AND ($2::text IS NULL OR issue_date >= $2))
         OR EXISTS (SELECT 1 FROM correction_documents WHERE organization_id = $1 AND ($2::text IS NULL OR issue_date >= $2)) AS issued`,
