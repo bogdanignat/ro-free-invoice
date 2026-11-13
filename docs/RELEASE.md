@@ -26,7 +26,11 @@ and `IMAGE_TAG=local`. Every step below is the same for both.
 
 Caddy and Traefik route the public traffic to `app`, the one image. Run
 `scripts/verify-docker.sh verify` (the full `pnpm verify`, in throwaway databases on the project's PostgreSQL 16)
-before building the image; the release workflow runs the same harness. The size gate keeps the existing
+before building the image. `.github/workflows/verify.yaml` runs the same harness on every pull request to
+`main` and before every release: `release.yaml` calls it, and its `build` job has `needs: verify`, so a
+failed verification publishes nothing. The version is strict semver `X.Y.Z` (tag `vX.Y.Z`, or the
+`version` input of a manual dispatch); anything else fails the release. Actions are pinned to a commit
+SHA: updating one means a new SHA, resolved with `git ls-remote <repo-url> refs/tags/<tag>`. The size gate keeps the existing
 6,000-character file cap and the 40,000-character / 15-file cube caps; it also checks
 production source files under `kernel/` and `frontend/src/` without treating these
 trees as a cube. `bin/` and root tooling/config files are outside that file-only extension.
@@ -61,7 +65,7 @@ them to `qwbe-smoke-*` with an override and refuses to start if any volume of th
 would not be one of those, so `down -v` cannot reach another stack's data.
 
 `pnpm gate:boundaries` checks all of `frontend/src` alongside the cube and host trees.
-It runs in `pnpm verify`, also used by the release CI verification job. Frontend source
+It runs in `pnpm verify`, hence in the `verify` workflow above. Frontend source
 dependencies follow this matrix:
 
 | Source | Allowed targets within `frontend/src` |
@@ -139,7 +143,7 @@ The commands below are written for a); with b), replace `--profile proxy` by
 `-f compose.loopback.yaml` wherever the stack is started. Setting `COMPOSE_FILE` and
 `COMPOSE_PROFILES` in `.env` (see `.env.example`) makes both unnecessary.
 
-Requirements enforced by the bundle: `read_only: true` with bounded `tmpfs`, named volume `qwbe-invoicing-data`, `depends_on: migrate: service_completed_successfully` (and `migrate` on `db-init`), `HEALTHCHECK` on `/health/ready`, secrets from file, three database roles (`app` connects as `qwbe_app`, DML only; `migrate` as `qwbe_owner`; the `postgres` superuser only in `db` and `db-init`), no fallback for `PUBLIC_ORIGIN`, `IMAGE_TAG` or the five secret paths, `cap_drop: [ALL]` and `no-new-privileges` on every service (`db` adds back `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID` for its entrypoint, `db-init` `DAC_READ_SEARCH` to read the secret files as root, Caddy `NET_BIND_SERVICE`), PostgreSQL and Caddy pinned by version and digest in `compose.prod.yaml` itself (only the application image is in `image-digests.txt`), the project network on fixed IPv4 and IPv6 subnets that `QWBE_TRUSTED_PROXY` trusts by default, and HSTS (`max-age=31536000`) sent by the application on an `https:` `PUBLIC_ORIGIN`.
+Requirements enforced by the bundle: `read_only: true` with bounded `tmpfs`, named volume `qwbe-invoicing-data`, `depends_on: migrate: service_completed_successfully` (and `migrate` on `db-init`), `HEALTHCHECK` on `/health/ready`, secrets from file, three database roles (`app` connects as `qwbe_app`, DML only; `migrate` as `qwbe_owner`; the `postgres` superuser only in `db` and `db-init`), json-file logs rotated at 10 MB x 5 files per service (`x-logging`), no fallback for `PUBLIC_ORIGIN`, `IMAGE_TAG` or the five secret paths, `cap_drop: [ALL]` and `no-new-privileges` on every service (`db` adds back `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID` for its entrypoint, `db-init` `DAC_READ_SEARCH` to read the secret files as root, Caddy `NET_BIND_SERVICE`), Caddy with a read-only root that writes only to `/data`, `/config` and a 16 MB `/tmp` (a `Caddyfile` `log { output file ... }` must write under `/data`, or use stdout), PostgreSQL and Caddy pinned by version and digest in `compose.prod.yaml` itself (only the application image is in `image-digests.txt`), the project network on fixed IPv4 and IPv6 subnets that `QWBE_TRUSTED_PROXY` trusts by default, and HSTS (`max-age=31536000`) sent by the application on an `https:` `PUBLIC_ORIGIN`.
 
 Compose does not move an existing network to other subnets. An installation whose network
 was created before the subnets were fixed (or before they changed in `.env`) needs, once,
@@ -271,9 +275,17 @@ with `qwbe-invoicing-<UTC time>.meta` next to it: image, image ID, commit,
 archive: removing old archives, and copying them to another machine, is the
 administrator's job.
 
-`app` is down for the whole backup: the dump (the CLI bounds it at ten minutes), the
-copy, the compression and the verification, within the archive limits (4,096 members,
-512 MiB per member, 1 GiB expanded). Measure it on your data before choosing the hour.
+`app` is down for the whole backup: the dump, the copy, the compression and the
+verification. The CLI bounds them, fixed and with no override: a 30-minute dump; an archive
+of at most 500,000 members, 8 GiB - 1 per member (the ustar ceiling), a 128 MiB manifest,
+64 GiB expanded and 48 GiB compressed, and 60 minutes for each read of the archive; a 60-minute
+database restore. The rationale for each is in the comment of `defaultArchiveLimits` in
+`kernel/ops/postgres-backup-tar.ts`. Measure it on your data before choosing the hour.
+
+Disk: the staging volume (`qwbe-invoicing-backup-staging`, `TMPDIR` of `app`) holds a
+full copy of the dump and of the PDFs while the archive is made, and `BACKUP_DIR` holds the
+archive itself, so each needs room for the whole data set (about 33 GB at the sizing in that
+comment) before the first run, and `BACKUP_DIR` more with every archive kept.
 
 The archives stay in `BACKUP_DIR`, on this host. Copying them off it (and the
 operator config listed below) is the server administrator's responsibility; a backup
@@ -294,10 +306,11 @@ so that backup's downtime can then happen outside 03:30. While a deploy or a res
 holds the lock, the timer's run fails at once and the unit shows it (`systemctl
 --failed`); the deploy makes its own backup.
 
-The service allows 30 minutes per run (`TimeoutStartSec`). When that, or a `systemctl
+The service allows 3 hours per run (`TimeoutStartSec=3h`). When that, or a `systemctl
 stop`, ends a run, systemd sends SIGTERM to the script, which first finishes the
 current command (up to the whole CLI backup), then removes the partial archive and
-starts `app` again; `TimeoutStopSec=15min` leaves room for that. Only if that is
+starts `app` again; `TimeoutStopSec=2h30min` leaves room for that. The budget is
+explained in `deploy/systemd/qwbe-invoicing-backup.service`. Only if that is
 exceeded does SIGKILL end everything: `app` stays stopped and `app-stopped` makes the
 next run refuse (Production scripts, above). A `.partial-*` file left by such a run is
 not an archive; remove it by hand.
@@ -375,17 +388,17 @@ docker compose -f compose.prod.yaml run --rm --no-deps -e PGDATABASE=qwbe_invoic
 docker volume create qwbe-invoicing-data-restored
 # Inspect the archive: no database, no secret; exit 0 only when this image can restore it.
 docker compose -f compose.prod.yaml run --rm --no-deps -e TMPDIR=/var/backups/staging \
-  -v invoicing-backup-staging:/var/backups/staging -v /opt/qwbe-invoicing/backups:/backup:ro migrate \
+  -v qwbe-invoicing-backup-staging:/var/backups/staging -v /opt/qwbe-invoicing/backups:/backup:ro migrate \
   node bin/qwbe-invoicing.ts backup-inspect --input /backup/qwbe-2026-08-31.tar.gz --json
 # Dry-run against that target: verifies the whole archive, writes nothing. In `migrate`
 # (qwbe_owner), staging on the staging volume: `migrate` has only a small /tmp.
 docker compose -f compose.prod.yaml run --rm --no-deps -e PGDATABASE=qwbe_invoicing_restored \
-  -e TMPDIR=/var/backups/staging -v invoicing-backup-staging:/var/backups/staging \
+  -e TMPDIR=/var/backups/staging -v qwbe-invoicing-backup-staging:/var/backups/staging \
   -v qwbe-invoicing-data-restored:/data -v /opt/qwbe-invoicing/backups:/backup:ro migrate \
   node bin/qwbe-invoicing.ts restore --input /backup/qwbe-2026-08-31.tar.gz --json
 # Apply
 docker compose -f compose.prod.yaml run --rm --no-deps -e PGDATABASE=qwbe_invoicing_restored \
-  -e TMPDIR=/var/backups/staging -v invoicing-backup-staging:/var/backups/staging \
+  -e TMPDIR=/var/backups/staging -v qwbe-invoicing-backup-staging:/var/backups/staging \
   -v qwbe-invoicing-data-restored:/data -v /opt/qwbe-invoicing/backups:/backup:ro migrate \
   node bin/qwbe-invoicing.ts restore --input /backup/qwbe-2026-08-31.tar.gz --apply --confirm-production --json
 # Point the stack at both: QWBE_PGDATABASE=qwbe_invoicing_restored and

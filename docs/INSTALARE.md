@@ -53,6 +53,8 @@ Comenzile rulează din directorul repository-ului.
      Apoi `cp Caddyfile.example Caddyfile` și înlocuiește `invoice.example.com` cu gazda
      din `PUBLIC_ORIGIN`. `Caddyfile` trebuie să rămână lizibil pentru toți (`0644`, cum îl
      lasă `cp`): Caddy rulează fără capabilitatea care i-ar permite să citească un fișier `0600`.
+     Caddy are rădăcina read-only și scrie doar în `/data`, `/config` și un `/tmp` de 16 MB:
+     un `log { output file ... }` în `Caddyfile` scrie sub `/data` sau la `stdout`.
      Limitarea încercărilor de login merge pe IP-ul real al vizitatorului fără altă setare.
    - **b) Proxy-ul tău, pe același server:**
      `COMPOSE_FILE=compose.prod.yaml:compose.loopback.yaml` și `APP_LOOPBACK_PORT=3180`.
@@ -70,6 +72,8 @@ Comenzile rulează din directorul repository-ului.
    fixe `10.93.0.0/24` și `fd93:1c5e:a7b0::/64` (IPv6 ULA), în care `QWBE_TRUSTED_PROXY` are
    încredere implicit. HSTS (`max-age=31536000`) îl trimite aplicația, pentru o
    `PUBLIC_ORIGIN` cu `https`.
+
+   Logurile containerelor se rotesc în `compose.prod.yaml`: 10 MB × 5 fișiere pe serviciu.
 
    **IPv6 (varianta a).** Vizitatorii IPv6 ajung la Caddy cu adresa lor reală doar pe Docker
    27 sau mai nou, cu `ip6tables` pornit (implicit acolo). Cu `ip6tables` oprit, Docker îi
@@ -243,16 +247,26 @@ tag-ul imaginii vechi (fără să pornească nimic) și afișează comanda de re
 făcut chiar înainte de deploy; restore-ul rulează atunci cu imaginea veche. Ambele comenzi
 rămân și în `.local/production/recovery-required`.
 
-**Actualizarea** dintr-un checkout: backup întâi, păstrezi imaginea veche pentru rollback,
-apoi construiești și pornești:
+**Actualizarea** dintr-un checkout: oprești `app`, faci backup cu imaginea veche, o păstrezi
+pentru rollback, construiești și pornești. `up -d` rulează `migrate` înaintea lui `app`
+(`app` depinde de `migrate`), iar `migrate` cere să nu ruleze `app` pe aceeași bază: de aceea
+`app` stă oprit de la backup până la `up -d`. Dacă backup-ul eșuează, nu continua: repornești
+vechiul `app` cu `docker compose start app`.
 
 ```bash
+mkdir -p /opt/qwbe-invoicing/backups
+docker compose stop app
+docker compose run --rm --no-deps -v /opt/qwbe-invoicing/backups:/backup app node bin/qwbe-invoicing.ts backup --output /backup/qwbe-$(date +%F).tar.gz --json
 docker tag qwbe-invoicing:local qwbe-invoicing:previous
 git pull
 docker build -t qwbe-invoicing:local .
 docker compose up -d
 docker compose exec app node bin/qwbe-invoicing.ts doctor --json
 ```
+
+Aceiași pași, automat și cu rollback, face `scripts/production/deploy.sh`
+([Upgrade](./RELEASE.md#upgrade)): construiește sub un tag de commit, înainte de oprirea lui `app`. Dacă `migrate` a schimbat schema, rollback-ul înseamnă restaurarea
+backup-ului cu imaginea veche, nu doar repornirea ei ([Rollback](./RELEASE.md#rollback)).
 
 Release-uri publicate și rollback: [Upgrading](../README.md#upgrading) și
 [Rollback](./RELEASE.md#rollback). `docker compose down -v` șterge baza, PDF-urile și
