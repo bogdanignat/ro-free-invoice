@@ -127,6 +127,7 @@ const base = {
   kind: "invoice",
   issueDate: "2026-09-17",
   dueDate: "2026-10-17",
+  actualDeliveryDate: null,
   currencyCode: "RON",
   notes: [],
   precedingInvoice: null,

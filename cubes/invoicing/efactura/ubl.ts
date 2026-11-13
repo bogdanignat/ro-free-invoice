@@ -98,6 +98,10 @@ const billingReference = (document: EFacturaDocument): ReadonlyArray<XmlElement>
     ]),
   ])]
 
+/** BG-13 reduced to BT-72; absent when the delivery date is the issue date. */
+const delivery = (document: EFacturaDocument): ReadonlyArray<XmlElement> =>
+  optional("cbc:ActualDeliveryDate", document.actualDeliveryDate).map((date) => element("cac:Delivery", [date]))
+
 const header = (document: EFacturaDocument, profile: EFacturaProfile,
   typeCodeName: string, typeCode: string): ReadonlyArray<XmlElement> => [
   ...optional("cbc:UBLVersionID", profile.ublVersionId),
@@ -128,6 +132,7 @@ const root = (document: EFacturaDocument, profile: EFacturaProfile): XmlElement 
       ...billingReference(document),
       party("cac:AccountingSupplierParty", document.seller, profile),
       party("cac:AccountingCustomerParty", document.buyer, profile),
+      ...(isInvoice ? delivery(document) : []),
       taxTotal(document),
       legalMonetaryTotal(document),
       ...document.lines.map((line) => isInvoice

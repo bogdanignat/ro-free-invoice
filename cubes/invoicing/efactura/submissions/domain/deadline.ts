@@ -46,17 +46,30 @@ const addWorkingDays = (date: string, count: number): string => {
   return fromDay(day)
 }
 
+/** The 15th of the month after the supply: the latest issue date (art. 319 alin. (16) Cod fiscal). */
+const issueTermFor = (supplyDate: string): string => {
+  const [year, month] = supplyDate.split("-").map(Number)
+  return fromDay(Date.UTC(year ?? 1970, month ?? 1, 15))
+}
+
 /**
  * The application's operational SPV deadline, `YYYY-MM-DD`. It is NOT the exact
- * legal deadline (OUG 120/2021 art. 10 alin. 7, as changed by OUG 89/2025).
- * From 2026-01-01 it is the issue date plus 5 working days, counting only
- * Monday to Friday and ignoring public holidays, so it is never later than the
- * legal one (a holiday would push the legal one later). Until 2025-12-31 the
- * legal term is 5 calendar days. The delivery date can also cap the legal term;
- * it is not known yet and will be added then as `min(...)`.
+ * legal deadline (OUG 120/2021 art. 10 alin. 7, as changed by OUG 89/2025):
+ * 5 days after the issue date, but no later than 5 days after the latest issue
+ * date the supply allows (the 15th of the following month). From 2026-01-01
+ * the days are working days, counting only Monday to Friday and ignoring public
+ * holidays, so it is never later than the legal one (a holiday would push the
+ * legal one later); until 2025-12-31 they are calendar days. The issue date
+ * picks the rule. Without a supply date (a correction) only the issue date counts.
  */
-export const spvDeadline = (issueDate: string): string =>
-  issueDate >= WORKING_DAYS_FROM ? addWorkingDays(issueDate, 5) : fromDay(toDay(issueDate) + 5 * DAY_MS)
+export const spvDeadline = (issueDate: string, supplyDate?: string): string => {
+  const plusFive = (date: string): string =>
+    issueDate >= WORKING_DAYS_FROM ? addWorkingDays(date, 5) : fromDay(toDay(date) + 5 * DAY_MS)
+  const fromIssue = plusFive(issueDate)
+  if (supplyDate === undefined) return fromIssue
+  const fromIssueTerm = plusFive(issueTermFor(supplyDate))
+  return fromIssueTerm < fromIssue ? fromIssueTerm : fromIssue
+}
 
 export type SpvUrgency = "overdue" | "imminent" | "ok"
 

@@ -20,6 +20,16 @@ void test("up to 2025-12-31 the deadline is 5 calendar days, from 2026-01-01 wor
   assert.equal(spvDeadline("2026-01-02"), "2026-01-09")
 })
 
+void test("the supply date caps the deadline at 5 days after the 15th of the following month", () => {
+  assert.equal(spvDeadline("2026-02-16", "2026-01-10"), "2026-02-20") // 15.02 is Sunday; not 2026-02-23
+  assert.equal(spvDeadline("2026-01-05", "2026-01-05"), spvDeadline("2026-01-05"))
+  assert.equal(spvDeadline("2026-02-10", "2026-01-10"), "2026-02-17") // issued before the 15th: the issue date decides
+  assert.equal(spvDeadline("2027-01-20", "2026-12-03"), "2027-01-22") // December supply: 15 January of the new year
+  assert.equal(spvDeadline("2026-01-20", "2025-12-05"), "2026-01-22") // the issue date picks working days
+  assert.equal(spvDeadline("2025-12-20", "2025-11-20"), "2025-12-20") // calendar days: 15.12 + 5
+  assert.equal(spvDeadline("2025-01-17", "2024-12-10"), "2025-01-20") // calendar days across the new year
+})
+
 void test("the urgency is overdue after the deadline, imminent up to one working day before it", () => {
   assert.equal(spvUrgency("2026-01-12", "2026-01-13"), "overdue")
   assert.equal(spvUrgency("2026-01-12", "2026-01-12"), "imminent")

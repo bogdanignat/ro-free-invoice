@@ -56,6 +56,8 @@ interface RegisterRow {
 export interface InvoiceRegisterInvoiceRow extends RegisterRow {
   readonly kind: "invoice"
   readonly dueDate: string | null
+  /** Caps the SPV deadline; a correction has none. */
+  readonly supplyDate: string
   readonly eFacturaStatus: EFacturaStatus
 }
 

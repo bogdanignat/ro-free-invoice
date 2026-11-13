@@ -23,7 +23,7 @@ export interface EFacturaStatusView {
 }
 
 const registerSpv = (row: InvoiceRegisterRow, today: string) => {
-  const deadline = spvDeadline(row.issueDate)
+  const deadline = spvDeadline(row.issueDate, row.kind === "invoice" ? row.supplyDate : undefined)
   return { state: spvState(row.eFacturaStatus), deadline, urgency: spvNeedsAction(row.eFacturaStatus) ? spvUrgency(deadline, today) : null }
 }
 

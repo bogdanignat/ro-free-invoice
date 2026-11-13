@@ -54,12 +54,17 @@ workflow, not an external verification of a company's fiscal status. Other
 non-registration grounds and E/Z/AE/other categories are unsupported. Client entry
 and prefix handling are unchanged; external CUI verification is deferred to T-1371.
 
-Issuer configuration is dated. Authoring displays the registration at issueDate;
-issued invoices/proformas/corrections use frozen facts. Invoice issuance validates
+Issuer configuration is dated. An invoice's VAT regime and rates are read at its
+supply date (`supplyDate`, the issue date when none is given), in authoring and at
+issuance alike; a proforma is no supply and reads them at its issue date. The
+issuer's own details (name, address, identifiers) stay those of the issue date.
+Revenue reports group documents by `issue_date`, never by supply date.
+Issued invoices/proformas/corrections use frozen facts. Invoice issuance validates
 line calculations, VAT groups and document totals before numbering. O has exactly
 one breakdown — the zero beside it is a placeholder, not a rate to group by. S is
 grouped by category/rate, using the existing cent-rounding rule.
-Proforma-to-invoice checks compatibility at the conversion date. Proforma-to-draft
+Proforma-to-invoice checks compatibility at the invoice's supply date (the conversion
+date unless an earlier supply is given). Proforma-to-draft
 preserves a valid offered snapshot even if it must be edited before later issuance.
 Full correction preserves the original treatment and negates amounts, normalizing
 zero to `0.00`; it does not reinterpret the source using the current issuer profile.

@@ -32,6 +32,7 @@ const invoice = (overrides: Partial<EFacturaDocument> = {}): EFacturaDocument =>
   id: "QWBE 42",
   issueDate: "2026-09-17",
   dueDate: "2026-10-17",
+  actualDeliveryDate: null,
   currencyCode: "RON",
   notes: [],
   precedingInvoice: null,
@@ -238,6 +239,13 @@ void test("refuses dates that look right but are not real days", () => {
   rejects(invoice({ issueDate: "2026-02-30" }), /BT-2/u)
   rejects(invoice({ issueDate: "17-09-2026" }), /BT-2/u)
   rejects(invoice({ dueDate: "2026-13-01" }), /BT-9/u)
+})
+
+void test("states a delivery date only when it is a real day before the issue date (BT-72)", () => {
+  assert.doesNotThrow(() => { validateEFacturaDocument(invoice({ actualDeliveryDate: "2026-09-16" })) })
+  for (const date of ["2026-09-17", "2026-09-18", "2026-02-30", ""]) rejects(invoice({ actualDeliveryDate: date }), /BT-72/u)
+  rejects(invoice({ kind: "credit_note", dueDate: null, actualDeliveryDate: "2026-09-16",
+    precedingInvoice: { id: "QWBE 41", issueDate: "2026-09-01" } }), /BT-72/u)
 })
 
 void test("refuses a currency other than RON, because nothing converts it yet", () => {

@@ -23,7 +23,8 @@ const registerRowFrom = (value: Row): InvoiceRegisterRow => {
     currency: text(value, "currency"), totalIncludingVat: money(value, "total_including_tax") }
   const kind = text(value, "kind")
   if (kind === "invoice") {
-    return { kind, ...common, dueDate: nullableText(value, "due_date"), eFacturaStatus: statusFrom(value) }
+    return { kind, ...common, dueDate: nullableText(value, "due_date"), supplyDate: text(value, "supply_date"),
+      eFacturaStatus: statusFrom(value) }
   }
   if (kind === "correction") {
     return { kind, ...common, dueDate: null, eFacturaStatus: statusFrom(value),
@@ -78,12 +79,12 @@ export const invoiceRegisterTransactionAdapter = (client: TransactionClient): Re
     const { rows } = await client.query(
       `SELECT * FROM (
         SELECT 'invoice' AS kind,i.id,i.series,i.number,i.issue_date,i.customer_legal_name AS customer_name,
-          i.currency,i.total_including_tax,i.due_date,i.e_factura_status,
+          i.currency,i.total_including_tax,i.due_date,i.supply_date,i.e_factura_status,
           NULL AS original_id,NULL AS original_series,NULL::integer AS original_number
         FROM issued_invoices i WHERE i.organization_id=$1${invoiceFilters.sql}
         UNION ALL
         SELECT 'correction' AS kind,c.id,c.series,c.number,c.issue_date,c.customer_legal_name AS customer_name,
-          c.currency,c.total_including_tax,NULL AS due_date,c.e_factura_status,
+          c.currency,c.total_including_tax,NULL AS due_date,NULL AS supply_date,c.e_factura_status,
           o.id AS original_id,o.series AS original_series,o.number AS original_number
         FROM correction_documents c
         JOIN issued_invoices o ON o.organization_id=c.organization_id AND o.id=c.original_invoice_id

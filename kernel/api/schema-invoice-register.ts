@@ -9,7 +9,7 @@ import {
 const SpvStatus = Schema.Struct({
   state: Schema.Literal(...SPV_STATES), deadline: Schema.String, urgency: Schema.NullOr(Schema.Literal("overdue", "imminent", "ok")),
 }).annotations({
-  description: "Operational SPV deadline (not the exact legal one: weekends only, holidays and delivery date ignored); urgency is null once nothing is left to resolve (accepted, in progress).",
+  description: "Operational SPV deadline (not the exact legal one: capped by the delivery date, weekends only, public holidays ignored); urgency is null once nothing is left to resolve (accepted, in progress).",
 })
 const common = {
   id: Schema.String, series: Schema.String, number: Schema.Int, issueDate: Schema.String,

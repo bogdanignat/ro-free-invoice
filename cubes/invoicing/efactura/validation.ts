@@ -40,6 +40,7 @@ const checkIdentity = (document: EFacturaDocument, issues: Array<string>): void 
     // validator accepted a credit note with neither a due date nor payment
     // terms, so BR-CO-25 does not reach here.
     if (document.dueDate !== null) issues.push("a credit note carries no payment due date (BT-9)")
+    if (document.actualDeliveryDate !== null) issues.push("a credit note carries no delivery date (BT-72)")
   } else if (document.dueDate === null) {
     // BR-CO-25: something has to say when a positive amount is due.
     const payable = amountOrSkip(document.payableAmount)
@@ -48,6 +49,10 @@ const checkIdentity = (document: EFacturaDocument, issues: Array<string>): void 
     }
   } else if (!isCalendarDate(document.dueDate)) {
     issues.push("dueDate must be a valid YYYY-MM-DD date (BT-9)")
+  }
+  const delivery = document.actualDeliveryDate
+  if (delivery !== null && !(isCalendarDate(delivery) && delivery < document.issueDate)) {
+    issues.push("actualDeliveryDate must be a valid YYYY-MM-DD date before the issue date (BT-72)")
   }
   const preceding = document.precedingInvoice
   if (preceding !== null) {

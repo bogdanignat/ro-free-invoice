@@ -247,7 +247,8 @@ export const memoryStore = (state: MemoryState): InvoicingDependencies["store"] 
           .filter((invoice) => invoice.organizationId === organizationId && sameSource(invoice, source))
           .map((invoice) => ({ kind: "invoice", id: invoice.id, series: invoice.series, number: invoice.number,
             issueDate: invoice.issueDate, customer: { name: invoice.customer.name }, currency: invoice.currency,
-            totalIncludingVat: invoice.totalIncludingVat, dueDate: invoice.dueDate, eFacturaStatus: invoice.eFacturaStatus }))
+            totalIncludingVat: invoice.totalIncludingVat, dueDate: invoice.dueDate, supplyDate: invoice.supplyDate,
+            eFacturaStatus: invoice.eFacturaStatus }))
         const corrections: ReadonlyArray<InvoiceRegisterRow> = [...working.corrections.values()]
           .filter((correction) => correction.organizationId === organizationId && sameSource(correction, source))
           .flatMap((correction) => {

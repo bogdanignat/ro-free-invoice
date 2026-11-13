@@ -18,6 +18,7 @@ export const mapIssuedInvoice = (invoice: IssuedInvoice): EFacturaDocument => {
     id: documentNumber(invoice),
     issueDate: invoice.issueDate,
     dueDate: invoice.dueDate,
+    actualDeliveryDate: invoice.supplyDate < invoice.issueDate ? invoice.supplyDate : null,
     currencyCode: invoice.currency,
     notes: documentNotes(legalReference(invoice.vatBreakdown), invoice.notes),
     precedingInvoice: null,

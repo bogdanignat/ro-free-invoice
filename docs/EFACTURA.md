@@ -37,6 +37,12 @@ with the list of those a document breaks.
 | `kernel/api/handlers-efactura.ts` (routes), `kernel/api/api-responses.ts` — `efacturaXml` | renders the download, mounted only with the e-Factura plugin enabled; a mapping refusal travels as the list of reasons, not as a 500 |
 | `cubes/invoicing/efactura/fixtures.test-support.ts` | the synthetic documents, all invented |
 
+An invoice whose delivery precedes its issue date carries that date as BT-72
+(`cac:Delivery/cbc:ActualDeliveryDate`, after the customer party and before
+`cac:TaxTotal`). Art. 319 alin. (20) lit. c) Cod fiscal asks for it only when it is
+earlier, so a same-day delivery writes nothing and leaves the XML unchanged. A storno
+never carries it; BT-7 and BG-14 are not emitted.
+
 The generator never imports the invoicing cube, and the mapper is the only code
 that knows both models. The cube re-states its own decimal arithmetic instead of
 sharing invoicing's, because cubes may not import each other.
@@ -47,7 +53,8 @@ Passing it does not mean a document is valid — only ANAF decides that. Failing
 it means we would knowingly emit a broken document, so we refuse and name every
 offending field at once.
 
-- Identity and dates: BT-1, BT-2, BT-5 (RON only), BT-9, BT-25/26, BG-3.
+- Identity and dates: BT-1, BT-2, BT-5 (RON only), BT-9, BT-25/26, BG-3, BT-72 (a real
+  day before BT-2, never on a credit note).
 - BR-RO-120: the buyer carries BT-47 and/or BT-48. Added after the validator
   returned it verbatim; see "What the validator said" below.
 - BR-CO-26: the seller is identified by BT-29, BT-30 or BT-31 — and **not** by
@@ -435,10 +442,12 @@ by the buyer's. BT-47 carries the buyer's CNP only when the customer has one
 (their choice to be identified, art. 10^1 alin. (3)), otherwise `0000000000000`.
 The invoice register shows each issued document's SPV standing (not sent, in progress,
 accepted, failed, unclear) and an **operational** deadline: the issue date plus 5 working
-days from 2026-01-01 (5 calendar days until 2025-12-31). It is not the exact legal
-deadline: it counts Monday to Friday only, so public holidays (which push the legal term
-later) and the delivery date (which can cap it) are not taken into account, and it is never
-later than the legal one. `GET /api/invoice-register?spv=unresolved` keeps the documents
+days from 2026-01-01 (5 calendar days until 2025-12-31), but on an invoice no later than
+5 such days after the 15th of the month following its delivery (the latest issue date,
+art. 319 alin. (16) Cod fiscal); the issue date picks working or calendar days, and a
+storno counts from its issue date only. It is not the exact legal deadline: it counts
+Monday to Friday only, so public holidays (which push the legal term later) are not
+taken into account, and it is never later than the legal one. `GET /api/invoice-register?spv=unresolved` keeps the documents
 still to resolve (not sent, rejected/refused, unknown), each marked overdue or expiring
 within one working day against today's date in Europe/Bucharest.
 

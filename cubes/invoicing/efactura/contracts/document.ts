@@ -127,6 +127,9 @@ export interface EFacturaDocument {
   readonly issueDate: string
   /** BT-9 — payment due date. Never set on a credit note. */
   readonly dueDate: string | null
+  /** BT-72 — actual delivery date, stated only when it precedes BT-2
+   * (art. 319 alin. (20) lit. c) Cod fiscal). Never set on a credit note. */
+  readonly actualDeliveryDate: string | null
   /** BT-5 — ISO 4217. Only `RON` is supported today. */
   readonly currencyCode: string
   /**

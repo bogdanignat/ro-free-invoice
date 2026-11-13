@@ -6,7 +6,7 @@ import { eFacturaStatusView } from "./efactura-status.ts"
 
 const row = (eFacturaStatus: InvoiceRegisterRow["eFacturaStatus"], issueDate = "2026-01-05"): InvoiceRegisterRow => ({
   kind: "invoice", id: eFacturaStatus, series: "T", number: 1, issueDate, customer: { name: "C" }, currency: "RON",
-  totalIncludingVat: "1.00", dueDate: null, eFacturaStatus,
+  totalIncludingVat: "1.00", dueDate: null, supplyDate: issueDate, eFacturaStatus,
 })
 const page = { items: [row("not_sent"), row("queued"), row("accepted"), row("rejected"), row("refused"), row("unknown")], nextCursor: null }
 const spvOf = (today: string) => eFacturaStatusView(true, () => new Date(`${today}T10:00:00Z`)).register(page).items.map((item) => item.spv)
@@ -18,6 +18,12 @@ void test("the register view adds the SPV group, deadline and urgency; urgency o
   assert.deepEqual(spv.map((item) => item?.urgency), ["imminent", null, null, "imminent", "imminent", "imminent"])
   assert.equal(spvOf("2026-01-13")[0]?.urgency, "overdue")
   assert.equal(spvOf("2026-01-08")[0]?.urgency, "ok")
+})
+
+void test("the register deadline is capped by an invoice's supply date", () => {
+  const view = eFacturaStatusView(true, () => new Date("2026-02-16T10:00:00Z"))
+  const late = { ...row("not_sent", "2026-02-16"), supplyDate: "2026-01-10" }
+  assert.equal(view.register({ items: [late], nextCursor: null }).items[0]?.spv?.deadline, "2026-02-20")
 })
 
 void test("the day is Bucharest's: 23:30 UTC on 2026-01-12 is already the 13th there", () => {

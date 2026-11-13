@@ -5,6 +5,7 @@ import { Effect } from "effect"
 import { PDFDocument } from "pdf-lib"
 
 import type { RenderableCorrection, RenderableInvoice, RenderableProforma, RenderedDocument } from "../../cubes/invoicing/documents/index.ts"
+import { documentRows } from "./pdf-header.ts"
 import {
   correctionTemplateVersion, createPdfRenderer, documentDateLine, formatAmount, formatRate, invoiceTemplateVersion,
   issuerLegalLines, partyIdentifierLine, proformaTemplateVersion,
@@ -330,4 +331,21 @@ void test("measures a row with its identifier lines before deciding the page bre
   const plain = await pages(rows({}))
   const coded = await pages(rows({ itemCode: "SRB-M6", barcode: "00012345600012" }))
   assert.ok(coded > plain, `${String(coded)} pages with codes, ${String(plain)} without`)
+})
+
+void test("prints the supply date under the issue date only on an invoice delivered earlier", async () => {
+  const labels = (rows: ReturnType<typeof documentRows>) => rows.map(([label, value]) => `${label}: ${value}`)
+  const delivered = { ...invoice, supplyDate: "2026-08-20" }
+  assert.deepEqual(labels(documentRows(delivered, "invoice")), [
+    "Data emiterii: 2026-09-01", "Data livrării/prestării: 2026-08-20", "Scadență: 2026-09-16", "Monedă: RON",
+  ])
+  const sameDay = { ...invoice, supplyDate: invoice.issueDate }
+  assert.deepEqual(documentRows(sameDay, "invoice"), documentRows(invoice, "invoice"))
+  assert.equal(labels(documentRows(delivered, "proforma")).some((row) => row.startsWith("Data livrării")), false)
+  const renderer = createPdfRenderer()
+  const [plain, same, earlier] = await Promise.all([invoice, sameDay, delivered]
+    .map((document) => Effect.runPromise(renderer.render(document))))
+  assert.deepEqual(same?.bytes, plain?.bytes)
+  assert.notDeepEqual(earlier?.bytes, plain?.bytes)
+  assert.equal(earlier?.templateVersion, invoiceTemplateVersion)
 })

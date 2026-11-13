@@ -87,6 +87,7 @@ export const mapCorrection = (correction: CorrectionDocument, original: IssuedIn
     id: documentNumber(correction),
     issueDate: correction.issueDate,
     dueDate: null,
+    actualDeliveryDate: null,
     currencyCode: correction.currency,
     notes: documentNotes(legalReference(vatBreakdown), correction.reason),
     precedingInvoice: { id: documentNumber(original), issueDate: original.issueDate },

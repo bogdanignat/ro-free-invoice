@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import test from "node:test"
 
 import { EFacturaContractViolation, renderEFacturaXml } from "../../cubes/invoicing/efactura/index.ts"
@@ -109,6 +110,18 @@ void test("maps an issued invoice without recomputing any of its amounts", () =>
   assert.deepEqual(mapped.lines.map((mappedLine) => mappedLine.id), ["1"])
   assert.equal(mapped.lines[0]?.unitCode, "HUR")
   assert.equal(mapped.precedingInvoice, null)
+})
+
+void test("states the delivery date only when it precedes the issue date (BT-72)", () => {
+  const earlier = mapIssuedInvoice({ ...invoice, supplyDate: "2026-08-20" })
+  assert.equal(earlier.actualDeliveryDate, "2026-08-20")
+  assert.match(renderEFacturaXml(earlier), /<cac:Delivery>\s*<cbc:ActualDeliveryDate>2026-08-20<\/cbc:ActualDeliveryDate>\s*<\/cac:Delivery>/u)
+  const same = mapIssuedInvoice(invoice)
+  assert.equal(same.actualDeliveryDate, null)
+  // Pinned from the XML rendered before BT-72 existed: same-day delivery leaves the bytes untouched.
+  assert.equal(createHash("sha256").update(renderEFacturaXml(same)).digest("hex"),
+    "25a17c859cf71ebf23f74989d49e829f36553a4b82012298a7955d811517ae04")
+  assert.equal(mapCorrection(correction, { ...invoice, supplyDate: "2026-08-20" }).actualDeliveryDate, null)
 })
 
 void test("derives the VAT prefix without doubling one that is already stored", () => {
