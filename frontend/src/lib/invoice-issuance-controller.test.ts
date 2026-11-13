@@ -9,7 +9,7 @@ import type { AuthoringDocumentInput, DraftInvoice } from "./draft-models.ts"
 import type { IssuedInvoice } from "./document-snapshot.ts"
 
 const issuedInvoice: IssuedInvoice = {
-  id: "inv-1", series: "FCT", number: 12, issueDate: "2026-01-01", dueDate: null, notes: null,
+  id: "inv-1", series: "FCT", number: 12, issueDate: "2026-01-01", dueDate: null, supplyDate: "2026-01-01", notes: null,
   currency: "RON", eFacturaStatus: "not_sent",
   issuer: {
     name: "Beta", fiscalIdentifier: "321", vatRegistered: true, legalForm: "srl",

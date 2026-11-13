@@ -18,6 +18,7 @@ const invoice: RenderableInvoice = {
   series: "QWBE",
   number: 7,
   issueDate: "2026-09-01",
+  supplyDate: "2026-09-01",
   dueDate: "2026-09-16",
   issuedAt: "2026-09-01T10:00:00.000Z",
   currency: "RON",

@@ -93,7 +93,8 @@ export const authorDocument = (
   if (issuer === undefined) return yield* Effect.fail(missing("issuer", organizationId))
   const series = yield* activeDocumentSeries(transaction, organizationId, documentType, input.series)
   const customer = yield* buyerFrom(input, organizationId, transaction)
-  const header = yield* dates(input.issueDate, input.dueDate, "supplyDate" in input ? input.supplyDate : undefined)
+  // A proforma is not a supply: it has no supply date and its VAT follows the issue date.
+  const header = yield* dates(input.issueDate, input.dueDate, documentType === "invoice" ? input.supplyDate : undefined)
   const source = yield* documentSource(input.source)
   // Authoring accepts a document without lines: a draft is allowed to stay
   // incomplete. Issuance is what requires at least one line (see issuanceSource).

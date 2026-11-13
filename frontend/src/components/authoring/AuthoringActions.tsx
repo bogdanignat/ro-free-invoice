@@ -13,7 +13,7 @@ export const AuthoringActions = ({ session }: { readonly session: InvoiceAuthori
   const { actions, feedback, status, draftDeletion } = session
   return <section className="card authoring-section">
     <h2>Acțiuni document</h2>
-    <Button className="secondary full-width" type="submit" disabled={status.pending || status.recoveryBlocked}>
+    <Button className="secondary full-width" type="submit" disabled={status.pending || status.recoveryBlocked || !status.canSave}>
       {status.savePending ? "Se salvează toate modificările…" : "Salvează draftul"}
     </Button>
     <p className="hint">Draftul este opțional și rămâne editabil.</p>

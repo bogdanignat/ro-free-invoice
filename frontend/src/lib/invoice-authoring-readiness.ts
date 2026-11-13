@@ -69,8 +69,7 @@ export const authoringReadiness = (
     editable,
     synchronized,
     hasLines,
-    // A supply date reaches the invoice only through its saved draft (`POST /invoices` has none).
-    canIssue: editable && hasLines && !pending && (draft === undefined ? form.supplyDate === "" : synchronized),
+    canIssue: editable && hasLines && !pending && (draft === undefined || synchronized),
   }
 }
 

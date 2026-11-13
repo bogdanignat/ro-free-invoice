@@ -141,6 +141,11 @@ void test("proforma authoring and conversion expose only their dedicated series 
 void test("supply date is optional on draft and conversion input, null on a draft without one, required on an invoice", () => {
   assert.deepEqual(Schema.decodeUnknownSync(S.ConvertProformaInput)({ invoiceSeries: "INV", supplyDate: "2026-08-20" }),
     { invoiceSeries: "INV", supplyDate: "2026-08-20" })
+  assert.equal(Schema.decodeUnknownSync(S.ConvertProformaInput)({ invoiceSeries: "INV", supplyDate: null }).supplyDate, null)
+  const direct = { customerId: "customer-1", issueDate: "2026-09-01", currency: "RON", lines: [] }
+  assert.equal(Schema.decodeUnknownSync(S.AuthoringDocumentInput)({ ...direct, series: "INV", supplyDate: "2026-08-20" }).supplyDate, "2026-08-20")
+  assert.equal(Schema.decodeUnknownSync(S.AuthoringDocumentInput)({ ...direct, series: "INV", supplyDate: null }).supplyDate, null)
+  assert.equal("supplyDate" in Schema.decodeUnknownSync(S.AuthoringProformaInput)({ ...direct, proformaSeries: "PRO", supplyDate: "2026-08-20" }), false)
   const header = { customerId: "customer-1", series: "INV", issueDate: "2026-09-01" }
   assert.equal(Schema.decodeUnknownSync(S.DraftInput)({ ...header, supplyDate: null }).supplyDate, null)
   assert.equal(Schema.decodeUnknownSync(S.UpdateDraftInput)({ ...header, supplyDate: "2026-08-20" }).supplyDate, "2026-08-20")

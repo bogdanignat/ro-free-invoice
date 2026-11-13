@@ -1,11 +1,12 @@
 import { Effect } from "effect"
 import { findIdempotencyReplay, idempotencyRecord, missingIdempotencyResult } from "../../application/idempotency.ts"
-import { checked, copyBuyer, recordAuditEvent, type Authorize, type OperationDependencies } from "../../application/support.ts"
+import { checked, copyBuyer, missing, recordAuditEvent, type Authorize, type OperationDependencies } from "../../application/support.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
 import { calculateTotals, validateFiscalDocument } from "../../domain/calculation.ts"
 import type { DraftInvoice, Idempotent } from "../../domain/invoice.ts"
 import { isActiveCustomer } from "../../customers/index.ts"
 import type { AuthoringTransaction } from "../../drafts/index.ts"
+import { validateVatForIssuance } from "../../issuer/index.ts"
 import type { ConvertProformaInput, Proforma } from "../domain/proforma.ts"
 import { conversionDates, conversionSource, conversionSupplyDate } from "./proforma-conversion-context.ts"
 import type { ProformaTransaction } from "./ports.ts"
@@ -37,6 +38,12 @@ export const createProformaDraftOperation = (dependencies: OperationDependencies
       const convertedAt = yield* dependencies.clock.now
       const dates = conversionDates(proforma, convertedAt)
       const supplyDate = yield* conversionSupplyDate(input, dates.issueDate)
+      // An earlier supply chosen now must already hold for the frozen lines, as on direct conversion.
+      if (supplyDate !== dates.issueDate) {
+        const issuer = yield* transaction.findIssuer(org)
+        if (issuer === undefined) return yield* Effect.fail(missing("issuer", org))
+        yield* checked(() => { validateVatForIssuance(issuer, supplyDate, proforma.lines) })
+      }
       const id = yield* dependencies.ids.next
       // Copy the offered lines; normal draft editing/issuance will validate any later VAT/date changes.
       const lines = yield* Effect.forEach(proforma.lines, (line) => Effect.map(dependencies.ids.next, (lineId) => ({ ...structuredClone(line), id: lineId })))

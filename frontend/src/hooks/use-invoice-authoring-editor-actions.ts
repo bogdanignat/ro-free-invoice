@@ -17,7 +17,7 @@ export interface EditorActionsInput {
   readonly productPresets: ReadonlyArray<ProductPreset>
   readonly customers: ReadonlyArray<Customer>
   /** The date new lines take their VAT on: an invoice's supply date (`effectiveSupplyDate`), a proforma's issue date. */
-  readonly issueDate: string
+  readonly vatDate: string
   /** A draft saved with a due date owns it; anything else still derives it from the payment terms. */
   readonly deriveDueDate: boolean
   readonly setForm: Dispatch<SetStateAction<InvoiceAuthoringForm>>
@@ -64,7 +64,7 @@ export const createInvoiceAuthoringEditorActions = (input: EditorActionsInput) =
   addLine: (): void => {
     input.setLines((current) => [...current, newEditableInvoiceLine(
       crypto.randomUUID(),
-      defaultVatCode(input.vatCatalogue, input.issuer, input.issueDate),
+      defaultVatCode(input.vatCatalogue, input.issuer, input.vatDate),
       preferredUnitOfMeasure(input.unitOfMeasures),
     )])
   },
@@ -76,7 +76,7 @@ export const createInvoiceAuthoringEditorActions = (input: EditorActionsInput) =
     if (preset === undefined) return
     input.setLines((current) => choosePresetForLine(
       current, lineKey, preset,
-      presetVatCode(preset.preferredVatRateCode, input.vatCatalogue, input.issuer, input.issueDate),
+      presetVatCode(preset.preferredVatRateCode, input.vatCatalogue, input.issuer, input.vatDate),
     ))
   },
 })

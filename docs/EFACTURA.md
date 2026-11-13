@@ -444,7 +444,8 @@ The invoice register shows each issued document's SPV standing (not sent, in pro
 accepted, failed, unclear) and an **operational** deadline: the issue date plus 5 working
 days from 2026-01-01 (5 calendar days until 2025-12-31), but on an invoice no later than
 5 such days after the 15th of the month following its delivery (the latest issue date,
-art. 319 alin. (16) Cod fiscal); the issue date picks working or calendar days, and a
+art. 319 alin. (16) Cod fiscal); the day each term counts from (the issue date, or that
+15th) picks working or calendar days, and a
 storno counts from its issue date only. It is not the exact legal deadline: it counts
 Monday to Friday only, so public holidays (which push the legal term later) are not
 taken into account, and it is never later than the legal one. `GET /api/invoice-register?spv=unresolved` keeps the documents

@@ -59,12 +59,13 @@ const issueTermFor = (supplyDate: string): string => {
  * date the supply allows (the 15th of the following month). From 2026-01-01
  * the days are working days, counting only Monday to Friday and ignoring public
  * holidays, so it is never later than the legal one (a holiday would push the
- * legal one later); until 2025-12-31 they are calendar days. The issue date
- * picks the rule. Without a supply date (a correction) only the issue date counts.
+ * legal one later); counted from a day up to 2025-12-31 they are calendar days.
+ * The day counted from picks the rule, so each of the two terms is the legal
+ * count. Without a supply date (a correction) only the issue date counts.
  */
 export const spvDeadline = (issueDate: string, supplyDate?: string): string => {
   const plusFive = (date: string): string =>
-    issueDate >= WORKING_DAYS_FROM ? addWorkingDays(date, 5) : fromDay(toDay(date) + 5 * DAY_MS)
+    date >= WORKING_DAYS_FROM ? addWorkingDays(date, 5) : fromDay(toDay(date) + 5 * DAY_MS)
   const fromIssue = plusFive(issueDate)
   if (supplyDate === undefined) return fromIssue
   const fromIssueTerm = plusFive(issueTermFor(supplyDate))

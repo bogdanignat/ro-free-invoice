@@ -80,6 +80,7 @@ const exemptInvoiceJson = {
   ...body,
   id: "inv-2",
   dueDate: null,
+  supplyDate: body.issueDate,
   notes: null,
   eFacturaStatus: "not_sent",
   issuer: { ...issuer, vatRegistered: false, iban: "", bankName: "", socialCapital: "" },
@@ -89,7 +90,7 @@ const exemptInvoiceJson = {
   totalIncludingVat: "1000.00",
 }
 
-const invoiceJson = { ...body, id: "inv-1", dueDate: "2026-03-05", notes: "Plata prin transfer", eFacturaStatus: "accepted" }
+const invoiceJson = { ...body, id: "inv-1", dueDate: "2026-03-05", supplyDate: body.issueDate, notes: "Plata prin transfer", eFacturaStatus: "accepted" }
 
 const without = (source: Readonly<Record<string, unknown>>, field: string): Record<string, unknown> =>
   Object.fromEntries(Object.entries(source).filter(([key]) => key !== field))
@@ -130,9 +131,10 @@ void test("an invoice with neither due date nor notes keeps both nulls", () => {
   assert.equal(invoice.notes, null)
 })
 
-void test("an issued invoice keeps its supply date and refuses a malformed one", () => {
+void test("an issued invoice keeps its supply date and refuses a malformed or missing one", () => {
   assert.equal(decodeIssuedInvoice({ ...invoiceJson, supplyDate: "2026-01-20" }).supplyDate, "2026-01-20")
   assert.throws(() => decodeIssuedInvoice({ ...invoiceJson, supplyDate: 20260120 }), /supplyDate/u)
+  assert.throws(() => decodeIssuedInvoice(without(invoiceJson, "supplyDate")), /supplyDate/u)
 })
 
 void test("the supply date is a fact only when it differs from the issue date", () => {

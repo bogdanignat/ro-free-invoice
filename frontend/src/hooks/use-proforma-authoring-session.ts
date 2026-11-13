@@ -58,7 +58,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   const editorActions = createInvoiceAuthoringEditorActions({
     issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
     productPresets: input.productPresets, customers: input.customers,
-    issueDate: form.issueDate, deriveDueDate: true, setForm, setLines,
+    vatDate: form.issueDate, deriveDueDate: true, setForm, setLines,
   })
   const pending = save.pending || recovery.pending
   return {

@@ -18,6 +18,7 @@ export type AuthoringDocumentInput = BuyerSource & {
   readonly series: string
   readonly issueDate: string
   readonly dueDate?: string | null
+  readonly supplyDate?: string | null
   readonly currency: "RON"
   readonly notes?: string | null
   readonly lines: ReadonlyArray<RawDocumentLine>

@@ -31,7 +31,7 @@ export const conversionDates = (proforma: Proforma, now: Date) => {
 
 // The invoice may record an earlier supply (art. 319 alin. (20)); absent, the supply is the conversion day.
 export const conversionSupplyDate = (input: ConvertProformaInput, issueDate: string) => checked(() => {
-  if (input.supplyDate === undefined) return issueDate
+  if (input.supplyDate == null) return issueDate
   validateSupplyDate(input.supplyDate, issueDate)
   return input.supplyDate
 })

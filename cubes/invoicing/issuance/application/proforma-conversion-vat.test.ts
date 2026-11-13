@@ -72,13 +72,19 @@ void test("direct conversion follows an earlier supply date and keeps it on the 
   assert.deepEqual(invoice.lines, proforma.lines)
 })
 
-void test("direct conversion refuses frozen 21% lines on a supply date before the rate change", async () => {
+void test("both conversion routes refuse frozen 21% lines on a supply date before the rate change", async () => {
   const { state, service, conversion } = await setup(true, "2025-08-05")
+  const early = { ...conversion, request: { ...conversion.request, supplyDate: "2025-07-20" } }
   const before = structuredClone(state)
-  const failure = await Effect.runPromise(Effect.flip(service.issueInvoiceFromProforma({ ...conversion, request: { ...conversion.request, supplyDate: "2025-07-20" } })))
-  assert.ok(failure instanceof ValidationFailure)
-  assert.ok(failure.issues.includes("VAT pair RO_STANDARD/21.00 is not supported on 2025-07-20"))
-  assert.deepEqual(state, before)
+  const attempts: ReadonlyArray<Effect.Effect<unknown, unknown>> = [service.issueInvoiceFromProforma(early), service.createDraftInvoiceFromProforma(early)]
+  for (const attempt of attempts) {
+    const failure = await Effect.runPromise(Effect.flip(attempt))
+    assert.ok(failure instanceof ValidationFailure)
+    assert.deepEqual(failure.details, [{ code: "vat_pair_unsupported", params: { code: "RO_STANDARD", rate: "21.00", date: "2025-07-20" } }])
+    assert.deepEqual(state, before)
+  }
+  const plain = await Effect.runPromise(service.createDraftInvoiceFromProforma({ ...conversion, request: { ...conversion.request, supplyDate: null } }))
+  assert.equal(plain.supplyDate, undefined)
 })
 
 void test("both conversion routes refuse a supply after the conversion day and the draft keeps an earlier one", async () => {

@@ -26,9 +26,11 @@ const AuthoringFields = {
   dueDate: optionalNullableInput, currency: Schema.Literal("RON"), notes: optionalNullableNotes,
   lines: linesOf(DraftLineInput),
 }
-export const AuthoringDocumentInput = Schema.Struct({ ...AuthoringFields, series: InputText }).annotations(bodyObject).pipe(requireBuyer)
+// Only an invoice records a supply; a proforma's VAT follows its issue date.
+export const AuthoringDocumentInput = Schema.Struct({ ...AuthoringFields, series: InputText, supplyDate: optionalNullableInput })
+  .annotations(bodyObject).pipe(requireBuyer)
 export const AuthoringProformaInput = Schema.Struct({ ...AuthoringFields, proformaSeries: InputText }).annotations(bodyObject).pipe(requireBuyer)
-export const ConvertProformaInput = Schema.Struct({ invoiceSeries: InputText, supplyDate: optionalInput }).annotations(bodyObject)
+export const ConvertProformaInput = Schema.Struct({ invoiceSeries: InputText, supplyDate: optionalNullableInput }).annotations(bodyObject)
 export const CorrectionInput = Schema.Struct({
   reason: InputNote, issueDate: optionalInput, source: optional(DocumentSourceInput),
 }).annotations(bodyObject)

@@ -30,7 +30,7 @@ export const SupplyDateField = ({ value, issueDate, issue, warning, disabled, on
         onChange={(event) => { onChange(event.currentTarget.value) }} />
     </Field>
     <p className="hint" id={HINT_ID}>Completezi doar dacă livrarea sau prestarea a fost înainte de data emiterii.</p>
-    {issue === null ? null : <p className="hint warning" id={ISSUE_ID} role="status">{issue}</p>}
-    {warning === null ? null : <p className="hint warning" id={WARNING_ID} role="status">{warning}</p>}
+    {issue === null ? null : <p className="hint warning" id={ISSUE_ID} role="alert">{issue}</p>}
+    {warning === null ? null : <p className="status-note" id={WARNING_ID} role="status">{warning}</p>}
   </div>
 }

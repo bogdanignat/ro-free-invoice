@@ -7,9 +7,14 @@ import { authoringReadiness, authoringTaxReadiness } from "./invoice-authoring-r
 import { positiveInvoiceRequiresDueDate } from "./invoice-positive-total.ts"
 import { knownResultNotice, type KnownWrite, type RecoveryNoticeModel } from "./operation-recovery-view.ts"
 import { vatRatesForIssuer } from "./vat-defaults.ts"
+import { staleDraftLineIds } from "./vat-snapshots.ts"
 import { draftSeriesState } from "./draft-series.ts"
 import { effectiveSupplyDate, invoiceSupplyDateIssue, lateIssueWarning } from "./supply-date.ts"
 import { invoiceDueDateIssue } from "./invoice-authoring-workflow.ts"
+
+/** A saved draft's lines whose frozen VAT no longer holds on the date that VAT follows. */
+export const savedDraftStaleLineIds = (draft: DraftInvoice, catalogue: VatCatalogue, issuer: Issuer): ReadonlyArray<string> =>
+  staleDraftLineIds(effectiveSupplyDate(draft), draft.lines, catalogue, issuer)
 
 /**
  * Everything the authoring screen can work out from the form, the lines and the
@@ -44,6 +49,8 @@ export interface AuthoringDerived {
   readonly dueDateIssue: string | null
   readonly supplyDateIssue: string | null
   readonly supplyDateWarning: string | null
+  /** A supply after the issue holds the save back too: the server would refuse it. */
+  readonly canSave: boolean
   /** What the document itself allows; the session adds the unconfirmed writes and the journal. */
   readonly issuable: boolean
 }
@@ -73,6 +80,7 @@ export const authoringDerived = (input: AuthoringDerivedInput): AuthoringDerived
     dueDateIssue: invoiceDueDateIssue(dueDateRequired),
     supplyDateIssue,
     supplyDateWarning: lateIssueWarning(input.form),
+    canSave: supplyDateIssue === null,
     // An archived series takes no new number (`series.warning`); the server refuses it too.
     issuable: taxReadiness.canIssue && !dueDateRequired && supplyDateIssue === null && series.warning === undefined,
   }

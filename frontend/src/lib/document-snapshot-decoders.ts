@@ -146,12 +146,11 @@ export const decodeDocumentBody = (value: JsonObject) => ({
 
 export const decodeIssuedInvoice: Decoder<IssuedInvoice> = (input) => {
   const value = object(input)
-  const supplyDate = optionalText(value.supplyDate, "supplyDate")
   return {
     ...decodeDocumentBody(value),
     id: text(value.id, "id"),
     dueDate: nullableText(value.dueDate, "dueDate"),
-    ...(supplyDate === undefined ? {} : { supplyDate }),
+    supplyDate: text(value.supplyDate, "supplyDate"),
     notes: nullableText(value.notes, "notes"),
     // The same closed enum the register decodes, not free text: the detail and
     // the list name one invoice's status, so they must read one contract.

@@ -146,11 +146,11 @@ void test("a saved supply date reloads into the form and takes part in the draft
   assert.equal(authoringPayloadMatchesDraft(payloadOf({ supplyDate: "2025-12-20" }), draftOf()), false)
 })
 
-void test("a supply date keeps a new document from being issued before its draft is saved", () => {
-  const form = formFromDraft(draftOf())
+void test("a new document with a supply date is issued directly, the date in the payload", () => {
+  const form = { ...formFromDraft(draftOf()), supplyDate: "2025-12-20" }
   const lines = [{ key: "line-1", ...payloadLine }]
   assert.equal(authoringReadiness(form, lines, undefined, false).canIssue, true)
-  assert.equal(authoringReadiness({ ...form, supplyDate: "2025-12-20" }, lines, undefined, false).canIssue, false)
+  assert.equal(authoringDocumentPayload(form, lines).supplyDate, "2025-12-20")
 })
 
 void test("a locked draft points at the registry it belongs to, not always at the invoices one", () => {

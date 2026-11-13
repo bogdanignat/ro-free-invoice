@@ -16,7 +16,7 @@ type RenderableInvoiceFixture = Omit<RenderableInvoice, "lines" | "vatBreakdown"
 
 const invoice: RenderableInvoiceFixture = {
   id: "brand-invoice", organizationId: "org", series: "F", number: 1,
-  issueDate: "2026-09-10", dueDate: "2026-09-10", issuedAt: "2026-09-10T10:00:00Z", currency: "RON", notes: null,
+  issueDate: "2026-09-10", supplyDate: "2026-09-10", dueDate: "2026-09-10", issuedAt: "2026-09-10T10:00:00Z", currency: "RON", notes: null,
   issuer: { name: "Legal Issuer SRL", fiscalIdentifier: "12345674", address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" },
     legalForm: "srl", vatRegistered: true, tradeRegistryNumber: "J22/123/2020", iban: "RO49AAAA1B31007593840000",
     bankName: "Banca Română", socialCapital: "1000.00", branding: null },

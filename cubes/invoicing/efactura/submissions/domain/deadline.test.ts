@@ -25,7 +25,8 @@ void test("the supply date caps the deadline at 5 days after the 15th of the fol
   assert.equal(spvDeadline("2026-01-05", "2026-01-05"), spvDeadline("2026-01-05"))
   assert.equal(spvDeadline("2026-02-10", "2026-01-10"), "2026-02-17") // issued before the 15th: the issue date decides
   assert.equal(spvDeadline("2027-01-20", "2026-12-03"), "2027-01-22") // December supply: 15 January of the new year
-  assert.equal(spvDeadline("2026-01-20", "2025-12-05"), "2026-01-22") // the issue date picks working days
+  assert.equal(spvDeadline("2026-01-20", "2025-12-05"), "2026-01-22") // 15.01.2026 picks working days
+  assert.equal(spvDeadline("2026-01-05", "2025-11-10"), "2025-12-20") // 15.12.2025 picks calendar days; not 2025-12-22
   assert.equal(spvDeadline("2025-12-20", "2025-11-20"), "2025-12-20") // calendar days: 15.12 + 5
   assert.equal(spvDeadline("2025-01-17", "2024-12-10"), "2025-01-20") // calendar days across the new year
 })

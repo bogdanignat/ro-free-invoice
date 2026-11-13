@@ -96,9 +96,9 @@ export const documentBodyView = (
 
 /** The supply date is shown only when it differs from the issue date it otherwise repeats. */
 const supplyDateFacts = ({ supplyDate, issueDate }: IssuedInvoice) =>
-  supplyDate === undefined || supplyDate === issueDate ? [] : [{ label: "Data livrării/prestării", value: supplyDate }]
+  supplyDate === issueDate ? [] : [{ label: "Data livrării/prestării", value: supplyDate }]
 
-export const projectIssuedInvoice =(invoice: IssuedInvoice): DocumentSnapshotView => ({
+export const projectIssuedInvoice = (invoice: IssuedInvoice): DocumentSnapshotView => ({
   ...documentBodyView(invoice),
   facts: [
     { label: "Emisă", value: invoice.issueDate },

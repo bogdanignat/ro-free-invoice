@@ -132,6 +132,14 @@ void test("a supply after the issue and a VAT regime missing on the supply date 
   assert.match(read([{ code: "vat_registration_missing", params: { date: "2025-07-20" } }]), /2025-07-20.*Setări/u)
 })
 
+void test("the failure keeps the field of the detail its message was read from", () => {
+  const read = (details: unknown) => parseApiFailure({ error: "ValidationFailure", issues: ["x"], details }, 400).field
+  assert.equal(read([{ code: "unclassified", field: "notes" }, { code: "supply_date_after_issue", field: "supplyDate" }]), "supplyDate")
+  assert.equal(read([{ code: "vat_registration_missing", params: { date: "2025-07-20" } }]), undefined)
+  assert.equal(read([{ code: "unclassified", field: "supplyDate" }]), undefined)
+  assert.equal(parseApiFailure({ error: "DomainConflict", code: "x", message: "m", details: [{ code: "required", field: "supplyDate" }] }, 409).field, undefined)
+})
+
 void test("the first coded detail wins, and an unclassified one leaves the English issue", () => {
   const issues = ["first", "second"]
   assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "unclassified" }, { code: "quantity_zero", field: "quantity" }] }, 400).message,

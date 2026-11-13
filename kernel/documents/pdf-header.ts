@@ -65,9 +65,8 @@ const titles: Readonly<Record<DocumentKind, string>> = { invoice: "FACTURĂ", pr
 /** Date rows; the supply date only when earlier than the issue date (art. 319 alin. (20) lit. c) Cod fiscal). */
 export const documentRows = (document: RenderableDocument, kind: DocumentKind): ReadonlyArray<readonly [string, string, boolean]> => {
   const reversed = "original" in document ? document.original : undefined
-  // The issued invoice carries it; the renderable port does not declare it.
-  const supplyDate = kind === "invoice" && "supplyDate" in document && typeof document.supplyDate === "string"
-    ? document.supplyDate : undefined
+  // Only the invoice declares it: a proforma and a storno record no supply.
+  const supplyDate = kind === "invoice" && "supplyDate" in document ? document.supplyDate : undefined
   return [
     ["Data emiterii", document.issueDate, false],
     ...(supplyDate === undefined || supplyDate === document.issueDate ? []

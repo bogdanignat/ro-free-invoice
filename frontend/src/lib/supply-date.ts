@@ -1,3 +1,4 @@
+import { ApiFailure } from "./api-errors.ts"
 import { issueMessages } from "./issue-messages.ts"
 
 /** An invoice's dates as the screen holds them: an empty or absent supply date means the issue date. */
@@ -36,4 +37,28 @@ export const lateIssueWarning = (dates: SuppliedDates): string | null => {
   return dates.issueDate > deadline
     ? `Factura trebuia emisă până pe ${deadline}. Poți emite, dar termenul legal a trecut.`
     : null
+}
+
+/** A failure as the screen received it, with the dates on screen when it arrived. */
+export interface SupplyDateRefusal {
+  readonly error: unknown
+  readonly dates: SuppliedDates
+}
+
+/** The same failure keeps the dates it arrived with; a new one takes the current dates. */
+export const trackSupplyDateRefusal = (previous: SupplyDateRefusal, error: unknown, dates: SuppliedDates): SupplyDateRefusal =>
+  previous.error === error ? previous : { error, dates }
+
+const sameDates = (left: SuppliedDates, right: SuppliedDates) =>
+  left.issueDate === right.issueDate && givenSupplyDate(left) === givenSupplyDate(right)
+
+/**
+ * A server refusal of the supply date (a supply after the issue, a malformed
+ * date) is shown under the field rather than in the page alert, and only until
+ * the user changes the supply or the issue date.
+ */
+export const placeSupplyDateError = (refusal: SupplyDateRefusal, issue: string | null, dates: SuppliedDates) => {
+  const { error } = refusal
+  if (!(error instanceof ApiFailure && error.field === "supplyDate")) return { error, supplyDateIssue: issue }
+  return { error: null, supplyDateIssue: issue ?? (sameDates(refusal.dates, dates) ? error.message : null) }
 }

@@ -68,9 +68,8 @@ export const draftLinePayload = (line: EditableInvoiceLine): DraftLineInput => (
   ...presentIdentifiers(line),
 })
 
-// `POST /invoices` and `POST /proformas` take no supply date: a dated invoice is
-// issued from its saved draft (`authoringReadiness`), and the date stays here
-// only for the guard that compares this intent with that draft.
+// An empty supply date stays absent: the invoice's VAT then follows its issue date,
+// and the proforma, whose form never has one, sends none.
 export const authoringDocumentPayload = (
   form: InvoiceAuthoringForm,
   lines: ReadonlyArray<EditableInvoiceLine>,

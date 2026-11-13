@@ -1,4 +1,5 @@
-import { ApiFailure, LogoutUnconfirmedError } from "./api-errors.ts"
+import { ApiFailure } from "./api-errors.ts"
+import { LogoutUnconfirmedError } from "./logout-unconfirmed-error.ts"
 import { createSessionEpoch } from "./session-epoch.ts"
 import {
   createHeldSession, initialAuthSnapshot, settled, type AuthSessionClient, type AuthSnapshot, type AuthState,

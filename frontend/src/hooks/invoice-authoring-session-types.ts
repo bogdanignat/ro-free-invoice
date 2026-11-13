@@ -84,6 +84,8 @@ export interface InvoiceAuthoringSession {
   readonly status: {
     readonly pending: boolean
     readonly savePending: boolean
+    /** False while the supply date field shows an error. */
+    readonly canSave: boolean
     readonly invoicePending: boolean
     readonly canIssueInvoice: boolean
     readonly dueDateRequired: boolean

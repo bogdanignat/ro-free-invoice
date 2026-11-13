@@ -11,10 +11,10 @@ export interface Proforma extends NumberedDocumentSnapshot {
 
 export type ProformaSummary = Omit<Proforma, "issuer"> & { readonly issuer: IssuerCompanySnapshot }
 export type AuthoringProformaInput = BuyerSource
-  & Omit<AuthoringDocumentInput, "series" | "customer" | "customerId">
+  & Omit<AuthoringDocumentInput, "series" | "customer" | "customerId" | "supplyDate">
   & { readonly proformaSeries: string }
 export type IssueProformaInput = { readonly draftId: string; readonly series: string }
-export type ConvertProformaInput = { readonly proformaId: string; readonly invoiceSeries: string; readonly supplyDate?: string }
+export type ConvertProformaInput = { readonly proformaId: string; readonly invoiceSeries: string; readonly supplyDate?: string | null }
 
 export type ProformaConversion = Readonly<{
   proformaId: string

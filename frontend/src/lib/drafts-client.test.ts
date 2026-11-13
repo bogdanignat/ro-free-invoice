@@ -62,7 +62,7 @@ void test("draft reads take the query's abort signal and no CSRF token", async (
 })
 
 const issuedInvoicePayload = {
-  id: "inv-1", series: "FCT", number: 12, issueDate: "2026-01-01", dueDate: null, notes: null,
+  id: "inv-1", series: "FCT", number: 12, issueDate: "2026-01-01", supplyDate: "2026-01-01", dueDate: null, notes: null,
   currency: "RON", eFacturaStatus: "not_sent",
   issuer: { name: "Beta", fiscalIdentifier: "321", legalForm: "srl", tradeRegistryNumber: "J40/1/2020",
     iban: "RO00XXXX0000000000", bankName: "Banca", socialCapital: "100.00", vatRegistered: true,
