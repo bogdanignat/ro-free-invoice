@@ -12,16 +12,21 @@ WorkingDirectory=/opt/qwbe-invoicing
 ExecStart=/opt/qwbe-invoicing/scripts/production/backup.sh
 # A user with access to Docker (group `docker`), owner of the installation; not root.
 User=qwbe
-# The CLI bounds the dump at 10 minutes; copy, compression, verification and the
-# restart of app fit in the rest.
-TimeoutStartSec=30min
-# On that timeout systemd sends SIGTERM to the script only (KillMode=mixed). Bash runs
-# its trap once the current command ends, which can be the whole `backup` run (up to
-# the 10-minute dump plus copy and verification), then starts app again. So the stop
-# timeout covers that command: only after it does SIGKILL hit the whole group. If that
-# ever happens, the trap does not run, app stays stopped, and
-# .local/production/app-stopped makes the next backup or deploy refuse with the steps.
-TimeoutStopSec=15min
+# The CLI bounds the dump at 30 minutes and each read pass over the archive at 60
+# (kernel/ops/postgres-backup-tar.ts); copy, hashing, compression, the read-back
+# verification and the restart of app fit in the rest (~2h05 at worst, see below).
+# No internal bound exceeds this.
+TimeoutStartSec=3h
+# On that timeout (or a `systemctl stop`) systemd sends SIGTERM to the script only
+# (KillMode=mixed). Bash runs its trap once the current command ends, which can be the
+# whole `backup` run, then starts app again. So the stop timeout covers that command
+# plus the trap: the 30-minute dump, the copy, hashing and gzip of ~33 GB (unbounded,
+# ~30 min at pessimistic disk and gzip speeds), the 60-minute verification pass and
+# the 5-minute wait for app healthy (wait_app_healthy 300), ~2h05 in all, with margin.
+# Only after it does SIGKILL hit the whole group. If that ever happens, the trap does
+# not run, app stays stopped, and .local/production/app-stopped makes the next backup
+# or deploy refuse with the steps.
+TimeoutStopSec=2h30min
 KillMode=mixed
 NoNewPrivileges=true
 UMask=0077

@@ -111,7 +111,7 @@ export class RestoreInterrupted extends Error {
   }
 }
 
-const restoreTimeoutMillis = 10 * 60_000
+const restoreTimeoutMillis = 60 * 60_000
 
 /** Read-only, and it never names the target to `psql`. */
 export const planRestoreFiles = async (

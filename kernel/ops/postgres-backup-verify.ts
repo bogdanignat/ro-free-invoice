@@ -5,7 +5,7 @@ import { digestArchive } from "./postgres-backup-archive.ts"
 import { GuardRefusal } from "./postgres-backup-guards.ts"
 import { type BackupManifest, type ManifestFile, sha256Stream } from "./postgres-backup-manifest.ts"
 import { manifestMember, safeMemberPath } from "./postgres-backup-paths.ts"
-import { type ArchiveLimits, blockSize } from "./postgres-backup-tar.ts"
+import { type ArchiveLimits, blockSize, memberSizeBound } from "./postgres-backup-tar.ts"
 
 /**
  * What a produced backup is measured against before it is called one.
@@ -69,10 +69,10 @@ export const assertWithinLimits = (files: ReadonlyArray<ManifestFile>, limits: A
     )
   }
   for (const file of files) {
-    if (file.byteLength > limits.maxMemberBytes) {
+    if (file.byteLength > memberSizeBound(file.path, limits)) {
       throw new GuardRefusal(
         `${file.path} is ${String(file.byteLength)} bytes, over the per-member bound of `
-        + `${String(limits.maxMemberBytes)}; the restore of such an archive would refuse it`,
+        + `${String(memberSizeBound(file.path, limits))}; the restore of such an archive would refuse it`,
       )
     }
   }

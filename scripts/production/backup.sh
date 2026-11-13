@@ -10,8 +10,8 @@
 # started again: a run killed in between (SIGKILL, power loss) leaves it, and the next
 # backup or deploy refuses until the operator has checked and started the stack.
 #
-# The downtime is the dump, the copy, the compression and the verification (the CLI bounds them: a 10-minute dump timeout,
-# 1 GiB expanded); measure it on real data before choosing the timer's hour.
+# The downtime is the dump, the copy, the compression and the verification (the CLI bounds them: a 30-minute dump timeout,
+# 64 GiB expanded); measure it on real data before choosing the timer's hour.
 #
 # Success is the CLI's own report: exit 0, `failed` 0, `copied` equal to `scanned`, the
 # output that was asked for. Only then the archive gets its final name,

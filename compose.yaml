@@ -124,8 +124,8 @@ services:
       # Unset trusts no proxy's X-Forwarded-For (README, Configuration). Passed through only when set.
       QWBE_TRUSTED_PROXY:
       # `backup` and `restore` stage into a `mkdtemp` under TMPDIR, and the archive
-      # bounds allow 1 GiB expanded: staging is a disk volume, not the small tmpfs
-      # below, because a 1 GiB staging tree in `/tmp` would be 1 GiB of RAM.
+      # bounds allow 64 GiB expanded: staging is a disk volume, not the small tmpfs
+      # below, because a staging tree of tens of GiB in `/tmp` would be that much RAM.
       TMPDIR: /var/backups/staging
     secrets:
       - api_token

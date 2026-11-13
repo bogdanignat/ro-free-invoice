@@ -255,7 +255,7 @@ void test("the bounds refuse a decompression bomb, too many members and an overs
       /exceeds the member bound/,
     )
     await rejects(
-      () => inspectArchive(many, { ...defaultArchiveLimits, maxMemberBytes: 1 }),
+      () => inspectArchive(many, { ...defaultArchiveLimits, maxMemberBytes: 0 }),
       /exceeds the size bound/,
     )
   } finally {
@@ -289,7 +289,8 @@ void test("a valid archive round-trips byte for byte through the writer and the 
     const digest = "b".repeat(64)
     await mkdir(join(source, "artifacts", "sha256", digest.slice(0, 2)), { recursive: true })
     const pdf = `artifacts/sha256/${digest.slice(0, 2)}/${digest}.pdf`
-    await writeFile(join(source, "database.sql"), restrictedDump("SELECT 1;\n".repeat(400)))
+    // ~1.5 MB, not block-aligned: extraction flushes its 1 MiB buffer mid-member and again at the end.
+    await writeFile(join(source, "database.sql"), restrictedDump("SELECT 1;\n".repeat(150_000)))
     await writeFile(join(source, pdf), Buffer.from("%PDF-1.7 fixture"))
     const sized = []
     for (const path of ["database.sql", pdf]) {

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path"
 import { type ArchiveMember, extractArchive, inspectArchive } from "./postgres-backup-archive.ts"
 import { ArchiveRejected, assertAllowedMember, dumpMember, isArchivePath, safeMemberPath } from "./postgres-backup-paths.ts"
 import { assertRestrictedDump, restrictScan } from "./postgres-backup-restrict.ts"
-import { type ArchiveLimits, defaultArchiveLimits } from "./postgres-backup-tar.ts"
+import { type ArchiveLimits, defaultArchiveLimits, memberSizeBound } from "./postgres-backup-tar.ts"
 
 /**
  * The restore input, in either of its two shapes, behind one pair of functions:
@@ -57,7 +57,7 @@ const walk = async (
     const full = safeMemberPath(root, path)
     const stats = await lstat(full)
     if (stats.nlink !== 1) throw new ArchiveRejected(`input entry is hard-linked: ${path}`)
-    if (stats.size > limits.maxMemberBytes) throw new ArchiveRejected(`input entry exceeds the size bound: ${path}`)
+    if (stats.size > memberSizeBound(path, limits)) throw new ArchiveRejected(`input entry exceeds the size bound: ${path}`)
     total.bytes += stats.size
     if (total.bytes > limits.maxExpandedBytes) throw new ArchiveRejected("input exceeds the expanded size bound")
     if (await realpath(full) !== join(resolvedRoot, path)) {

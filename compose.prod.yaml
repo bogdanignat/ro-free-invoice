@@ -172,8 +172,8 @@ services:
       # production: `serve` refuses to start without an index.html there.
       QWBE_UI_DIR: /app/frontend/dist
       # `backup` and `restore` stage into a `mkdtemp` under TMPDIR and the archive
-      # bounds allow 1 GiB expanded, so staging is a disk volume and not the small
-      # tmpfs below: a 1 GiB staging tree in `/tmp` would be 1 GiB of RAM.
+      # bounds allow 64 GiB expanded, so staging is a disk volume and not the small
+      # tmpfs below: a staging tree of tens of GiB in `/tmp` would be that much RAM.
       TMPDIR: /var/backups/staging
     secrets:
       - api_token

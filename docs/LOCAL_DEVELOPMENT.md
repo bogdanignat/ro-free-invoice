@@ -309,7 +309,7 @@ the secret files), image digests and externally stored recovery secrets are
 **not** in the backup; include them separately in your runbook.
 
 Staging is a volume, not RAM: `TMPDIR` is `/var/backups/staging` inside the container
-and `/tmp` is a bounded tmpfs, because the archive bounds allow a 1 GiB expanded tree.
+and `/tmp` is a bounded tmpfs, because the archive bounds allow a 64 GiB expanded tree.
 
 Both commands require the application to be stopped. They take the same maintenance
 key EXCLUSIVE that `app` holds SHARED for the life of its process, as a *try*: a
