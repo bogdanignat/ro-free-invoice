@@ -18,7 +18,7 @@ void test("the per-member bound stays within the ustar size field", () => {
 })
 
 void test("a manifest over its own bound is refused by the writer, the reader and the directory walk", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-manifest-bound-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-manifest-bound-"))
   try {
     writeFileSync(join(root, "manifest.json"), "x".repeat(600))
     writeFileSync(join(root, "database.sql"), "x".repeat(600))

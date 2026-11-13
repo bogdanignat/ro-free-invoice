@@ -1,4 +1,4 @@
-# QWBE Invoicing
+# RO Free Invoice
 
 **Self-hosted invoicing for Romania.** Issues, preserves, corrects and tracks payment of
 Romanian invoices (facturi) and non-fiscal proformas under Romanian fiscal rules: document
@@ -143,15 +143,15 @@ cash-register rules and sector-specific obligations must be validated with an ac
 One application process, one PostgreSQL 16 server, one data directory for the PDFs.
 
 ```text
-browser ──> TLS proxy ──> kernel :3000 ──┬──> UI: the Vite build in frontend/dist (QWBE_UI_DIR)
+browser ──> TLS proxy ──> kernel :3000 ──┬──> UI: the Vite build in frontend/dist (RFI_UI_DIR)
                                          └──> /api ──> invoicing core ──> PostgreSQL 16
                                                   │                        one database, schema `public`
                                                   └──> PDF renderer ──> /data/artifacts/<sha256>
 ```
 
-One image, `qwbe-invoicing`: the kernel serves the built UI and `/api` on one origin,
+One image, `ro-free-invoice`: the kernel serves the built UI and `/api` on one origin,
 `PUBLIC_ORIGIN`, behind a TLS proxy (Caddy, Traefik or your own). The browser uses the
-session cookie; the Bearer API is off on that listener unless `QWBE_BEARER_API=on`, and
+session cookie; the Bearer API is off on that listener unless `RFI_BEARER_API=on`, and
 internal clients run inside the Compose network (`docker compose exec app …`).
 
 - **The core** (`cubes/invoicing`) holds the domain model, VAT arithmetic, date
@@ -170,7 +170,7 @@ internal clients run inside the Compose network (`docker compose exec app …`).
   proformas, document series, conversion, idempotent replay), `corrections` (storno) and `documents`
   (rendered PDF artifacts, their hashes and recovery). `payments`, `efactura` and
   `company-lookup` are plugins: optional children (`required: false`), active by default and
-  switched off at startup through `QWBE_PLUGINS` (see Configuration). A child enters another child only through its `index.ts`.
+  switched off at startup through `RFI_PLUGINS` (see Configuration). A child enters another child only through its `index.ts`.
 - **The kernel** (`kernel/`) is the composition root. It authenticates the
   request, provides the contracts above, exposes every use case as an HTTP endpoint, serves
   the UI, runs migrations and implements the CLI.
@@ -205,13 +205,13 @@ you choose how TLS reaches the application (step 5).
 
 ```bash
 # 1. The code
-git clone https://github.com/bogdanignat/qwbe-invoicing.git
-cd qwbe-invoicing
+git clone https://github.com/bogdanignat/ro-free-invoice.git
+cd ro-free-invoice
 
 # 2. Settings: every key in the file says what it does and whether it is required
 cp .env.example .env
 # edit .env: PUBLIC_ORIGIN (e.g. https://invoice.example.com) and ORGANIZATION_ID.
-# QWBE_IMAGE=qwbe-invoicing and IMAGE_TAG=local already match the build in step 4.
+# RFI_IMAGE=ro-free-invoice and IMAGE_TAG=local already match the build in step 4.
 
 # 3. Secrets: the API token, the passwords of the three PostgreSQL roles, the
 #    company-lookup key and the ANAF token key, at the paths in .env (default .local/),
@@ -220,7 +220,7 @@ cp .env.example .env
 scripts/init-secrets.sh
 
 # 4. The image, from this checkout: one image serves the UI and the API
-docker build -t qwbe-invoicing:local .
+docker build -t ro-free-invoice:local .
 ```
 
 5. TLS, one of the two:
@@ -246,17 +246,17 @@ docker build -t qwbe-invoicing:local .
    application compares them, and `X-Forwarded-Host` when present, with `PUBLIC_ORIGIN`,
    and answers `400` otherwise. It must also overwrite `X-Forwarded-For` with the
    client's address (nginx `$remote_addr`; Caddy and Traefik do it by default): it
-   reaches `app` from the project network's gateway, which `QWBE_TRUSTED_PROXY` trusts by
+   reaches `app` from the project network's gateway, which `RFI_TRUSTED_PROXY` trusts by
    default, so the login throttle keys on that address. Do not append
    (`$proxy_add_x_forwarded_for`): whatever the client sent stays in front, and a value
    the application cannot read (`unknown`, `1.2.3.4:5678`) answers `400
    invalid_forwarded_for` to that client. A proxy that cannot overwrite it:
-   `QWBE_TRUSTED_PROXY=` (empty) in `.env`. The application sends HSTS
+   `RFI_TRUSTED_PROXY=` (empty) in `.env`. The application sends HSTS
    (`max-age=31536000`) itself on an `https` origin.
 
    With IPv6, the bundled Caddy keeps each visitor's address only on Docker 27 or newer
    with `ip6tables` (the default there): `compose.prod.yaml` gives its network a fixed IPv6
-   ULA (`QWBE_NETWORK_SUBNET_IPV6`, `fd93:1c5e:a7b0::/64`, also trusted by default), and
+   ULA (`RFI_NETWORK_SUBNET_IPV6`, `fd93:1c5e:a7b0::/64`, also trusted by default), and
    Docker forwards IPv6 visitors to Caddy's own address. With `ip6tables` off, Docker hands
    them to Caddy from the network's gateway, and every IPv6 visitor shares one throttle
    bucket again. A host without IPv6 adds `compose.ipv4-only.yaml` to `COMPOSE_FILE`,
@@ -301,7 +301,7 @@ docker build -t qwbe-invoicing:local .
    docker compose -f compose.prod.yaml exec app wget -qO- http://127.0.0.1:3000/health/ready
    curl -fsS https://invoice.example.com/health/ready         # through the proxy
    curl -fsS http://127.0.0.1:3180/health/ready               # b) only: the loopback port
-   docker compose -f compose.prod.yaml exec app node bin/qwbe-invoicing.ts doctor --json
+   docker compose -f compose.prod.yaml exec app node bin/ro-free-invoice.ts doctor --json
    ```
 
 Then open `PUBLIC_ORIGIN`, unlock the UI with the API token (the file at
@@ -315,16 +315,16 @@ To skip `-f`/`--profile` on every command, set `COMPOSE_FILE` (and `COMPOSE_PROF
 
 The quick start above builds the image from the checkout. A versioned release instead
 ships `compose.prod.yaml`, `compose.loopback.yaml`, `.env.example`, `Caddyfile.example`,
-`image-digests.txt` and the docs, with one published image: set `QWBE_IMAGE` to the
-registry path (default `ghcr.io/bogdanignat/qwbe-invoicing`) and `IMAGE_TAG` to the
+`image-digests.txt` and the docs, with one published image: set `RFI_IMAGE` to the
+registry path (default `ghcr.io/bogdanignat/ro-free-invoice`) and `IMAGE_TAG` to the
 digest from `image-digests.txt`, e.g. `IMAGE_TAG=0.3.0@sha256:<digest>`, then
 `docker compose -f compose.prod.yaml pull` and continue from step 3. Install, upgrade,
 backup, restore and rollback of a release are in [`docs/RELEASE.md`](./docs/RELEASE.md).
 
 What the bundle enforces: the application container runs as a non-root user with a
 read-only root filesystem and a bounded `tmpfs` on `/tmp`; named volumes
-`qwbe-invoicing-data` on `/data`, `qwbe-invoicing-postgres` for the cluster and
-`qwbe-invoicing-backup-staging` for `TMPDIR`; the database publishes no port and is
+`ro-free-invoice-data` on `/data`, `ro-free-invoice-postgres` for the cluster and
+`ro-free-invoice-backup-staging` for `TMPDIR`; the database publishes no port and is
 reachable only on the application network; the application publishes none either, except
 on `127.0.0.1` with `compose.loopback.yaml`; the API token and the three database passwords
 come from file-based secrets and are never in the image, the environment or the logs; the
@@ -338,8 +338,8 @@ For a local development setup with Docker Compose see
 [`docs/LOCAL_DEVELOPMENT.md`](./docs/LOCAL_DEVELOPMENT.md). For a bare-metal run without
 Docker: `pnpm install`, `deploy/postgres/grants.sql` run by a superuser on a PostgreSQL 16
 database that already exists (then `ALTER ROLE ... PASSWORD` for both roles), then
-`node bin/qwbe-invoicing.ts migrate --apply` as `qwbe_owner` and
-`node bin/qwbe-invoicing.ts serve` as `qwbe_app`, with the variables below set.
+`node bin/ro-free-invoice.ts migrate --apply` as `qwbe_owner` and
+`node bin/ro-free-invoice.ts serve` as `qwbe_app`, with the variables below set.
 
 ## Database access
 
@@ -388,7 +388,7 @@ overwrites one that exists. The ANAF token key is read only with `compose.anaf.y
 development (paths used by `compose.yaml`):
 
 ```bash
-cd /path/to/invoicing-qwbe
+cd /path/to/ro-free-invoice
 cp -n .env.example .env    # the default secret paths are ./.local/...
 scripts/init-secrets.sh
 pnpm local:setup --apply   # once per machine: Warden network, DNS and certificate
@@ -419,9 +419,14 @@ You do not need a password for this. The port is not published and, inside the `
 container, `psql` connects over the local socket without one:
 
 ```bash
+# Development (compose.yaml): the database is qwbe_invoicing.
 docker compose exec db psql -U postgres -d qwbe_invoicing
 #   qwbe_invoicing=# SET ROLE qwbe_app;   -- to see exactly what the application may do
 ```
+
+In production the database is the `RFI_PGDATABASE` of `.env` (`ro_free_invoice` at install,
+another one after `scripts/production/restore.sh`), on the stack of
+`docker compose -f compose.prod.yaml`.
 
 A password is needed only by a client outside the container (for example a GUI client
 through a port you publish yourself): connect as `qwbe_app`, with `.local/pg-app-password`.
@@ -466,7 +471,7 @@ run Caddy) on every `docker compose` command and the paths from `PG_SUPERUSER_PA
 above. For `qwbe_app`:
 
 ```bash
-cd /opt/qwbe-invoicing
+cd /opt/ro-free-invoice
 umask 077
 file=/path/from/PG_APP_PASSWORD_PATH                     # or PG_OWNER_PASSWORD_PATH
 openssl rand -hex 32 > "$file.new"
@@ -498,35 +503,35 @@ Everything is configured through environment variables, read once at startup.
 | `DATA_DIR` | `/data` | directory holding the `artifacts/` tree of rendered PDFs; it must already exist as a real directory (not a symlink) and be writable — the application never creates it: readiness and `doctor` report it missing, and `artifacts`/`backup`/`restore` refuse to run |
 | `PGHOST` | `db` | PostgreSQL host |
 | `PGPORT` | `5432` | PostgreSQL port |
-| `PGDATABASE` | `qwbe_invoicing` | the one database this installation owns |
+| `PGDATABASE` | `ro_free_invoice` | the one database this installation owns |
 | `PGUSER` | `qwbe_app` | the database role; the Compose files set `qwbe_owner` for `migrate` and `qwbe_app` for `app` ([Database access](#database-access)) |
 | `PGPASSWORD_FILE` | none | path to the file holding that role's password; required outside development, never read from `PGPASSWORD` |
-| `NODE_ENV` | `production` | unset means `production`: `PGPASSWORD_FILE`, `PUBLIC_ORIGIN` and `QWBE_UI_DIR` are required to serve, cookies are `Secure` and destructive CLI operations need `--confirm-production`. Local runs set `development` explicitly (`compose.yaml` does) |
+| `NODE_ENV` | `production` | unset means `production`: `PGPASSWORD_FILE`, `PUBLIC_ORIGIN` and `RFI_UI_DIR` are required to serve, cookies are `Secure` and destructive CLI operations need `--confirm-production`. Local runs set `development` explicitly (`compose.yaml` does) |
 | `ORGANIZATION_ID` | none (`local-organization` in the Compose files) | the internal, stable id of the company this installation serves, e.g. `hint` or `ro12345678`; every record is scoped to it, the ANAF tokens included. Set it in production. Not a secret, and printed on no invoice, PDF or XML. Only an empty value is refused; use lowercase letters, digits and hyphens, no spaces. Chosen once, before the first start, and never changed: records under the old id would no longer be found, and a restore needs the same id |
 | `AUTH_TOKEN_FILE` | none | path to the file holding the API bearer token (the Compose secret mounts it at `/run/secrets/api_token`) |
 | `COMPANY_LOOKUP_KEY_FILE` | none | path to the company-lookup master key: 32 bytes as 64 hex characters (`openssl rand -hex 32`), mounted at `/run/secrets/company_lookup_key`. It encrypts the openapi.ro key at rest (AES-256-GCM). Unset: storing an openapi.ro key is refused (409 `company_lookup_key_storage_unavailable`) and everything else runs; set but unreadable or malformed: the application does not start. A different key makes the stored openapi.ro key unreadable: the provider reads as off until the key is entered again |
 | `PUBLIC_ORIGIN` | none | the canonical public origin, e.g. `https://invoice.example.com` (scheme and host, no path or trailing slash). `Host`, `X-Forwarded-Host`/`-Proto` and, on unsafe methods, `Origin` must match it, otherwise 400/403. Validated whenever it is set; required only to serve in production (`migrate`, `backup`, `restore` and `doctor` run without it). Outside production it may be left out only when `HOST` is a loopback address, and the origin is then the address the server listens on. In Compose it comes from `.env`, required with no fallback in `compose.prod.yaml`; `compose.yaml` derives it from `APP_DOMAIN` and `compose.vite.yaml` sets `http://localhost:5173` |
-| `QWBE_BEARER_API` | `off` | `on` serves the Bearer API on the same listener as the browser. Off, any `Authorization` header (empty included) is refused with 400. On, a request carrying both `Authorization` and a session cookie is still refused, and an unsafe request still needs `Origin: <PUBLIC_ORIGIN>`. Any other value stops the application at startup |
-| `QWBE_UI_DIR` | none | the Vite build the kernel serves (`index.html`, hashed `assets/*`), read once at startup; empty means unset. Required to serve in production (the image sets `/app/frontend/dist`); elsewhere the kernel runs without it and the UI routes answer 503 `ui_not_built`. A symlink or special file in it stops the application at startup |
-| `QWBE_TRUSTED_PROXY` | none | the reverse proxies whose `X-Forwarded-For` keys the login throttle, comma-separated addresses or CIDR ranges (`172.18.0.0/16`, `fd00::/8`). Only a request whose socket peer is in the list is keyed on the right-most forwarded address that is not itself listed; everyone else keeps the socket address, whatever they forward. From a listed proxy, a repeated or malformed `X-Forwarded-For` answers 400, and a missing one, or one whose every address is listed, keys on the proxy. An unreadable entry or a `/0` range stops the application at startup. List only a proxy that overwrites `X-Forwarded-For` with the address it received the request from (Caddy and Traefik by default, nginx with `$remote_addr`); an appending one (`$proxy_add_x_forwarded_for`) passes on whatever the client wrote, and an unreadable value there answers 400. `compose.prod.yaml` defaults it to the project network (`QWBE_NETWORK_SUBNET`, `10.93.0.0/24`, and `QWBE_NETWORK_SUBNET_IPV6`, `fd93:1c5e:a7b0::/64`): the bundled Caddy, and a proxy on the host through `compose.loopback.yaml`, both reach `app` from it. Empty in `.env` trusts nobody, and every client behind the proxy then shares its throttle bucket. `compose.yaml` passes it through only when set |
-| `QWBE_PLUGINS` | absent: every plugin | the optional plugins to run, comma-separated: `payments`, `efactura`, `company-lookup`. Absent runs all three; empty (`QWBE_PLUGINS=`) runs none; an unknown name stops the application at startup with an error naming the known plugins. Spaces are ignored and duplicates tolerated; a change takes a restart. A plugin that is off has no route (404), no OpenAPI entry and, for payments, no `payments:*` grant; with e-Factura off every invoice response says `eFacturaStatus: null`; with company lookup off the forms show no lookup and no request leaves for ANAF or openapi.ro. Migrations, tables and data stay, so switching a plugin back on finds its records (and its company-lookup settings) |
+| `RFI_BEARER_API` | `off` | `on` serves the Bearer API on the same listener as the browser. Off, any `Authorization` header (empty included) is refused with 400. On, a request carrying both `Authorization` and a session cookie is still refused, and an unsafe request still needs `Origin: <PUBLIC_ORIGIN>`. Any other value stops the application at startup |
+| `RFI_UI_DIR` | none | the Vite build the kernel serves (`index.html`, hashed `assets/*`), read once at startup; empty means unset. Required to serve in production (the image sets `/app/frontend/dist`); elsewhere the kernel runs without it and the UI routes answer 503 `ui_not_built`. A symlink or special file in it stops the application at startup |
+| `RFI_TRUSTED_PROXY` | none | the reverse proxies whose `X-Forwarded-For` keys the login throttle, comma-separated addresses or CIDR ranges (`172.18.0.0/16`, `fd00::/8`). Only a request whose socket peer is in the list is keyed on the right-most forwarded address that is not itself listed; everyone else keeps the socket address, whatever they forward. From a listed proxy, a repeated or malformed `X-Forwarded-For` answers 400, and a missing one, or one whose every address is listed, keys on the proxy. An unreadable entry or a `/0` range stops the application at startup. List only a proxy that overwrites `X-Forwarded-For` with the address it received the request from (Caddy and Traefik by default, nginx with `$remote_addr`); an appending one (`$proxy_add_x_forwarded_for`) passes on whatever the client wrote, and an unreadable value there answers 400. `compose.prod.yaml` defaults it to the project network (`RFI_NETWORK_SUBNET`, `10.93.0.0/24`, and `RFI_NETWORK_SUBNET_IPV6`, `fd93:1c5e:a7b0::/64`): the bundled Caddy, and a proxy on the host through `compose.loopback.yaml`, both reach `app` from it. Empty in `.env` trusts nobody, and every client behind the proxy then shares its throttle bucket. `compose.yaml` passes it through only when set |
+| `RFI_PLUGINS` | absent: every plugin | the optional plugins to run, comma-separated: `payments`, `efactura`, `company-lookup`. Absent runs all three; empty (`RFI_PLUGINS=`) runs none; an unknown name stops the application at startup with an error naming the known plugins. Spaces are ignored and duplicates tolerated; a change takes a restart. A plugin that is off has no route (404), no OpenAPI entry and, for payments, no `payments:*` grant; with e-Factura off every invoice response says `eFacturaStatus: null`; with company lookup off the forms show no lookup and no request leaves for ANAF or openapi.ro. Migrations, tables and data stay, so switching a plugin back on finds its records (and its company-lookup settings) |
 
 Variables used only by the Compose files, in `.env`:
 
 | Variable | Meaning |
 |---|---|
-| `QWBE_IMAGE` | image repository without a tag, default `ghcr.io/bogdanignat/qwbe-invoicing` in `compose.prod.yaml`; `qwbe-invoicing` for an image built from the checkout |
+| `RFI_IMAGE` | image repository without a tag, default `ghcr.io/bogdanignat/ro-free-invoice` in `compose.prod.yaml`; `ro-free-invoice` for an image built from the checkout |
 | `IMAGE_TAG` | image tag, required in `compose.prod.yaml`: `local` for your own build, or a release digest-pinned from `image-digests.txt`, e.g. `0.3.0@sha256:<digest>` |
 | `APP_LOOPBACK_PORT` | host port on `127.0.0.1` for a reverse proxy already on the host; required by `compose.loopback.yaml`, unused otherwise |
 | `AUTH_TOKEN_PATH` | host path of the token file mounted as the secret |
 | `APP_DOMAIN` | local development only: the Warden domain in `compose.yaml`, default `invoice.test` |
-| `DATA_VOLUME_NAME` | name of the data volume, default `qwbe-invoicing-data` |
+| `DATA_VOLUME_NAME` | name of the data volume in `compose.yaml`, default `qwbe-invoicing-data` (kept from before the rename) |
 | `PG_SUPERUSER_PASSWORD_PATH` | host path of the `postgres` superuser's password file, mounted into `db` and `db-init` only (required with no fallback in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-superuser-password`; the preview uses `PREVIEW_PG_SUPERUSER_PASSWORD_PATH`) |
 | `PG_OWNER_PASSWORD_PATH` | host path of `qwbe_owner`'s password file, mounted into `db-init` and `migrate` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-owner-password`; the preview uses `PREVIEW_PG_OWNER_PASSWORD_PATH`) |
 | `PG_APP_PASSWORD_PATH` | host path of `qwbe_app`'s password file, mounted into `db-init` and `app` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-app-password`; the preview uses `PREVIEW_PG_APP_PASSWORD_PATH`) |
 | `COMPANY_LOOKUP_KEY_PATH` | host path of the company-lookup master key file, mounted as a secret into the application (required with no fallback in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/company-lookup-key`; the preview uses `PREVIEW_COMPANY_LOOKUP_KEY_PATH`) |
-| `PG_VOLUME_NAME` | name of the cluster volume, default `qwbe-invoicing-postgres` |
-| `BACKUP_STAGING_VOLUME_NAME` | name of the `backup`/`restore` staging volume, default `qwbe-invoicing-backup-staging` |
+| `PG_VOLUME_NAME` | name of the cluster volume in `compose.yaml`, default `qwbe-invoicing-postgres` |
+| `BACKUP_STAGING_VOLUME_NAME` | name of the `backup`/`restore` staging volume in `compose.yaml`, default `qwbe-invoicing-backup-staging` |
 
 ## e-Factura with ANAF
 
@@ -590,7 +595,7 @@ the registration itself, step by step, in
 Durable state lives in two places:
 
 ```text
-PostgreSQL `qwbe_invoicing`, schema `public`
+PostgreSQL `ro_free_invoice`, schema `public`
                           issuer, customers, catalog, series, drafts, invoices, proformas,
                           payments, corrections, artifact metadata, audit events,
                           browser_sessions (rows excluded from every backup)
@@ -606,7 +611,7 @@ refuse immediately while `app` holds it SHARED.
 ```bash
 docker compose -f compose.prod.yaml stop app
 docker compose -f compose.prod.yaml run --rm --no-deps app \
-  node bin/qwbe-invoicing.ts backup --output /data/backup-$(date +%F).tar.gz --json
+  node bin/ro-free-invoice.ts backup --output /data/backup-$(date +%F).tar.gz --json
 docker compose -f compose.prod.yaml start app
 ```
 
@@ -646,8 +651,8 @@ From a checkout of `main`, `scripts/production/deploy.sh` does the upgrade with 
 backup, rollback and restore decision ([`docs/RELEASE.md`](./docs/RELEASE.md), "Upgrade").
 
 An `.env` from an earlier release needs three new keys first (see `.env.example`):
-`QWBE_PGDATABASE` (the current database, `qwbe_invoicing`) and `QWBE_DATA_VOLUME`
-(the current data volume, `qwbe-invoicing-data`), which `compose.prod.yaml` now
+`RFI_PGDATABASE` (the current database, `ro_free_invoice`) and `RFI_DATA_VOLUME`
+(the current data volume, `ro-free-invoice-data`), which `compose.prod.yaml` now
 requires, and `BACKUP_DIR` (an absolute directory outside the checkout), which the
 scripts require. The three database password paths replace `PG_PASSWORD_PATH`
 ([Database access](#database-access)).
@@ -677,15 +682,15 @@ it is recreated:
 By hand:
 
 ```bash
-cd /opt/qwbe-invoicing
+cd /opt/ro-free-invoice
 # back up with the version that runs now, before the new image is pulled or started
 docker compose -f compose.prod.yaml stop app
 docker compose -f compose.prod.yaml run --rm --no-deps app \
-  node bin/qwbe-invoicing.ts backup --output /data/backup-$(date +%F).tar.gz --json
+  node bin/ro-free-invoice.ts backup --output /data/backup-$(date +%F).tar.gz --json
 # then set IMAGE_TAG=0.4.0@sha256:<new-digest> in .env, pull and start
 docker compose -f compose.prod.yaml pull
 docker compose -f compose.prod.yaml up -d
-docker compose -f compose.prod.yaml exec app node bin/qwbe-invoicing.ts doctor --json
+docker compose -f compose.prod.yaml exec app node bin/ro-free-invoice.ts doctor --json
 ```
 
 Migrations are applied by the `migrate` service on startup and are idempotent: they never
@@ -697,16 +702,16 @@ the backup taken before the upgrade, then start the previous image. The full pro
 
 One origin, `PUBLIC_ORIGIN`: the kernel serves the UI and every API route under `/api/*`
 on it, with no second service in between. The browser authenticates with the session
-cookie (`qwbe_session`, `Path=/api`, `HttpOnly`, `SameSite=Strict`) and sends the
+cookie (`rfi_session`, `Path=/api`, `HttpOnly`, `SameSite=Strict`) and sends the
 per-session `x-csrf-token` header on writes.
 
 The Bearer API (`Authorization: Bearer <token>`) is off on that listener unless
-`QWBE_BEARER_API=on`; off, any `Authorization` header is refused. On, a Bearer caller
+`RFI_BEARER_API=on`; off, any `Authorization` header is refused. On, a Bearer caller
 meets the same edge as the browser: `Host` must be the host of `PUBLIC_ORIGIN`, every
 unsafe method sends `Origin: <PUBLIC_ORIGIN>`, and a request carrying both a session
 cookie and `Authorization` is refused. Without switching it on, the CLI inside the
-container (`docker compose exec app node bin/qwbe-invoicing.ts …`) is the operator's
-interface. Locally, with `QWBE_BEARER_API=on` in `.env` (or exported) before
+container (`docker compose exec app node bin/ro-free-invoice.ts …`) is the operator's
+interface. Locally, with `RFI_BEARER_API=on` in `.env` (or exported) before
 `docker compose up -d`, from inside the `app` container (no port is published):
 
 ```bash
@@ -741,7 +746,7 @@ handler on shutdown.
 | Proformas | `POST /api/proformas`, `POST /api/drafts/:id/proformas`, `GET /api/proformas`, `GET /api/proformas/:id`, `POST /api/proformas/:id/invoice`, `POST /api/proformas/:id/draft-invoice`, `POST`, `GET /api/proformas/:id/pdf` |
 | Company lookup | `GET`, `PUT /api/settings/company-lookup` (`settings.manage`; the openapi.ro key is write-only, answered only as `openapiKeyLast4`), `GET /api/company-lookup/availability`, `POST /api/company-lookup/lookup` `{cui}`, `POST /api/company-lookup/search` `{q}` (`company-lookup:company.lookup`) |
 | Health | `GET /health/live`, `GET /health/ready` (no auth; the only paths exempt from `PUBLIC_ORIGIN` pinning, for the container healthcheck) |
-| UI | every other `GET`/`HEAD`: a file of the `QWBE_UI_DIR` build, else `index.html` (deep links); a missing `/assets/*` file is 404, other methods 405, no build 503 |
+| UI | every other `GET`/`HEAD`: a file of the `RFI_UI_DIR` build, else `index.html` (deep links); a missing `/assets/*` file is 404, other methods 405, no build 503 |
 
 Issuer configuration accepts `vatChange: { registered, effectiveFrom }` for VAT
 registration, or `{ registered: false, effectiveFrom, nonVatBasis: "article_310" }`
@@ -887,13 +892,13 @@ The complete route inventory with request rules is in
 ## CLI
 
 ```bash
-node bin/qwbe-invoicing.ts serve
-node bin/qwbe-invoicing.ts migrate   [--apply] [--confirm-production] --json
-node bin/qwbe-invoicing.ts doctor    --json
-node bin/qwbe-invoicing.ts artifacts --limit 50 [--apply] [--confirm-production] --json
-node bin/qwbe-invoicing.ts backup    --output <file.tar.gz> --json
-node bin/qwbe-invoicing.ts restore   --input  <file.tar.gz> [--apply] [--confirm-production] --json
-node bin/qwbe-invoicing.ts backup-inspect --input <file.tar.gz> [--json]
+node bin/ro-free-invoice.ts serve
+node bin/ro-free-invoice.ts migrate   [--apply] [--confirm-production] --json
+node bin/ro-free-invoice.ts doctor    --json
+node bin/ro-free-invoice.ts artifacts --limit 50 [--apply] [--confirm-production] --json
+node bin/ro-free-invoice.ts backup    --output <file.tar.gz> --json
+node bin/ro-free-invoice.ts restore   --input  <file.tar.gz> [--apply] [--confirm-production] --json
+node bin/ro-free-invoice.ts backup-inspect --input <file.tar.gz> [--json]
 ```
 
 Migration, artifact reconciliation and restore are dry-run unless `--apply` is given, and
@@ -926,7 +931,7 @@ being ignored.
   proxy must pass the public `Host` through unchanged. The scheme decides the cookie:
   an `https` origin (or `NODE_ENV=production`) marks it `Secure`. Only the
   `/health/*` checks answer on any Host, for the container healthcheck.
-- **`QWBE_TRUSTED_PROXY`: whose `X-Forwarded-For` is believed.** It matters for one
+- **`RFI_TRUSTED_PROXY`: whose `X-Forwarded-For` is believed.** It matters for one
   thing, the login throttle, which keys failed unlocks on the client address. Unset,
   nobody's forwarded header is read and the address is the TCP peer: behind a proxy
   that is the proxy itself, so every client shares one throttle bucket and a stranger's
@@ -938,14 +943,14 @@ being ignored.
   let anyone pick their own bucket. IPv6 visitors keep their address through the bundled
   Caddy only with Docker's `ip6tables` (27+, the default); without it they share one
   bucket. `/0` ranges are refused.
-- **`QWBE_BEARER_API`: whether the API token is accepted on the public listener.**
+- **`RFI_BEARER_API`: whether the API token is accepted on the public listener.**
   `off` by default: the browser never needs it (it exchanges the token once for a
   session, below), so any `Authorization` header is refused with 400 and the token
   cannot be guessed against the public origin. `on` serves the Bearer API on the same
   origin, for scripts and integrations; such a caller meets the same edge as the browser
   (the Host of `PUBLIC_ORIGIN`, `Origin` on every write, no session cookie alongside the
   token) and the same throttle. Without it, the operator's interface is the CLI inside
-  the container (`docker compose exec app node bin/qwbe-invoicing.ts …`).
+  the container (`docker compose exec app node bin/ro-free-invoice.ts …`).
 
 The rest of the model:
 
@@ -966,7 +971,7 @@ The rest of the model:
   never reaches browser JavaScript, storage or the URL. State-changing requests carry a
   per-session CSRF token.
 - Failed browser unlocks and failed Bearer authentication are throttled in memory by the
-  normalized socket peer address, or, when that peer is listed in `QWBE_TRUSTED_PROXY`, by the
+  normalized socket peer address, or, when that peer is listed in `RFI_TRUSTED_PROXY`, by the
   right-most `X-Forwarded-For` address that is not a listed proxy; nobody else's forwarded
   headers are read. The protection
   is instance-local. The first five failures have no cooldown; from the sixth failure,
@@ -976,7 +981,7 @@ The rest of the model:
   requests are unaffected. Valid traffic is unaffected in normal state, but a valid Bearer
   request can receive `429 {"error":"too_many_attempts"}` with `Retry-After` while its shared
   peer is cooling down.
-- NATs, and proxies that are not listed in `QWBE_TRUSTED_PROXY`, aggregate callers under one
+- NATs, and proxies that are not listed in `RFI_TRUSTED_PROXY`, aggregate callers under one
   peer, creating an explicit risk of temporary shared lockout: behind Caddy or Traefik without
   it, a stranger's failed unlocks lock everyone out for the cooldown. Throttle logs contain neither
   secrets nor raw IP addresses and emit at most once per key per cooldown interval. This is
@@ -986,7 +991,7 @@ The rest of the model:
   the raw request-target is refused when it holds `.`/`..` segments, backslashes or control
   characters (also after repeated decoding); `Host` and `X-Forwarded-Host`/`-Proto` are pinned
   to `PUBLIC_ORIGIN` (health paths exempt); duplicate identity headers, an empty or repeated
-  `qwbe_session` cookie and, unless `QWBE_BEARER_API=on`, any `Authorization` header answer
+  `rfi_session` cookie and, unless `RFI_BEARER_API=on`, any `Authorization` header answer
   400; every unsafe method, Bearer and login included, needs `Origin` equal to
   `PUBLIC_ORIGIN` (403). Every answer, errors and the `/api` → `/unlock` redirect included,
   carries a strict CSP (`default-src 'none'`, no inline), COOP, `Permissions-Policy`,
@@ -1038,8 +1043,8 @@ kernel/company-lookup/       ANAF and openapi.ro HTTP clients, the openapi.ro ke
 kernel/ops/                  CLI, backup and restore
 kernel/parity/               SQLite baseline fixtures read by the PostgreSQL schema gate
 frontend/                    browser UI: Vite + TanStack Router (file routes in src/routes), built into
-                             frontend/dist and served by the kernel from QWBE_UI_DIR
-bin/qwbe-invoicing.ts        CLI entry point, also the container command
+                             frontend/dist and served by the kernel from RFI_UI_DIR
+bin/ro-free-invoice.ts        CLI entry point, also the container command
 probes/                      repository gates: runtime, package shape, tests, size, boundaries
 scripts/                     e-Factura fixtures, the local warden helper, the Docker verifier rig (verify-docker.sh)
 docs/                        local development and release procedures
@@ -1058,7 +1063,7 @@ TanStack Query, Tailwind CSS 4; pnpm.
 Every storage, API, HTTP, auth, ops and probe test talks to a live PostgreSQL 16 server,
 so the suite does not run on the host. It runs in the pinned verifier container, on the
 project's own `db` (started when it is down, never stopped), in throwaway databases named
-`qwbe_t_<run>_…` that are dropped again; `qwbe_invoicing` is never used:
+`rfi_t_<run>_…` that are dropped again; `qwbe_invoicing` is never used:
 
 ```bash
 scripts/verify-docker.sh install                 # dependencies into the named volumes, frozen
@@ -1112,7 +1117,7 @@ non-MIT packages and packages with unclear licensing are not accepted.
 
 ## Relation to QWBE
 
-QWBE Invoicing follows the package structure of the [QWBE](https://github.com/theZenNana/qwbe)
+RO Free Invoice follows the package structure of the [QWBE](https://github.com/theZenNana/qwbe)
 platform: one plugin pack with `invoicing` as the main cube and `payments` and `efactura` as
 plugins. It keeps its own runtime, database, login and UI, and the QWBE mother installs
 nothing. A later integration would let the mother call this API from its backend under the

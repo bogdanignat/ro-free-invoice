@@ -2,6 +2,6 @@
 # the version, then the one image pinned by its multi-arch index digest. Copy the digest
 # into IMAGE_TAG in the .env next to compose.prod.yaml, e.g.
 #   IMAGE_TAG=0.3.0@sha256:<digest>
-# The registry path is the repository the workflow ran in (QWBE_IMAGE in .env).
+# The registry path is the repository the workflow ran in (RFI_IMAGE in .env).
 0.3.0
-ghcr.io/<owner>/qwbe-invoicing@sha256:0000000000000000000000000000000000000000000000000000000000000000
+ghcr.io/<owner>/ro-free-invoice@sha256:0000000000000000000000000000000000000000000000000000000000000000

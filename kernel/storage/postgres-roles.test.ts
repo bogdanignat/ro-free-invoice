@@ -208,15 +208,15 @@ const runAsApplication = async (fixture: TestFixture, app: Login, dump: string):
     // trusted extension, whose objects land in `public`. Neither passes unseen: doctor
     // lists both, the extension's functions are drift too, and backup refuses while the
     // schema exists.
-    await pool.query("CREATE SCHEMA qwbe_intruder")
+    await pool.query("CREATE SCHEMA rfi_intruder")
     await pool.query("CREATE EXTENSION pgcrypto")
     const report = await doctorReport(application.config(), pool)
     assert.deepEqual({ schemas: report.extraSchemas, extensions: report.extraExtensions },
-      { schemas: ["qwbe_intruder"], extensions: ["pgcrypto"] })
+      { schemas: ["rfi_intruder"], extensions: ["pgcrypto"] })
     assert.ok(report.schemaDrift.includes("function:gen_random_bytes(integer)"), report.schemaDrift.join(", "))
     const client = await pool.connect()
     try {
-      await assert.rejects(assertSinglePublicSchema(client), /also has qwbe_intruder/u)
+      await assert.rejects(assertSinglePublicSchema(client), /also has rfi_intruder/u)
     } finally {
       client.release()
     }

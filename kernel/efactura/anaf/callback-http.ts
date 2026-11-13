@@ -12,7 +12,7 @@ import { logInternalFailure } from "../../failure-log.ts"
  * `/api/anaf/*`, and SameSite=Lax because ANAF brings the browser back with a
  * top-level GET from another site. It is the callback's only credential.
  */
-const ATTEMPT_COOKIE = "qwbe_anaf_oauth"
+const ATTEMPT_COOKIE = "rfi_anaf_oauth"
 const ATTEMPT_ATTRIBUTES = "Path=/api/anaf; HttpOnly; Secure; SameSite=Lax"
 const NONCE = /^[A-Za-z0-9_-]{43}$/u
 
@@ -23,7 +23,7 @@ export const clearedAttemptCookie = `${ATTEMPT_COOKIE}=; Max-Age=0; ${ATTEMPT_AT
 
 /** One well-formed cookie and one `code`, or nothing: a repeated value is never guessed at. */
 const callbackInput = (request: HttpServerRequest.HttpServerRequest): CallbackInput => {
-  const query = new URL(request.url, "http://qwbe.invalid").searchParams
+  const query = new URL(request.url, "http://rfi.invalid").searchParams
   const cookies = sessionCookieValues(request.headers.cookie, ATTEMPT_COOKIE)
   const [nonce] = cookies
   const codes = query.getAll("code")

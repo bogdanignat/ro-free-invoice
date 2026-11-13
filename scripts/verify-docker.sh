@@ -4,12 +4,12 @@
 # Scope: lint, typecheck, tests, gates, the CLI and the probes — never the
 # shipped image, never an application volume, never a published port.
 #
-# Side effects: builds the local image `qwbe-invoicing-verify`, creates the named
-# volumes of the `qwbe-invoicing-verify` compose project (dependencies, frontend
+# Side effects: builds the local image `ro-free-invoice-verify`, creates the named
+# volumes of the `ro-free-invoice-verify` compose project (dependencies, frontend
 # dependencies, pnpm store, HOME) and writes build output into the bind-mounted
 # working tree as the host user. The tests run on the project's own PostgreSQL
 # (`db` of compose.yaml in the main checkout): it is started when it is down and
-# never stopped. Each run creates its databases and login roles as `qwbe_t_<run>_…`;
+# never stopped. Each run creates its databases and login roles as `rfi_t_<run>_…`;
 # before and after a run those of every run without a live container are dropped.
 # Nothing else is deleted, no port is published and no application volume
 # is referenced.
@@ -29,10 +29,10 @@ main_checkout="$(dirname "$(git -C "${repository_root}" rev-parse --path-format=
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 # The cluster's superuser: the rig creates and drops its own databases.
-QWBE_PG_SUPERUSER_PASSWORD_FILE="${main_checkout}/.local/pg-superuser-password"
+RFI_PG_SUPERUSER_PASSWORD_FILE="${main_checkout}/.local/pg-superuser-password"
 # This invocation's id: the prefix of its test databases and the label of its container.
-QWBE_TEST_RUN="$(od -An -tx1 -N4 /dev/urandom | tr -d ' \n')"
-export HOST_UID HOST_GID QWBE_PG_SUPERUSER_PASSWORD_FILE QWBE_TEST_RUN
+RFI_TEST_RUN="$(od -An -tx1 -N4 /dev/urandom | tr -d ' \n')"
+export HOST_UID HOST_GID RFI_PG_SUPERUSER_PASSWORD_FILE RFI_TEST_RUN
 
 usage() {
   cat <<'USAGE'
@@ -62,7 +62,7 @@ USAGE
 # The project's own stack, as the main checkout runs it. Name and file are pinned so
 # a COMPOSE_PROJECT_NAME or COMPOSE_FILE of the caller's shell cannot redirect it.
 project_db() {
-  docker compose --project-directory "${main_checkout}" --project-name qwbe-invoicing \
+  docker compose --project-directory "${main_checkout}" --project-name ro-free-invoice \
     --file "${main_checkout}/compose.yaml" "$@"
 }
 
@@ -73,8 +73,8 @@ project_psql() {
 # Starts `db` when it is down and waits until it is healthy. A running `db` is only
 # waited for, never recreated or stopped: the application may be using it.
 ensure_project_db() {
-  [[ -f "${QWBE_PG_SUPERUSER_PASSWORD_FILE}" ]] \
-    || { echo "missing ${QWBE_PG_SUPERUSER_PASSWORD_FILE}: run scripts/init-secrets.sh in ${main_checkout}" >&2; return 1; }
+  [[ -f "${RFI_PG_SUPERUSER_PASSWORD_FILE}" ]] \
+    || { echo "missing ${RFI_PG_SUPERUSER_PASSWORD_FILE}: run scripts/init-secrets.sh in ${main_checkout}" >&2; return 1; }
   local id
   id="$(project_db ps --quiet --status running db)" || return
   if [[ -z "${id}" ]]; then
@@ -89,15 +89,15 @@ ensure_project_db() {
   return 1
 }
 
-# Whether the test object `qwbe_t_<run>_…` named in $1 belongs to a run in $2, the
+# Whether the test object `rfi_t_<run>_…` named in $1 belongs to a run in $2, the
 # space-padded list of runs with a live container.
 run_is_live() {
-  local run="${1#qwbe_t_}"
+  local run="${1#rfi_t_}"
   run="${run%%_*}"
   [[ "$2" == *" ${run} "* ]]
 }
 
-# Drops the test databases and login roles (`qwbe_t_<run>_…`) of every run that has
+# Drops the test databases and login roles (`rfi_t_<run>_…`) of every run that has
 # no live container. A concurrent run in another worktree keeps its container, so its
 # objects survive; this run's own are dropped once its container has exited. Roles
 # are cluster-wide: the roles test creates its logins there, and a killed run leaves
@@ -105,12 +105,12 @@ run_is_live() {
 reclaim_test_runs() {
   # A regex, not LIKE (where `_` is a wildcard): only `[a-z0-9_]` names match, so each
   # is safe to splice, and a role is quoted as an identifier besides.
-  local pattern='^qwbe_t_[a-z0-9]+_[a-z0-9_]+$' live databases roles name
+  local pattern='^rfi_t_[a-z0-9]+_[a-z0-9_]+$' live databases roles name
   databases="$(project_psql "SELECT datname FROM pg_database WHERE datname ~ '${pattern}'")" || return
   roles="$(project_psql "SELECT rolname FROM pg_roles WHERE rolname ~ '${pattern}'")" || return
   # Read after the names: a run creates objects only once its container runs, so
   # every name listed above whose run started meanwhile is still found live here.
-  live=" $(docker ps --filter label=qwbe.test-run --format '{{.Label "qwbe.test-run"}}' | tr '\n' ' ') " || return
+  live=" $(docker ps --filter label=rfi.test-run --format '{{.Label "rfi.test-run"}}' | tr '\n' ' ') " || return
   for name in ${databases}; do
     run_is_live "${name}" "${live}" && continue
     project_psql "DROP DATABASE IF EXISTS ${name} WITH (FORCE)" >/dev/null || return
@@ -235,7 +235,7 @@ case "${command_name}" in
     echo "docker compose --file ${compose_file} run --rm verify '$1'"
     echo "docker compose --file ${test_compose_file} run --rm test '$1'   # scripts/verify-docker.sh test"
     echo "user ${HOST_UID}:${HOST_GID}; bind ${repository_root} -> /app; volumes: verify-node-modules, verify-frontend-node-modules, verify-pnpm-store, verify-home"
-    echo "postgres: db of ${main_checkout}/compose.yaml (qwbe-invoicing_default); test databases qwbe_t_${QWBE_TEST_RUN}_*"
+    echo "postgres: db of ${main_checkout}/compose.yaml (ro-free-invoice_default); test databases rfi_t_${RFI_TEST_RUN}_*"
     ;;
   help | --help | -h)
     usage

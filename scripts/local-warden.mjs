@@ -14,7 +14,7 @@ const parsed = parseArgs({
   strict: true,
 })
 
-const help = `Prepare local Warden routing for QWBE Invoicing.
+const help = `Prepare local Warden routing for RO Free Invoice.
 
 Usage:
   pnpm local:setup                         # dry-run

@@ -1,5 +1,5 @@
 {
-  "name": "qwbe-invoicing",
+  "name": "ro-free-invoice",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -9,12 +9,12 @@
     "node": "24.19.0"
   },
   "scripts": {
-    "app": "node bin/qwbe-invoicing.ts",
-    "build:frontend": "pnpm --filter @qwbe/invoicing-frontend build",
+    "app": "node bin/ro-free-invoice.ts",
+    "build:frontend": "pnpm --filter @ro-free-invoice/frontend build",
     "test:app:runtime": "node --test --test-timeout=180000 probes/app-runtime.mjs probes/app-runtime-session.mjs",
     "local:setup": "node scripts/local-warden.mjs",
     "test": "node --test --test-concurrency=4 --test-timeout=120000 \"cubes/**/*.test.ts\" \"kernel/**/*.test.ts\" \"frontend/src/**/*.test.ts\" \"probes/**/*.test.mjs\"",
-    "typecheck": "tsc -p tsconfig.json && pnpm --filter @qwbe/invoicing-frontend typecheck",
+    "typecheck": "tsc -p tsconfig.json && pnpm --filter @ro-free-invoice/frontend typecheck",
     "lint": "eslint .",
     "gate:runtime": "node probes/runtime-version.mjs",
     "gate:package": "node probes/package-gate.mjs",

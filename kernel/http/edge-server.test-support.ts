@@ -38,7 +38,7 @@ export interface EdgeServerOptions {
 }
 
 export const edgeConfig = (overrides: Partial<RuntimeConfig> = {}): RuntimeConfig => {
-  const directory = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "qwbe-edge-"))
+  const directory = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "rfi-edge-"))
   const authTokenFile = join(directory, "api-token")
   writeFileSync(authTokenFile, edgeToken, { mode: 0o600 })
   return {

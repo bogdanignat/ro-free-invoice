@@ -80,7 +80,7 @@ export const activeHttpApi = (plugins: PluginSelection) => {
   const paid = plugins.payments ? withPayments(invoicing) : invoicing
   const billed = plugins.efactura ? withEFactura(paid) : paid
   return application(plugins["company-lookup"] ? withCompanyLookup(billed) : billed).annotateContext(OpenApi.annotations({
-    title: "QWBE Invoicing API",
+    title: "RO Free Invoice API",
     description: "Kernel invoice-core, PDF artifact, and browser-session HTTP contract.",
     version: "0.1.0",
   }))

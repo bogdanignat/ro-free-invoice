@@ -47,10 +47,10 @@ void test("one image: the kernel ships the Vite build from its ui-builder stage 
   assert.deepEqual(docker.match(/^FROM base AS [a-z-]+$/gmu), ["FROM base AS dependencies", "FROM base AS ui-builder"])
   assert.match(docker, /^FROM node:\S+ AS runtime$/mu)
   const builder = stage(docker, "ui-builder")
-  assert.match(builder, /pnpm --filter @qwbe\/invoicing-frontend install --frozen-lockfile\n/u, "build dependencies, not --prod")
+  assert.match(builder, /pnpm --filter @ro-free-invoice\/frontend install --frozen-lockfile\n/u, "build dependencies, not --prod")
   assert.match(builder, /RUN pnpm build:frontend/u)
   const runtime = stage(docker, "runtime")
-  assert.match(runtime, /QWBE_UI_DIR=\/app\/frontend\/dist/u)
+  assert.match(runtime, /RFI_UI_DIR=\/app\/frontend\/dist/u)
   assert.match(runtime, /COPY --from=ui-builder \/app\/frontend\/dist \.\/frontend\/dist/u)
   // From the frontend, only `dist` reaches the runtime; its node_modules are the kernel's --prod set.
   assert.deepEqual(runtime.match(/^COPY .*frontend.*$/gmu), ["COPY --from=ui-builder /app/frontend/dist ./frontend/dist"])
@@ -59,7 +59,7 @@ void test("one image: the kernel ships the Vite build from its ui-builder stage 
   assert.doesNotMatch(runtime, /pnpm (?:install|build)|COPY \. \.|AUTH_TOKEN|\.next/u)
   assert.match(runtime, /USER node/u)
   assert.match(runtime, /http:\/\/127\.0\.0\.1:3000\/health\/ready/u)
-  assert.match(runtime, /CMD \["node", "bin\/qwbe-invoicing\.ts", "serve"\]/u)
+  assert.match(runtime, /CMD \["node", "bin\/ro-free-invoice\.ts", "serve"\]/u)
 })
 
 void test("no compose file runs a frontend service or a Next variable", () => {
@@ -76,9 +76,9 @@ void test("development: app owns the Warden route and derives PUBLIC_ORIGIN from
   const app = serviceBlock(compose, "app")
   assert.match(app, /PUBLIC_ORIGIN: https:\/\/\$\{APP_DOMAIN:-invoice\.test\}/u)
   assert.match(app, /networks:\n {6}- default\n {6}- warden/u)
-  assert.match(app, /traefik\.http\.routers\.qwbe-invoicing\.rule: Host\(`\$\{APP_DOMAIN:-invoice\.test\}`\)/u)
+  assert.match(app, /traefik\.http\.routers\.ro-free-invoice\.rule: Host\(`\$\{APP_DOMAIN:-invoice\.test\}`\)/u)
   assert.match(app, /loadbalancer\.server\.port: "3000"/u)
-  assert.match(app, /QWBE_BEARER_API: \$\{QWBE_BEARER_API:-off\}/u)
+  assert.match(app, /RFI_BEARER_API: \$\{RFI_BEARER_API:-off\}/u)
   assert.doesNotMatch(app, /ports:/u)
 })
 
@@ -97,14 +97,14 @@ void test("production: no Warden, no public port, PUBLIC_ORIGIN and the image ta
   assert.match(app, /PUBLIC_ORIGIN: \$\{PUBLIC_ORIGIN:\?/u)
   assert.doesNotMatch(app, /ports:/u)
   for (const name of ["migrate", "app"]) {
-    assert.match(serviceBlock(compose, name), /image: \$\{QWBE_IMAGE:-[^}]+\}:\$\{IMAGE_TAG:\?/u, `${name} image`)
+    assert.match(serviceBlock(compose, name), /image: \$\{RFI_IMAGE:-[^}]+\}:\$\{IMAGE_TAG:\?/u, `${name} image`)
   }
   for (const secret of ["AUTH_TOKEN_PATH", "PG_SUPERUSER_PASSWORD_PATH", "PG_OWNER_PASSWORD_PATH", "PG_APP_PASSWORD_PATH", "COMPANY_LOOKUP_KEY_PATH"]) {
     assert.match(compose, new RegExp(`\\$\\{${secret}:\\?`, "u"))
   }
   // The active database and artifact volume, switched together by scripts/production/restore.sh.
-  assert.match(compose, /^ {2}PGDATABASE: \$\{QWBE_PGDATABASE:\?/mu)
-  assert.match(compose, /^ {2}invoicing-data:\n {4}name: \$\{QWBE_DATA_VOLUME:\?/mu)
+  assert.match(compose, /^ {2}PGDATABASE: \$\{RFI_PGDATABASE:\?/mu)
+  assert.match(compose, /^ {2}invoicing-data:\n {4}name: \$\{RFI_DATA_VOLUME:\?/mu)
   const caddy = serviceBlock(compose, "caddy")
   assert.match(caddy, /profiles: \["proxy"\]/u)
   assert.match(caddy, /depends_on:\n {6}app:\n {8}condition: service_healthy\n {4}ports:/u, "Caddy waits for app, and only for app")
@@ -128,11 +128,11 @@ void test("production: every service drops its capabilities, Caddy is pinned, th
   // IPv6 on, so Docker forwards Caddy's IPv6 visitors with their own address, not the gateway's.
   assert.match(compose, /^ {2}default:\n {4}enable_ipv6: true$/mu)
   const subnet = (name) => new RegExp(`^ {8}- subnet: \\$\\{${name}:-([^}]+)\\}$`, "mu").exec(compose)?.[1]
-  const [ipv4, ipv6] = [subnet("QWBE_NETWORK_SUBNET"), subnet("QWBE_NETWORK_SUBNET_IPV6")]
+  const [ipv4, ipv6] = [subnet("RFI_NETWORK_SUBNET"), subnet("RFI_NETWORK_SUBNET_IPV6")]
   assert.ok(ipv4 !== undefined && ipv6 !== undefined, "the default network has fixed IPv4 and IPv6 subnets")
-  const trusted = `QWBE_TRUSTED_PROXY: \${QWBE_TRUSTED_PROXY-\${QWBE_NETWORK_SUBNET:-${ipv4}},\${QWBE_NETWORK_SUBNET_IPV6:-${ipv6}}}\n`
+  const trusted = `RFI_TRUSTED_PROXY: \${RFI_TRUSTED_PROXY-\${RFI_NETWORK_SUBNET:-${ipv4}},\${RFI_NETWORK_SUBNET_IPV6:-${ipv6}}}\n`
   assert.ok(serviceBlock(compose, "app").includes(trusted),
-    "QWBE_TRUSTED_PROXY defaults to the same subnets, and an empty value in .env still trusts nobody")
+    "RFI_TRUSTED_PROXY defaults to the same subnets, and an empty value in .env still trusts nobody")
 })
 
 void test("database roles: the superuser password reaches db and db-init only, migrate is qwbe_owner, app is qwbe_app", () => {
@@ -155,8 +155,8 @@ void test("database roles: the superuser password reaches db and db-init only, m
 void test("a host without IPv6: the overlay turns IPv6 off and replaces the subnets with the IPv4 one alone", () => {
   const overlay = code("compose.ipv4-only.yaml")
   assert.deepEqual(services(overlay), [])
-  assert.match(overlay, /^networks:\n {2}default:\n {4}enable_ipv6: false\n {4}ipam:\n {6}config: !override\n {8}- subnet: \$\{QWBE_NETWORK_SUBNET:-10\.93\.0\.0\/24\}$/mu)
-  assert.match(code("compose.prod.yaml"), /^ {8}- subnet: \$\{QWBE_NETWORK_SUBNET:-10\.93\.0\.0\/24\}$/mu, "the same IPv4 default")
+  assert.match(overlay, /^networks:\n {2}default:\n {4}enable_ipv6: false\n {4}ipam:\n {6}config: !override\n {8}- subnet: \$\{RFI_NETWORK_SUBNET:-10\.93\.0\.0\/24\}$/mu)
+  assert.match(code("compose.prod.yaml"), /^ {8}- subnet: \$\{RFI_NETWORK_SUBNET:-10\.93\.0\.0\/24\}$/mu, "the same IPv4 default")
 })
 
 void test("an existing proxy reaches app through the loopback overlay, never a public address", () => {
@@ -184,7 +184,7 @@ void test("preview is opt-in, loopback-only on app, and isolates storage and cre
   const db = serviceBlock(compose, "db")
   assert.match(db, /POSTGRES_PASSWORD_FILE: \/run\/secrets\/pg_superuser_password/u)
   assert.match(db, /preview-postgres:/u)
-  assert.match(compose, /name: qwbe-invoicing-preview/u)
+  assert.match(compose, /name: ro-free-invoice-preview/u)
   for (const secret of ["AUTH_TOKEN", "PG_SUPERUSER_PASSWORD", "PG_OWNER_PASSWORD", "PG_APP_PASSWORD", "COMPANY_LOOKUP_KEY"]) {
     assert.match(compose, new RegExp(`\\$\\{PREVIEW_${secret}_PATH:\\?`, "u"), secret)
   }
@@ -229,7 +229,7 @@ void test("the release publishes one image and verifies through the Docker harne
   assert.doesNotMatch(release, /run: pnpm verify/u, "pnpm verify needs PostgreSQL; the runner has none")
   const digests = source("image-digests.txt.example").split("\n").filter((line) => line !== "" && !line.startsWith("#"))
   assert.equal(digests.length, 2, "the version, then one digest")
-  assert.match(digests[1] ?? "", /\/qwbe-invoicing@sha256:[0-9a-f]{64}$/u)
+  assert.match(digests[1] ?? "", /\/ro-free-invoice@sha256:[0-9a-f]{64}$/u)
 })
 
 void test("ANAF: the environment is test unless written out; the client and its secrets come only with the overlay, all required", () => {

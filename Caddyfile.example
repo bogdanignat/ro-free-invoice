@@ -1,4 +1,4 @@
-# Caddyfile for the optional TLS proxy in front of qwbe-invoicing.
+# Caddyfile for the optional TLS proxy in front of ro-free-invoice.
 # Used only with `docker compose -f compose.prod.yaml --profile proxy up -d`.
 # Copy it to `Caddyfile` next to compose.prod.yaml and replace invoice.example.com
 # with the host of PUBLIC_ORIGIN (they must match exactly). Keep the target `app:3000`:

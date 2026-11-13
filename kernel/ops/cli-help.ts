@@ -1,14 +1,14 @@
-/** `qwbe-invoicing help`. Kept apart from the parser in `cli.ts`, which it documents. */
-export const helpText = `QWBE Invoicing operational CLI
+/** `ro-free-invoice help`. Kept apart from the parser in `cli.ts`, which it documents. */
+export const helpText = `RO Free Invoice operational CLI
 
 Usage:
-  qwbe-invoicing serve
-  qwbe-invoicing doctor [--json]
-  qwbe-invoicing migrate [--apply] [--confirm-production] [--json]
-  qwbe-invoicing artifacts [--limit 50] [--apply] [--confirm-production] [--json]
-  qwbe-invoicing backup --output <path.tar.gz|dir> [--json]
-  qwbe-invoicing restore --input <path.tar.gz|dir> [--apply] [--confirm-production] [--json]
-  qwbe-invoicing backup-inspect --input <path.tar.gz|dir> [--json]
+  ro-free-invoice serve
+  ro-free-invoice doctor [--json]
+  ro-free-invoice migrate [--apply] [--confirm-production] [--json]
+  ro-free-invoice artifacts [--limit 50] [--apply] [--confirm-production] [--json]
+  ro-free-invoice backup --output <path.tar.gz|dir> [--json]
+  ro-free-invoice restore --input <path.tar.gz|dir> [--apply] [--confirm-production] [--json]
+  ro-free-invoice backup-inspect --input <path.tar.gz|dir> [--json]
 
 migrate is a dry-run by default. --apply writes pending schema migrations.
 artifacts reports invoices and proformas without PDFs by default. --apply renders at most

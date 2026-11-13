@@ -8,9 +8,9 @@
 # environment to the file and a stray `export IMAGE_TAG=...` in an operator's shell
 # would silently start another version.
 
-QWBE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ENV_FILE="$QWBE_ROOT/.env"
-STATE_DIR="$QWBE_ROOT/.local/production"
+RFI_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ENV_FILE="$RFI_ROOT/.env"
+STATE_DIR="$RFI_ROOT/.local/production"
 RECOVERY_MARKER="$STATE_DIR/recovery-required"
 APP_STOPPED_MARKER="$STATE_DIR/app-stopped"
 umask 077
@@ -75,23 +75,26 @@ env_keep() {
   printf '%s' "$copy"
 }
 
-# Sets the values the scripts read: QWBE_IMAGE, IMAGE_TAG, ORGANIZATION_ID,
+# Sets the values the scripts read: RFI_IMAGE, IMAGE_TAG, ORGANIZATION_ID,
 # PGDATABASE_ACTIVE, DATA_VOLUME_ACTIVE, BACKUP_DIR.
 # shellcheck disable=SC2034
 load_env() {
   [[ -f "$ENV_FILE" && ! -L "$ENV_FILE" ]] || die "no regular file at $ENV_FILE (copy .env.example first)"
-  local key
+  # A stale QWBE_* key is refused here, before any docker call; the kernel refuses it too.
+  local key stale
+  stale="$(sed -nE 's/^[[:space:]]*(export[[:space:]]+)?(QWBE_[A-Za-z0-9_]*).*/\2/p' "$ENV_FILE" | sort -u | paste -sd, -)"
+  [[ -z "$stale" ]] || die "$stale in $ENV_FILE: the QWBE_* variables were renamed to RFI_*; rename or remove them"
   while read -r key; do
     case "$key" in PATH | HOME | USER | SHELL | TMPDIR) ;; *) unset "$key" ;; esac
   done < <(sed -nE 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' "$ENV_FILE")
-  unset COMPOSE_FILE COMPOSE_PROFILES COMPOSE_PROJECT_NAME IMAGE_TAG QWBE_IMAGE
-  QWBE_IMAGE="$(env_get QWBE_IMAGE)"
-  QWBE_IMAGE="${QWBE_IMAGE:-ghcr.io/bogdanignat/qwbe-invoicing}"
-  [[ "$QWBE_IMAGE" =~ ^[a-z0-9][a-z0-9._/-]*$ ]] || die "QWBE_IMAGE in $ENV_FILE is not valid: $QWBE_IMAGE"
+  unset COMPOSE_FILE COMPOSE_PROFILES COMPOSE_PROJECT_NAME IMAGE_TAG RFI_IMAGE
+  RFI_IMAGE="$(env_get RFI_IMAGE)"
+  RFI_IMAGE="${RFI_IMAGE:-ghcr.io/bogdanignat/ro-free-invoice}"
+  [[ "$RFI_IMAGE" =~ ^[a-z0-9][a-z0-9._/-]*$ ]] || die "RFI_IMAGE in $ENV_FILE is not valid: $RFI_IMAGE"
   IMAGE_TAG="$(env_require IMAGE_TAG '^[A-Za-z0-9_.@:-]+$')"
   ORGANIZATION_ID="$(env_require ORGANIZATION_ID '^[A-Za-z0-9_.-]+$')"
-  PGDATABASE_ACTIVE="$(env_require QWBE_PGDATABASE '^[a-z_][a-z0-9_]{0,62}$')"
-  DATA_VOLUME_ACTIVE="$(env_require QWBE_DATA_VOLUME '^[A-Za-z0-9][A-Za-z0-9_.-]*$')"
+  PGDATABASE_ACTIVE="$(env_require RFI_PGDATABASE '^[a-z_][a-z0-9_]{0,62}$')"
+  DATA_VOLUME_ACTIVE="$(env_require RFI_DATA_VOLUME '^[A-Za-z0-9][A-Za-z0-9_.-]*$')"
   # No `:` or `,`: the directory is mounted with `-v "$BACKUP_DIR:/backup"`.
   BACKUP_DIR="$(env_require BACKUP_DIR '^/[^:,]*$')"
 }
@@ -103,11 +106,11 @@ compose_init() {
   local -a list
   files="$(env_get COMPOSE_FILE)"
   IFS=: read -r -a list <<<"${files:-compose.prod.yaml}"
-  COMPOSE=(docker compose --project-directory "$QWBE_ROOT" --env-file "$ENV_FILE")
+  COMPOSE=(docker compose --project-directory "$RFI_ROOT" --env-file "$ENV_FILE")
   for file in "${list[@]}"; do
-    [[ "$file" == /* ]] || file="$QWBE_ROOT/${file#./}"
+    [[ "$file" == /* ]] || file="$RFI_ROOT/${file#./}"
     [[ -f "$file" ]] || die "compose file not found: $file"
-    [[ "$file" == "$QWBE_ROOT/compose.prod.yaml" ]] && found=1
+    [[ "$file" == "$RFI_ROOT/compose.prod.yaml" ]] && found=1
     [[ "$(basename "$file")" != compose.yaml ]] || die "compose.yaml is the development stack; COMPOSE_FILE must name compose.prod.yaml"
     COMPOSE+=(-f "$file")
   done
@@ -191,7 +194,7 @@ wait_app_healthy() {
 # `doctor --json` in the running `app`: ready, plus an optional extra condition.
 doctor_ready() {
   local report
-  report="$(timeout 120 "${COMPOSE[@]}" exec -T app node bin/qwbe-invoicing.ts doctor --json)" || return 1
+  report="$(timeout 120 "${COMPOSE[@]}" exec -T app node bin/ro-free-invoice.ts doctor --json)" || return 1
   json_ok "$1" "r.ready === true && (${2:-true})" <<<"$report"
 }
 
@@ -207,7 +210,7 @@ start_stack() {
   timeout 900 "${COMPOSE[@]}" up -d --pull never migrate app || return 1
   wait_app_healthy 300 || return 1
   app_started
-  doctor_ready "$QWBE_IMAGE:$1" "${2:-true}" || { warn "app is healthy, but doctor --json is not ready"; return 1; }
+  doctor_ready "$RFI_IMAGE:$1" "${2:-true}" || { warn "app is healthy, but doctor --json is not ready"; return 1; }
   mapfile -t rest < <(compose config --services | grep -vxE 'db|db-init|migrate|app' || true)
   ((${#rest[@]} == 0)) || compose up -d --pull never --no-deps "${rest[@]}" \
     || { warn "app is ready, but ${rest[*]} did not start: docker compose logs ${rest[*]}"; return 1; }

@@ -2,7 +2,7 @@
 # nothing here persists: the cluster lives on tmpfs, no port is published, no
 # existing volume is referenced and the project name is its own.
 # Run: docker compose --file compose.pg-probe.yaml run --rm probe
-name: qwbe-invoicing-pg-probe
+name: ro-free-invoice-pg-probe
 
 services:
   db:
@@ -40,7 +40,7 @@ services:
       PGPORT: "5432"
       PGDATABASE: probe
       PGUSER: probe
-      POSTGRESQL_CLIENT_PACKAGE: postgresql16-client=16.15-r0
+      POSTGRESQL_CLIENT_PACKAGE: postgresql16-client=16.16-r0
     volumes:
       - .:/app:ro
     tmpfs:

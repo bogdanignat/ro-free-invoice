@@ -46,7 +46,7 @@ const craftArchive = async (
     organizationId: "org-test",
     createdAt: "2026-10-01T00:00:00.000Z",
     dataDirectory: "/data",
-    database: "qwbe_invoicing",
+    database: "ro_free_invoice",
     serverVersion: "16.15",
     dumpVersion: "pg_dump (PostgreSQL) 16.15",
     dumpFormat: "plain",
@@ -63,10 +63,10 @@ const craftArchive = async (
   return archive
 }
 
-const stagingLeft = (): ReadonlyArray<string> => readdirSync(tmpdir()).filter((entry) => entry.startsWith("qwbe-pg-inspect-"))
+const stagingLeft = (): ReadonlyArray<string> => readdirSync(tmpdir()).filter((entry) => entry.startsWith("rfi-pg-inspect-"))
 
 void test("an archive made by backup inspects as restorable, with its inventory and metadata", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-inspect-real-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-inspect-real-"))
   const source = await freshRuntime("inspreal")
   try {
     const dataDirectory = join(root, "data")
@@ -95,7 +95,7 @@ void test("an archive made by backup inspects as restorable, with its inventory 
 })
 
 void test("the schema verdict: pending is restorable, an unknown migration or a gap is not", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-inspect-schema-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-inspect-schema-"))
   try {
     const inspect = async (name: string, keys: ReadonlyArray<string>) =>
       inspectBackup(await craftArchive(root, name, keys), defaultArchiveLimits, scopeFixture)
@@ -119,7 +119,7 @@ void test("the schema verdict: pending is restorable, an unknown migration or a 
 })
 
 void test("a modified archive is refused, and its staging is removed", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-inspect-tampered-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-inspect-tampered-"))
   try {
     const before = stagingLeft()
     for (const [tamper, expected] of [
@@ -140,12 +140,12 @@ void test("a modified archive is refused, and its staging is removed", async () 
 })
 
 void test("backup-inspect runs with no database setting and no secret, and exits by the verdict", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-inspect-cli-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-inspect-cli-"))
   try {
     // Production, and nothing else: `runtimeConfig` would refuse this environment
     // (no PGPASSWORD_FILE), so a pass proves the command never reads it.
     const run = (...args: ReadonlyArray<string>) => spawnSync(process.execPath,
-      [join(process.cwd(), "bin", "qwbe-invoicing.ts"), "backup-inspect", ...args],
+      [join(process.cwd(), "bin", "ro-free-invoice.ts"), "backup-inspect", ...args],
       { encoding: "utf8", env: { PATH: process.env["PATH"] ?? "/usr/bin:/bin", NODE_ENV: "production" } })
 
     const good = await craftArchive(root, "good", imageKeys)

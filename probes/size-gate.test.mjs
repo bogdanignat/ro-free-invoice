@@ -9,7 +9,7 @@ import test from "node:test"
 import { listCube } from "./cube-fixture.test-support.mjs"
 import { inspectSizes, sizeViolations, stripCommentsAndBlankLines } from "./size-gate-lib.mjs"
 
-const fixture = () => mkdtempSync(join(tmpdir(), "qwbe-size-gate-"))
+const fixture = () => mkdtempSync(join(tmpdir(), "rfi-size-gate-"))
 const write = (root, path, content) => {
   const target = join(root, path)
   mkdirSync(join(target, ".."), { recursive: true })

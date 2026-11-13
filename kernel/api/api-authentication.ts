@@ -22,7 +22,7 @@ export const authenticationLayer = (runtime: ApiRuntime) => Layer.succeed(ApiAut
     if (session === undefined || value.length === 0) return yield* Effect.fail({ error: "AuthenticationRequired" as const })
     // The session is a query now: the generator awaits it instead of reading it.
     const authorization = yield* Effect.promise(() => session.authorize({
-      cookie: `qwbe_session=${value}`, method: request.method,
+      cookie: `rfi_session=${value}`, method: request.method,
       csrfToken: request.headers["x-csrf-token"], origin: request.headers.origin, host: request.headers.host,
     }))
     if (authorization.kind === "forbidden") return yield* Effect.fail({ error: "csrf_validation_failed" as const })
@@ -36,7 +36,7 @@ const authenticationRequired = Effect.fail({ error: "AuthenticationRequired" as 
 export const sessionAuthenticationLayer = (runtime: ApiRuntime) => Layer.succeed(SessionAuthentication, {
   sessionCookie: (cookie) => {
     const value = Redacted.value(cookie)
-    const header = `qwbe_session=${value}`
+    const header = `rfi_session=${value}`
     const session = runtime.browserSession
     if (session === undefined || value.length === 0) return authenticationRequired
     // `Layer.succeed` with a synchronous body is gone: resuming reads the

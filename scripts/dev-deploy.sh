@@ -17,6 +17,12 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 fail() { echo "dev-deploy: FAIL $*" >&2; exit 1; }
 
+# A stale QWBE_* key is refused here, before any docker call; the kernel refuses it too.
+if [[ -f .env ]]; then
+  stale="$(sed -nE 's/^[[:space:]]*(export[[:space:]]+)?(QWBE_[A-Za-z0-9_]*).*/\2/p' .env | sort -u | paste -sd, -)"
+  [[ -z "$stale" ]] || fail "$stale in .env: the QWBE_* variables were renamed to RFI_*; rename or remove them"
+fi
+
 docker compose build
 # A running app holds the maintenance key SHARED, and `up` runs `migrate` before it
 # recreates app: migrate would refuse. So app stops first (a few seconds of downtime).
@@ -38,6 +44,6 @@ done
 [[ "$(docker inspect -f '{{.State.Health.Status}}' "$container")" == healthy ]] \
   || fail "app is not healthy: $(docker compose logs --tail=30 app 2>&1)"
 
-report="$(docker compose exec -T app node bin/qwbe-invoicing.ts doctor --json)" || fail "doctor: $report"
+report="$(docker compose exec -T app node bin/ro-free-invoice.ts doctor --json)" || fail "doctor: $report"
 grep -q '"ready":true' <<<"$report" || fail "doctor is not ready: $report"
 echo "dev-deploy: ready ($(docker inspect -f '{{.Config.Image}}' "$container"))"

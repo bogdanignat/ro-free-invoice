@@ -53,7 +53,7 @@ interrupt() {
 }
 
 # Holds once `.env` names another database than the one restored by drill.sh.
-env_switched() { [[ "$(env_value QWBE_PGDATABASE)" != "$restored" ]]; }
+env_switched() { [[ "$(env_value RFI_PGDATABASE)" != "$restored" ]]; }
 
 remove_partials() {
   local partial
@@ -109,7 +109,7 @@ dry_run_interrupted() {
 # the commands are printed, nothing more is started; the operator goes on as printed.
 restore_switch_interrupted() {
   local archive="$1"
-  restored="$(env_value QWBE_PGDATABASE)"
+  restored="$(env_value RFI_PGDATABASE)"
   basename "$archive" > "$work/answer"
   input="$work/answer"
   interrupt TERM env_switched "$scripts/restore.sh" "$archive" --apply
@@ -122,6 +122,6 @@ restore_switch_interrupted() {
   { "${compose[@]}" stop app && "${compose[@]}" up -d; } >/dev/null 2>&1 || fail "going on as printed"
   wait_ready
   rm "$stopped_marker"
-  doctor_ok ".database.database == \"$(env_value QWBE_PGDATABASE)\"" || fail "doctor on the target of the interrupted switch"
+  doctor_ok ".database.database == \"$(env_value RFI_PGDATABASE)\"" || fail "doctor on the target of the interrupted switch"
   pass "TERM during restore --apply after .env switched: exit 143, prints the state, the previous .env and the commands, starts nothing more"
 }

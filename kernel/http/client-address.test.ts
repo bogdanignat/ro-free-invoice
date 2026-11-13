@@ -14,7 +14,7 @@ const request = (remoteAddress: string, ...forwarded: ReadonlyArray<string>): In
 
 const proxies = parseTrustedProxies("10.0.0.5, 172.18.0.0/16, fd00::/8")
 
-void test("QWBE_TRUSTED_PROXY accepts addresses and ranges, trusts nothing by default and refuses what it cannot read", () => {
+void test("RFI_TRUSTED_PROXY accepts addresses and ranges, trusts nothing by default and refuses what it cannot read", () => {
   assert.equal(parseTrustedProxies(undefined).trusts("127.0.0.1"), false)
   assert.equal(parseTrustedProxies("").trusts("127.0.0.1"), false)
   assert.equal(proxies.trusts("10.0.0.5"), true)
@@ -24,7 +24,7 @@ void test("QWBE_TRUSTED_PROXY accepts addresses and ranges, trusts nothing by de
   assert.equal(proxies.trusts("10.0.0.6"), false)
   assert.equal(proxies.trusts("not-an-address"), false)
   for (const value of ["10.0.0", "10.0.0.0/33", "fd00::/129", "0.0.0.0/0", "::/0", "10.0.0.0/x", "10.0.0.0/8/1", "proxy.local"]) {
-    assert.throws(() => parseTrustedProxies(value), /QWBE_TRUSTED_PROXY entries must be/u, value)
+    assert.throws(() => parseTrustedProxies(value), /RFI_TRUSTED_PROXY entries must be/u, value)
   }
 })
 

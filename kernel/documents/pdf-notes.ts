@@ -53,7 +53,7 @@ export const drawFooters = (sheet: Sheet, kind: DocumentKind): void => {
       : "Document generat electronic, valabil fără semnătură și ștampilă.", {
       x: margin, y: margin + 18, size: 7, font: sheet.fonts.regular, color: muted,
     })
-    putText(page, `Pagina ${String(index + 1)} din ${String(total)} · QWBE Invoicing`, {
+    putText(page, `Pagina ${String(index + 1)} din ${String(total)} · RO Free Invoice`, {
       x: margin, y: margin + 18, size: 7, font: sheet.fonts.regular, color: muted,
       align: "right", width: contentWidth,
     })

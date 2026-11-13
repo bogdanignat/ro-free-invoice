@@ -1,4 +1,4 @@
-name: qwbe-invoicing
+name: ro-free-invoice
 
 # Production / self-host bundle: `docker compose -f compose.prod.yaml up -d`, with the
 # values in `.env` next to it (see .env.example and the README "Quick start (self-host)").
@@ -14,7 +14,7 @@ name: qwbe-invoicing
 #
 # Either proxy reaches `app` from inside the project network, whose subnets are fixed
 # below: the bundled Caddy has addresses in them, and a proxy on the host comes in
-# through the gateway. QWBE_TRUSTED_PROXY defaults to both subnets, so the login throttle
+# through the gateway. RFI_TRUSTED_PROXY defaults to both subnets, so the login throttle
 # keys on the client each proxy writes in X-Forwarded-For, not on the proxy.
 #
 # Before the first `up`, create the six secret files (`scripts/init-secrets.sh` does it,
@@ -32,10 +32,10 @@ name: qwbe-invoicing
 x-postgres-environment: &postgres-environment
   PGHOST: db
   PGPORT: "5432"
-  # The database app and migrate use: qwbe_invoicing at install, a new one after
-  # scripts/production/restore.sh, which switches it together with QWBE_DATA_VOLUME.
+  # The database app and migrate use: ro_free_invoice at install, a new one after
+  # scripts/production/restore.sh, which switches it together with RFI_DATA_VOLUME.
   # POSTGRES_DB below only names the database the cluster is created with.
-  PGDATABASE: ${QWBE_PGDATABASE:?Set QWBE_PGDATABASE to the active database, qwbe_invoicing at install}
+  PGDATABASE: ${RFI_PGDATABASE:?Set RFI_PGDATABASE to the active database, ro_free_invoice at install}
 
 # No capability and no privilege gained on exec, unless a service adds back what it needs.
 x-hardening: &hardening
@@ -58,7 +58,7 @@ services:
     # `postgres` (CHOWN, FOWNER, DAC_OVERRIDE), then drops to that user (SETUID, SETGID).
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
     environment:
-      POSTGRES_DB: qwbe_invoicing
+      POSTGRES_DB: ro_free_invoice
       # The cluster's superuser: db-init and restore only, never the application.
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser_password
@@ -76,7 +76,7 @@ services:
     expose:
       - "5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d qwbe_invoicing"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d ro_free_invoice"]
       interval: 10s
       timeout: 3s
       retries: 20
@@ -94,16 +94,16 @@ services:
     logging: *logging
     cap_add: [DAC_READ_SEARCH]
     user: "0:0"
-    command: ["sh", "/qwbe-postgres/db-init.sh"]
+    command: ["sh", "/rfi-postgres/db-init.sh"]
     environment:
       PGHOST: db
-      PGDATABASE: ${QWBE_PGDATABASE:?Set QWBE_PGDATABASE to the active database, qwbe_invoicing at install}
+      PGDATABASE: ${RFI_PGDATABASE:?Set RFI_PGDATABASE to the active database, ro_free_invoice at install}
     secrets:
       - pg_superuser_password
       - pg_owner_password
       - pg_app_password
     volumes:
-      - ./deploy/postgres:/qwbe-postgres:ro
+      - ./deploy/postgres:/rfi-postgres:ro
     depends_on:
       db:
         condition: service_healthy
@@ -111,10 +111,10 @@ services:
     restart: "no"
 
   migrate:
-    image: ${QWBE_IMAGE:-ghcr.io/bogdanignat/qwbe-invoicing}:${IMAGE_TAG:?Set IMAGE_TAG, e.g. local for your own build or 0.3.0@sha256:<digest> for a release}
+    image: ${RFI_IMAGE:-ghcr.io/bogdanignat/ro-free-invoice}:${IMAGE_TAG:?Set IMAGE_TAG, e.g. local for your own build or 0.3.0@sha256:<digest> for a release}
     <<: *hardening
     logging: *logging
-    command: ["node", "bin/qwbe-invoicing.ts", "migrate", "--apply", "--confirm-production", "--json"]
+    command: ["node", "bin/ro-free-invoice.ts", "migrate", "--apply", "--confirm-production", "--json"]
     environment:
       <<: *postgres-environment
       # The schema owner, NOSUPERUSER. The password is read from this file, never from
@@ -146,7 +146,7 @@ services:
     restart: "no"
 
   app:
-    image: ${QWBE_IMAGE:-ghcr.io/bogdanignat/qwbe-invoicing}:${IMAGE_TAG:?Set IMAGE_TAG, e.g. local for your own build or 0.3.0@sha256:<digest> for a release}
+    image: ${RFI_IMAGE:-ghcr.io/bogdanignat/ro-free-invoice}:${IMAGE_TAG:?Set IMAGE_TAG, e.g. local for your own build or 0.3.0@sha256:<digest> for a release}
     <<: *hardening
     logging: *logging
     environment:
@@ -165,7 +165,7 @@ services:
       COMPANY_LOOKUP_KEY_FILE: /run/secrets/company_lookup_key
       # Optional plugins, comma-separated (`payments`, `efactura`, `company-lookup`). Passed through
       # only when set: unset means every plugin runs, empty means none. Restart to apply.
-      QWBE_PLUGINS:
+      RFI_PLUGINS:
       # The ANAF e-Factura environment: `test` unless `prod` is written out in .env. The
       # OAuth client and its secrets come only with compose.anaf.yaml (docs/LOCAL_DEVELOPMENT.md).
       ANAF_ENVIRONMENT: ${ANAF_ENVIRONMENT:-test}
@@ -174,18 +174,25 @@ services:
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN to the public https origin, e.g. https://invoice.example.com}
       # Off by default: any Authorization header is refused. `on` serves the Bearer API
       # on this same listener; see the README before switching it on.
-      QWBE_BEARER_API: ${QWBE_BEARER_API:-off}
+      RFI_BEARER_API: ${RFI_BEARER_API:-off}
       # Whose X-Forwarded-For keys the login throttle (README, Configuration): the project
       # network by default, i.e. the bundled Caddy or a proxy on the host. Empty in .env
       # trusts nobody, and every client behind the proxy then shares the proxy's bucket.
-      QWBE_TRUSTED_PROXY: ${QWBE_TRUSTED_PROXY-${QWBE_NETWORK_SUBNET:-10.93.0.0/24},${QWBE_NETWORK_SUBNET_IPV6:-fd93:1c5e:a7b0::/64}}
+      RFI_TRUSTED_PROXY: ${RFI_TRUSTED_PROXY-${RFI_NETWORK_SUBNET:-10.93.0.0/24},${RFI_NETWORK_SUBNET_IPV6:-fd93:1c5e:a7b0::/64}}
       # The Vite build the kernel serves; the image sets the same value. Required in
       # production: `serve` refuses to start without an index.html there.
-      QWBE_UI_DIR: /app/frontend/dist
+      RFI_UI_DIR: /app/frontend/dist
       # `backup` and `restore` stage into a `mkdtemp` under TMPDIR and the archive
       # bounds allow 64 GiB expanded, so staging is a disk volume and not the small
       # tmpfs below: a staging tree of tens of GiB in `/tmp` would be that much RAM.
       TMPDIR: /var/backups/staging
+      # Renamed keys, passed through only when set, so a stale one in .env reaches the kernel's refusal.
+      QWBE_PLUGINS:
+      QWBE_BEARER_API:
+      QWBE_TRUSTED_PROXY:
+      QWBE_NETWORK_SUBNET:
+      QWBE_NETWORK_SUBNET_IPV6:
+      QWBE_IMAGE:
     secrets:
       - api_token
       - pg_app_password
@@ -242,9 +249,9 @@ services:
       - /tmp:size=16m
     restart: unless-stopped
 
-# The project network, on fixed subnets so QWBE_TRUSTED_PROXY can name them. IPv4 outside
+# The project network, on fixed subnets so RFI_TRUSTED_PROXY can name them. IPv4 outside
 # Docker's default pools (172.17-31.x, 192.168.x), IPv6 a ULA; change one in .env if it
-# overlaps a network of this host, and QWBE_TRUSTED_PROXY follows unless set on its own.
+# overlaps a network of this host, and RFI_TRUSTED_PROXY follows unless set on its own.
 # IPv6 is on so that Docker (27+, ip6tables) forwards Caddy's IPv6 visitors to its own
 # IPv6 address with their real source, instead of through docker-proxy from the gateway.
 # A host without IPv6 adds compose.ipv4-only.yaml, which drops the IPv6 subnet.
@@ -253,8 +260,8 @@ networks:
     enable_ipv6: true
     ipam:
       config:
-        - subnet: ${QWBE_NETWORK_SUBNET:-10.93.0.0/24}
-        - subnet: ${QWBE_NETWORK_SUBNET_IPV6:-fd93:1c5e:a7b0::/64}
+        - subnet: ${RFI_NETWORK_SUBNET:-10.93.0.0/24}
+        - subnet: ${RFI_NETWORK_SUBNET_IPV6:-fd93:1c5e:a7b0::/64}
 
 secrets:
   api_token:
@@ -269,19 +276,19 @@ secrets:
     file: ${COMPANY_LOOKUP_KEY_PATH:?Set COMPANY_LOOKUP_KEY_PATH to the operator-created company lookup master key file}
 
 volumes:
-  # The artifact volume: qwbe-invoicing-data at install, a new one after a restore.
+  # The artifact volume: ro-free-invoice-data at install, a new one after a restore.
   invoicing-data:
-    name: ${QWBE_DATA_VOLUME:?Set QWBE_DATA_VOLUME to the active artifact volume, qwbe-invoicing-data at install}
+    name: ${RFI_DATA_VOLUME:?Set RFI_DATA_VOLUME to the active artifact volume, ro-free-invoice-data at install}
   # The cluster volume, named separately and created fresh at first start. Nothing
   # here reuses or resets an older volume.
   invoicing-postgres:
-    name: qwbe-invoicing-postgres
+    name: ro-free-invoice-postgres
   # Backup/restore staging. Separate from the data volume so a staging tree that
   # fills up cannot take the artifact store with it.
   invoicing-backup-staging:
-    name: qwbe-invoicing-backup-staging
+    name: ro-free-invoice-backup-staging
   # Prefixed, so a Caddy of another stack on the same host keeps its own certificates.
   caddy-data:
-    name: qwbe-invoicing-caddy-data
+    name: ro-free-invoice-caddy-data
   caddy-config:
-    name: qwbe-invoicing-caddy-config
+    name: ro-free-invoice-caddy-config

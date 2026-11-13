@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto"
 
-export const cookieName = "qwbe_session"
+export const cookieName = "rfi_session"
 export const sessionIdPattern = /^[A-Za-z0-9_-]{43}$/
 
 export const sameValue = (actual: string, expected: string): boolean => {
@@ -28,7 +28,7 @@ export const secureOrigin = (origin: string | undefined): boolean => {
 }
 
 /**
- * Every `qwbe_session` value in a Cookie header, empty ones included. Split on
+ * Every `rfi_session` value in a Cookie header, empty ones included. Split on
  * `,` as well as `;`, so a folded header cannot hide a second session cookie.
  */
 export const sessionCookieValues = (header: string | undefined, wanted: string = cookieName): ReadonlyArray<string> => {

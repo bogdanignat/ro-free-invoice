@@ -12,7 +12,7 @@ spot: nothing is stored, sent or written to `eFacturaStatus`. They serve tests a
 debugging; the interface submits instead, and downloads the exact XML of a submission
 from its history.
 
-Both routes belong to the `efactura` plugin. With it off (`QWBE_PLUGINS` without
+Both routes belong to the `efactura` plugin. With it off (`RFI_PLUGINS` without
 `efactura`) they answer 404, are absent from OpenAPI, and every invoice response
 says `eFacturaStatus: null`; issuance, PDF and the fiscal validations do not change.
 
@@ -312,7 +312,7 @@ All four belong to the `efactura` plugin: off, they answer 404 and are absent fr
 
 **The attempt.** `start` draws a 32-byte nonce, stores only its SHA-256 with the
 connection's generation, and replaces the organization's previous attempt, which
-can then never complete. The nonce travels only in `qwbe_anaf_oauth` (HttpOnly,
+can then never complete. The nonce travels only in `rfi_anaf_oauth` (HttpOnly,
 Secure, SameSite=Lax, `Path=/api/anaf`, Max-Age 600). The attempt lives ten minutes
 and is consumed by the first callback that presents it with a `code` (see the
 callback below; an `error=` or code-less answer leaves it untouched). The
@@ -639,7 +639,7 @@ document then answers the new submission.
 
 **`ANAF_ENVIRONMENT`** is checked by `serve` against the environment of the stored
 submissions once the schema is ready, before any traffic and before the dispatcher,
-whatever `QWBE_PLUGINS` says: `/health/ready` and `/api*` answer 503 until it
+whatever `RFI_PLUGINS` says: `/health/ready` and `/api*` answer 503 until it
 passed, so no submit can write in the startup window. Polling a `test` index
 against `prod`, or the reverse, would read another system's answer, so `serve`
 stops with exit 1 and says why.
@@ -647,7 +647,7 @@ stops with exit 1 and says why.
 **Restore.** A backup is a picture of the past: a submission it shows `queued`,
 `validating` or `uploading` may have reached ANAF since. `restore` therefore runs a
 fixed SQL step after the dump, inside the same `psql --single-transaction`
-(`kernel/ops/efactura-restore.ts`), whatever `QWBE_PLUGINS` says: those submissions
+(`kernel/ops/efactura-restore.ts`), whatever `RFI_PLUGINS` says: those submissions
 become `unknown` ("restaurat din backup"), their documents show `unknown`, each one
 gets an `efactura_submission.restored_unknown` audit row, and the OAuth attempts are
 deleted. If that step fails, the whole restore rolls back with it and the database
@@ -820,7 +820,7 @@ docker compose exec app sh -c "wget -qO- --header 'Host: invoice.test' \
 ```
 
 The backend has no published port: the call runs inside its container, with the
-Host of `PUBLIC_ORIGIN` (any other Host answers 400) and with `QWBE_BEARER_API=on`
+Host of `PUBLIC_ORIGIN` (any other Host answers 400) and with `RFI_BEARER_API=on`
 exported before `docker compose up -d` (off, `Authorization` answers 400).
 
 That file is uploaded at the same address and under the same rule as the

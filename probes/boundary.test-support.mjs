@@ -28,7 +28,7 @@ export const makeUnit = (root, path, source = "export const value = 1\n") => {
 }
 
 export const withFixture = async (build, use) => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-boundary-test-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-boundary-test-"))
   try {
     build(root)
     return await use(root)

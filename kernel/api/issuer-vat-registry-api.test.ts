@@ -42,7 +42,7 @@ const rig = (pool: Pool, dataDirectory: string, plugins: PluginSelection = allPl
   const handler = createApiHandler({ authenticate, pool, dataDirectory, plugins, transport: fake.transport,
     now: () => new Date(`${today}T10:00:00.000Z`) })
   const call = async (method: string, path: string, body?: unknown, key?: string) => {
-    const response = await handler.handle(new Request(`http://qwbe.local/api${path}`, { method,
+    const response = await handler.handle(new Request(`http://rfi.local/api${path}`, { method,
       headers: { "content-type": "application/json", authorization: "Bearer x", ...(key === undefined ? {} : { "idempotency-key": key }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) }))
     return { status: response.status, body: await response.json() as Record<string, unknown> }

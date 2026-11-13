@@ -28,7 +28,7 @@ import { writeArchive } from "./postgres-backup-writer.ts"
  * staging directory still empty".
  */
 
-const fixtureRoot = (): string => mkdtempSync(join(tmpdir(), "qwbe-archive-fixture-"))
+const fixtureRoot = (): string => mkdtempSync(join(tmpdir(), "rfi-archive-fixture-"))
 
 interface RawMember {
   readonly name: string

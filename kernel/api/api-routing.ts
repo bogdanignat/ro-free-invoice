@@ -9,7 +9,7 @@ const issuePath = (issue: { readonly path: ReadonlyArray<PropertyKey>, readonly 
   ? issue.message : `${issue.path.map(String).join(".")}: ${issue.message}`
 const decodeFailure = (failure: HttpApiError.HttpApiDecodeError) => Effect.gen(function*() {
   const request = yield* HttpServerRequest.HttpServerRequest
-  const params = new URL(request.url, "http://qwbe.local").searchParams
+  const params = new URL(request.url, "http://rfi.local").searchParams
   if (params.getAll("limit").length > 1 || params.getAll("cursor").length > 1) {
     return HttpServerResponse.unsafeJson({ error: "ValidationFailure",
       issues: ["limit and cursor must be supplied at most once"] }, { status: 400 })

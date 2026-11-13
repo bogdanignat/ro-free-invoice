@@ -8,12 +8,12 @@
 # session cookie and the session resumes.
 #
 # Side effects, all undone at exit, success or not: the image tag
-# qwbe-invoicing:${SMOKE_IMAGE_TAG} (kept, it is a build cache), a temporary directory
+# ro-free-invoice:${SMOKE_IMAGE_TAG} (kept, it is a build cache), a temporary directory
 # with a `.env` made from .env.example and the secrets made by
-# scripts/init-secrets.sh, and the Compose project `qwbe-smoke` with its own volumes,
-# renamed to `qwbe-smoke-*` by an override in that directory. compose.prod.yaml names
-# its volumes `qwbe-invoicing-*`, which on a development host are the local stack's,
-# so the script refuses to start unless every volume of the project is `qwbe-smoke-*`;
+# scripts/init-secrets.sh, and the Compose project `rfi-smoke` with its own volumes,
+# renamed to `rfi-smoke-*` by an override in that directory. compose.prod.yaml names
+# its volumes `ro-free-invoice-*`, which on a host with an installation are its data,
+# so the script refuses to start unless every volume of the project is `rfi-smoke-*`;
 # `down -v` at the end removes only those. The checkout's own `.env` and `.local/` are
 # never read or written.
 #
@@ -22,12 +22,12 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-project=qwbe-smoke
+project=rfi-smoke
 port="${SMOKE_PORT:-3199}"
 tag="${SMOKE_IMAGE_TAG:-smoke}"
 origin=https://invoice.smoke.test
 host="${origin#https://}"
-work="$(mktemp -d "${TMPDIR:-/tmp}/qwbe-smoke.XXXXXX")"
+work="$(mktemp -d "${TMPDIR:-/tmp}/rfi-smoke.XXXXXX")"
 compose=(docker compose -p "$project" --project-directory "$root" --env-file "$work/.env"
   -f "$root/compose.prod.yaml" -f "$root/compose.loopback.yaml" -f "$work/volumes.yaml")
 started=0
@@ -51,7 +51,7 @@ sed -e "s|^PUBLIC_ORIGIN=.*|PUBLIC_ORIGIN=$origin|" -e "s|^IMAGE_TAG=.*|IMAGE_TA
   -e "s|^COMPANY_LOOKUP_KEY_PATH=.*|COMPANY_LOOKUP_KEY_PATH=$work/secrets/company-lookup-key|" \
   "$root/.env.example" > "$work/.env"
 # Its own subnets: compose.prod.yaml fixes them, which an installation on this host may hold.
-printf '%s\n' "APP_LOOPBACK_PORT=$port" QWBE_NETWORK_SUBNET=10.93.1.0/24 QWBE_NETWORK_SUBNET_IPV6=fd93:1c5e:a7b1::/64 >> "$work/.env"
+printf '%s\n' "APP_LOOPBACK_PORT=$port" RFI_NETWORK_SUBNET=10.93.1.0/24 RFI_NETWORK_SUBNET_IPV6=fd93:1c5e:a7b1::/64 >> "$work/.env"
 "$root/scripts/init-secrets.sh" "$work/.env" >/dev/null
 cat > "$work/volumes.yaml" <<YAML
 volumes:
@@ -71,8 +71,8 @@ for name in data postgres backup-staging; do
   ! docker volume inspect "$project-$name" >/dev/null 2>&1 || { echo "smoke: $project-$name exists from an earlier run; remove it first" >&2; exit 2; }
 done
 
-docker build -q -t "qwbe-invoicing:$tag" "$root" >/dev/null
-pass "image qwbe-invoicing:$tag built"
+docker build -q -t "ro-free-invoice:$tag" "$root" >/dev/null
+pass "image ro-free-invoice:$tag built"
 started=1
 "${compose[@]}" up -d --quiet-pull >/dev/null 2>&1 || fail "compose up: $("${compose[@]}" logs --tail=40 migrate app 2>&1)"
 
@@ -107,7 +107,7 @@ pass "$asset is immutable"
 login="$(printf '{"token":"%s"}' "$(cat "$work/secrets/api-token")" \
   | "${curl[@]}" -D - -o /dev/null "${proxy[@]}" -H "Origin: $origin" -H 'Content-Type: application/json' --data-binary @- "$base/api/session" || true)"
 grep -q '^HTTP/1.1 200' <<<"$login" || fail "login: $(head -n 1 <<<"$login")"
-cookie="$(grep -i '^set-cookie: qwbe_session=' <<<"$login" | tr -d '\r' || true)"
+cookie="$(grep -i '^set-cookie: rfi_session=' <<<"$login" | tr -d '\r' || true)"
 [[ -n "$cookie" ]] || fail "login answered no session cookie"
 for attribute in 'Path=/api' HttpOnly 'SameSite=Strict' Secure; do
   grep -q "; $attribute\(;\|$\)" <<<"$cookie" || fail "session cookie without $attribute"

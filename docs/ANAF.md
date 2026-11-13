@@ -8,7 +8,7 @@ instalării, pe firma lui.
 
 | Funcție | Ce cere de la ANAF | Unde se configurează |
 | --- | --- | --- |
-| e-Factura (plugin `efactura`) | pentru XML, nimic; pentru SPV (conexiune OAuth, trimitere, stare, recipisă, reconciliere), aplicația OAuth a operatorului și accesul firmei în SPV, mai jos | `QWBE_PLUGINS`; variabilele `ANAF_*` și `compose.anaf.yaml`; conexiunea din **Integrări**; XML-ul unui document se descarcă prin API (`GET /api/invoices/{id}/efactura.xml`, `GET /api/corrections/{id}/efactura.xml`), interfața nu are buton pentru el; XML-ul deja trimis se descarcă din istoricul e-Factura al documentului |
+| e-Factura (plugin `efactura`) | pentru XML, nimic; pentru SPV (conexiune OAuth, trimitere, stare, recipisă, reconciliere), aplicația OAuth a operatorului și accesul firmei în SPV, mai jos | `RFI_PLUGINS`; variabilele `ANAF_*` și `compose.anaf.yaml`; conexiunea din **Integrări**; XML-ul unui document se descarcă prin API (`GET /api/invoices/{id}/efactura.xml`, `GET /api/corrections/{id}/efactura.xml`), interfața nu are buton pentru el; XML-ul deja trimis se descarcă din istoricul e-Factura al documentului |
 | Căutare firmă după CUI (plugin `company-lookup`, furnizor ANAF) | nimic: serviciul public de verificare TVA, fără cheie | **Integrări** în aplicație |
 
 **Aplicația trimite în SPV doar ce trimite utilizatorul**, document cu document, și

@@ -159,7 +159,7 @@ export const planBackup = async (
 
 export const executeBackup = async (context: BackupContext, output: string): Promise<BackupReport> =>
   withExclusiveMaintenance(context.pool, "backup", async (client) =>
-    withStaging("qwbe-pg-backup-", async (staging) => {
+    withStaging("rfi-pg-backup-", async (staging) => {
       const session: BackupSession = {
         client, settings: context.settings, dataDirectory: context.dataDirectory, staging,
         organizationId: context.organizationId,
@@ -185,7 +185,7 @@ export const planRestore = async (
 
 export const executeRestore = async (context: BackupContext, input: string): Promise<RestoreReport> =>
   withExclusiveMaintenance(context.pool, "restore", async (client) =>
-    withStaging("qwbe-pg-restore-", async (staging) => {
+    withStaging("rfi-pg-restore-", async (staging) => {
       const session: BackupSession = {
         client, settings: context.settings, dataDirectory: context.dataDirectory, staging,
         organizationId: context.organizationId,
@@ -202,4 +202,4 @@ export const inspectBackup = async (
   limits: ArchiveLimits = defaultArchiveLimits,
   scopes: typeof migrationScopes = migrationScopes,
 ): Promise<BackupInspection> =>
-  withStaging("qwbe-pg-inspect-", async (staging) => inspectStaged(input, staging, limits, scopes))
+  withStaging("rfi-pg-inspect-", async (staging) => inspectStaged(input, staging, limits, scopes))

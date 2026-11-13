@@ -96,7 +96,7 @@ void test("blocked readiness and a blocked session read on the docs page are bou
   })
   const stuckPool = { connect: () => never() } as unknown as Pool
   await withDeadline({ pool: stuckPool }, async (port) => {
-    const cookie = `qwbe_session=${"a".repeat(43)}`
+    const cookie = `rfi_session=${"a".repeat(43)}`
     await timedOut(edgeRequest(port, { path: "/api", headers: { host: publicHost, cookie } }), "docs session read")
   })
 })

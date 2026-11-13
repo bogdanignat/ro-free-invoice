@@ -15,7 +15,7 @@ export const UnlockView = () => {
   if (model.status === "restore-error") {
     return <Shell unlocked={false}><SessionRecovery error={model.error} onRetry={model.retryRestore} /></Shell>
   }
-  return <Shell unlocked={false}><Page title="Bine ai revenit" eyebrow="QWBE Invoicing">
+  return <Shell unlocked={false}><Page title="Bine ai revenit" eyebrow="RO Free Invoice">
     <section className="unlock-card">
       <div className="unlock-icon" aria-hidden="true">⌁</div>
       <p>Introdu tokenul API local. Browserul va păstra numai sesiunea opacă HttpOnly; tokenul nu este salvat în JavaScript, URL sau storage.</p>

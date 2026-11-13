@@ -49,7 +49,7 @@ void test("invoice register OpenAPI preserves discriminated nullability and orig
   assert.ok(invoice.properties.dueDate.anyOf)
   assert.deepEqual(invoice.properties.dueDate.anyOf.map(({ type }) => type), ["string", "null"])
   assert.ok(invoice.properties.eFacturaStatus)
-  // `null` is the e-Factura plugin switched off (`QWBE_PLUGINS`); otherwise one of the seven statuses.
+  // `null` is the e-Factura plugin switched off (`RFI_PLUGINS`); otherwise one of the seven statuses.
   const statuses = [["not_sent", "queued", "processing", "accepted", "rejected", "refused", "unknown"], "null"]
   assert.deepEqual(invoice.properties.eFacturaStatus.anyOf?.map((variant) => variant.enum ?? variant.type), statuses)
   assert.ok(correction)

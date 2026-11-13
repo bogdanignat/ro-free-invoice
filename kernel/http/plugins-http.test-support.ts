@@ -15,7 +15,7 @@ import type { PluginSelection } from "../plugins.ts"
 import type { TestFixture } from "../storage/postgres-rig.test-support.ts"
 
 /**
- * A real server on a real database for the `QWBE_PLUGINS` suites. The selection
+ * A real server on a real database for the `RFI_PLUGINS` suites. The selection
  * reaches the server only through `RuntimeConfig.plugins`, exactly as `serve`
  * hands it over.
  */

@@ -16,7 +16,7 @@ const write = (root, path, content) => {
   writeFileSync(target, content)
 }
 const withRoot = async (build, use) => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-source-tree-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-source-tree-"))
   try {
     build(root)
     return await use(root)

@@ -13,7 +13,7 @@ instalare servește o singură firmă, în RON. Rulează dintr-o **singură imag
 `compose.prod.yaml`: `db`, `migrate` (aplică schema la fiecare pornire, înainte de
 aplicație), `app` și, opțional, `caddy`.
 
-Plugin-uri opționale, toate pornite implicit (`QWBE_PLUGINS`): `payments` (plățile),
+Plugin-uri opționale, toate pornite implicit (`RFI_PLUGINS`): `payments` (plățile),
 `efactura` (XML-ul și, cu înregistrarea ta la ANAF, trimiterea în SPV) și `company-lookup`
 (datele unei firme după CUI, de la ANAF sau openapi.ro).
 
@@ -37,8 +37,8 @@ Comenzile rulează din directorul repository-ului.
 
 1. Clonează codul:
    ```bash
-   git clone https://github.com/bogdanignat/qwbe-invoicing.git
-   cd qwbe-invoicing
+   git clone https://github.com/bogdanignat/ro-free-invoice.git
+   cd ro-free-invoice
    cp .env.example .env
    ```
 2. Completează în `.env` (fiecare cheie din fișier spune ce face și dacă e obligatorie):
@@ -46,7 +46,7 @@ Comenzile rulează din directorul repository-ului.
      cale și fără `/` la final;
    - `ORGANIZATION_ID`: id-ul intern al firmei (litere mici, cifre, cratimă, ex.
      `ro12345678`), ales o dată, înainte de primul start, și neschimbat apoi;
-   - `QWBE_IMAGE=qwbe-invoicing` și `IMAGE_TAG=local` rămân așa pentru imaginea de la pasul 5.
+   - `RFI_IMAGE=ro-free-invoice` și `IMAGE_TAG=local` rămân așa pentru imaginea de la pasul 5.
 3. Alege intrarea HTTPS și scrie-o tot în `.env`, ca să nu repeți `-f`/`--profile`
    (restul ghidului presupune asta):
    - **a) Caddy-ul inclus:** `COMPOSE_FILE=compose.prod.yaml` și `COMPOSE_PROFILES=proxy`.
@@ -65,11 +65,11 @@ Comenzile rulează din directorul repository-ului.
      implicit). Nu folosi `$proxy_add_x_forwarded_for`: păstrează în față ce a trimis
      clientul, iar o valoare pe care aplicația nu o poate citi (`unknown`, `1.2.3.4:5678`)
      primește `400 invalid_forwarded_for`. Un proxy care nu poate suprascrie primește
-     `QWBE_TRUSTED_PROXY=` (gol) în `.env`; atunci toți vizitatorii împart aceeași limită.
+     `RFI_TRUSTED_PROXY=` (gol) în `.env`; atunci toți vizitatorii împart aceeași limită.
      Exemple nginx și Caddy: [Quick start, pasul 5](../README.md#quick-start-self-host).
 
    În ambele variante proxy-ul ajunge la aplicație din rețeaua proiectului, pe subneturile
-   fixe `10.93.0.0/24` și `fd93:1c5e:a7b0::/64` (IPv6 ULA), în care `QWBE_TRUSTED_PROXY` are
+   fixe `10.93.0.0/24` și `fd93:1c5e:a7b0::/64` (IPv6 ULA), în care `RFI_TRUSTED_PROXY` are
    încredere implicit. HSTS (`max-age=31536000`) îl trimite aplicația, pentru o
    `PUBLIC_ORIGIN` cu `https`.
 
@@ -105,7 +105,7 @@ Comenzile rulează din directorul repository-ului.
    certificatul. Schimbarea parolelor: [Rotate them, keeping the data](../README.md#rotate-them-keeping-the-data).
 5. Construiește imaginea și pornește:
    ```bash
-   docker build -t qwbe-invoicing:local .
+   docker build -t ro-free-invoice:local .
    docker compose up -d
    ```
    `db` pornește primul, `db-init` creează rolurile și drepturile, `migrate` aplică schema,
@@ -114,7 +114,7 @@ Comenzile rulează din directorul repository-ului.
 6. Verifică:
    ```bash
    docker compose ps
-   docker compose exec app node bin/qwbe-invoicing.ts doctor --json
+   docker compose exec app node bin/ro-free-invoice.ts doctor --json
    curl -fsS https://facturi.exemplu.ro/health/ready
    ```
    `app` trebuie să fie `healthy`. `doctor` verifică conexiunea la bază, migrările, drift-ul
@@ -130,10 +130,10 @@ Instalarea dintr-un release publicat (imagine din registry, fixată pe digest):
 |---|---|
 | `PUBLIC_ORIGIN` | singura origine acceptată; `Host`, `X-Forwarded-*` și `Origin` trebuie să coincidă cu ea |
 | `ORGANIZATION_ID` | firma deservită; nu se schimbă după primul start |
-| `QWBE_PLUGINS` | plugin-urile pornite: absentă = toate, goală = niciunul, nume necunoscut = refuz la pornire |
-| `QWBE_TRUSTED_PROXY` | proxy-urile ale căror `X-Forwarded-For` contează la limitarea încercărilor de login; implicit rețeaua proiectului, gol = nimeni |
-| `QWBE_NETWORK_SUBNET`, `QWBE_NETWORK_SUBNET_IPV6` | subneturile fixe ale rețelei proiectului, implicit `10.93.0.0/24` și `fd93:1c5e:a7b0::/64`; se schimbă doar dacă se suprapun cu o rețea de pe server |
-| `QWBE_BEARER_API` | `off` implicit; `on` deschide API-ul cu token Bearer pe aceeași adresă |
+| `RFI_PLUGINS` | plugin-urile pornite: absentă = toate, goală = niciunul, nume necunoscut = refuz la pornire |
+| `RFI_TRUSTED_PROXY` | proxy-urile ale căror `X-Forwarded-For` contează la limitarea încercărilor de login; implicit rețeaua proiectului, gol = nimeni |
+| `RFI_NETWORK_SUBNET`, `RFI_NETWORK_SUBNET_IPV6` | subneturile fixe ale rețelei proiectului, implicit `10.93.0.0/24` și `fd93:1c5e:a7b0::/64`; se schimbă doar dacă se suprapun cu o rețea de pe server |
+| `RFI_BEARER_API` | `off` implicit; `on` deschide API-ul cu token Bearer pe aceeași adresă |
 
 O schimbare cere repornirea (`docker compose up -d`). Tabelul complet:
 [Configuration](../README.md#configuration).
@@ -222,15 +222,15 @@ Fluxul în detaliu: [Connecting to ANAF](./EFACTURA.md#connecting-to-anaf-oauth)
 pornească `migrate`:
 
 ```bash
-mkdir -p /opt/qwbe-invoicing/backups
+mkdir -p /opt/ro-free-invoice/backups
 docker compose stop app
-docker compose run --rm --no-deps -v /opt/qwbe-invoicing/backups:/backup app node bin/qwbe-invoicing.ts backup --output /backup/qwbe-$(date +%F).tar.gz --json
+docker compose run --rm --no-deps -v /opt/ro-free-invoice/backups:/backup app node bin/ro-free-invoice.ts backup --output /backup/rfi-$(date +%F).tar.gz --json
 docker compose start app
 ```
 
 Arhiva conține baza și PDF-urile, nu și `.env`, fișierele secrete, `Caddyfile` sau
 conexiunea ANAF: pe acestea le salvezi separat, iar după o restaurare te reconectezi la ANAF.
-O restaurare cere același `ORGANIZATION_ID`. `node bin/qwbe-invoicing.ts backup-inspect --input <arhivă>`
+O restaurare cere același `ORGANIZATION_ID`. `node bin/ro-free-invoice.ts backup-inspect --input <arhivă>`
 verifică arhiva fără bază de date și fără secrete și spune dacă imaginea instalată o poate restaura.
 
 **Restaurarea** se face doar într-o bază nouă, goală, și într-un volum de date nou; `restore`
@@ -254,14 +254,14 @@ pentru rollback, construiești și pornești. `up -d` rulează `migrate` înaint
 vechiul `app` cu `docker compose start app`.
 
 ```bash
-mkdir -p /opt/qwbe-invoicing/backups
+mkdir -p /opt/ro-free-invoice/backups
 docker compose stop app
-docker compose run --rm --no-deps -v /opt/qwbe-invoicing/backups:/backup app node bin/qwbe-invoicing.ts backup --output /backup/qwbe-$(date +%F).tar.gz --json
-docker tag qwbe-invoicing:local qwbe-invoicing:previous
+docker compose run --rm --no-deps -v /opt/ro-free-invoice/backups:/backup app node bin/ro-free-invoice.ts backup --output /backup/rfi-$(date +%F).tar.gz --json
+docker tag ro-free-invoice:local ro-free-invoice:previous
 git pull
-docker build -t qwbe-invoicing:local .
+docker build -t ro-free-invoice:local .
 docker compose up -d
-docker compose exec app node bin/qwbe-invoicing.ts doctor --json
+docker compose exec app node bin/ro-free-invoice.ts doctor --json
 ```
 
 Aceiași pași, automat și cu rollback, face `scripts/production/deploy.sh`
@@ -280,14 +280,14 @@ staging-ul de backup: nu e niciodată un pas de actualizare sau de backup.
 | `password authentication failed for user "postgres"` în logul `db-init`, iar `docker compose logs db` arată `Role "postgres" does not exist` | clusterul e dinaintea rolurilor separate, cu superuserul `qwbe`, și nu se convertește: urmează pașii din [Upgrading](../README.md#upgrading) (backup cu checkout-ul vechi dacă datele contează, cele trei linii noi în `.env`, `scripts/init-secrets.sh`, `docker compose down -v`, `up -d`) |
 | `password authentication failed` în logul `db-init`, fără `Role ... does not exist` în logul `db` | parola superuserului a fost regenerată după primul start; pune la loc fișierul vechi sau urmează [rotirea parolelor](../README.md#rotate-them-keeping-the-data) |
 | `migrate` iese cu `schema does not match the migration contract (...): the schema is not the one its migration history explains; inspect the named objects, or restore a backup` | drift de migrare: schema bazei nu e cea explicată de migrările aplicate (un obiect schimbat de mână, un rând șters din ledger). Upgrade-ul normal aplică doar migrările noi și nu dă drift. Verifică obiectele numite în mesaj sau restaurează un backup; o bază de dezvoltare se poate și recrea (README, [API](../README.md#api), „Schema and migrations”) |
-| `Pool overlaps with other one on this address space` la `up` | un subnet al rețelei e deja folosit pe server: pune alt `/24` în `QWBE_NETWORK_SUBNET` sau alt `/64` în `QWBE_NETWORK_SUBNET_IPV6` |
+| `Pool overlaps with other one on this address space` la `up` | un subnet al rețelei e deja folosit pe server: pune alt `/24` în `RFI_NETWORK_SUBNET` sau alt `/64` în `RFI_NETWORK_SUBNET_IPV6` |
 | la `up`, o eroare despre IPv6 la crearea rețelei | serverul nu are IPv6: adaugă `compose.ipv4-only.yaml` la `COMPOSE_FILE`, apoi `docker compose down` (fără `-v`) și `up -d` |
 | `400 invalid_forwarded_for` la unii vizitatori (varianta b) | proxy-ul adaugă la `X-Forwarded-For` în loc să-l suprascrie: în nginx `proxy_set_header X-Forwarded-For $remote_addr;` |
-| la `up`, o eroare despre rețeaua `qwbe-invoicing_default`, sau `deploy.sh` refuză: `network ... has the subnets` | rețeaua e creată cu alte subneturi (de o versiune fără subnet fix sau înainte de o schimbare în `.env`): `docker compose down` (fără `-v`, volumele rămân), apoi `docker compose up -d` |
+| la `up`, o eroare despre rețeaua `ro-free-invoice_default`, sau `deploy.sh` refuză: `network ... has the subnets` | rețeaua e creată cu alte subneturi (de o versiune fără subnet fix sau înainte de o schimbare în `.env`): `docker compose down` (fără `-v`, volumele rămân), apoi `docker compose up -d` |
 | Caddy: `permission denied` la `/etc/caddy/Caddyfile` | `Caddyfile` are mod `0600`: `chmod 644 Caddyfile` |
 | `400` la orice cerere prin proxy | `Host` sau `X-Forwarded-Proto` diferă de `PUBLIC_ORIGIN`; verifică proxy-ul și gazda din `Caddyfile` |
-| `404` pe plăți sau e-Factura | plugin-ul e oprit în `QWBE_PLUGINS`; datele rămân și reapar când îl pornești |
-| aplicația nu pornește după o schimbare în `QWBE_PLUGINS` | nume de plugin necunoscut; eroarea listează numele valide |
+| `404` pe plăți sau e-Factura | plugin-ul e oprit în `RFI_PLUGINS`; datele rămân și reapar când îl pornești |
+| aplicația nu pornește după o schimbare în `RFI_PLUGINS` | nume de plugin necunoscut; eroarea listează numele valide |
 | `backup requires the application to be stopped` | `app` rulează: `docker compose stop app`, apoi backup |
 | ANAF: „Necesită reconectare” | cheia tokenurilor, client id-ul sau mediul s-au schimbat, ori ANAF a refuzat reîmprospătarea; reconectează-te cu certificatul |
 | ANAF: conexiunea nu se salvează (`fara_drept_cif`) | certificatul nu are drept în SPV pe CUI-ul emitentului din **Date firmă** |

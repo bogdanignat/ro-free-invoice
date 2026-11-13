@@ -33,7 +33,7 @@ void test("the materialized application contract serves routes and stable transp
       plugins: allPlugins,
       authenticate: createRequestAuthenticator(fixture.config({ port: 0, authTokenFile: tokenFile })),
     })
-    const call = (path: string, method = "GET", body?: string) => handler.handle(new Request(`http://qwbe.local${path}`, {
+    const call = (path: string, method = "GET", body?: string) => handler.handle(new Request(`http://rfi.local${path}`, {
       method,
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       ...(body === undefined ? {} : { body }),

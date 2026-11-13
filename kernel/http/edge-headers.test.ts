@@ -85,7 +85,7 @@ void test("the docs page replaces only the CSP, and only a missing or invalid se
   const call = (headers: Readonly<Record<string, string>> = {}) =>
     edgeRequest(server.port, { path: "/api", headers: { host: publicHost, ...headers } })
   try {
-    for (const cookie of [undefined, "qwbe_session=not-a-session-id"]) {
+    for (const cookie of [undefined, "rfi_session=not-a-session-id"]) {
       const redirect = await call(cookie === undefined ? {} : { cookie })
       assert.equal(redirect.status, 303)
       assert.equal(redirect.headers.location, "/unlock")
@@ -93,16 +93,16 @@ void test("the docs page replaces only the CSP, and only a missing or invalid se
       // Only a session cookie the request carried is cleared: a cross-site link
       // arrives without the SameSite=Strict cookie and must not log anyone out.
       if (cookie === undefined) assert.equal(redirect.headers["set-cookie"], undefined)
-      else assert.match(String(redirect.headers["set-cookie"]), /^qwbe_session=; Path=\/api; HttpOnly; SameSite=Strict; Secure; /u)
+      else assert.match(String(redirect.headers["set-cookie"]), /^rfi_session=; Path=\/api; HttpOnly; SameSite=Strict; Secure; /u)
       assert.equal(redirect.body, "")
       assertSecured(redirect, "docs redirect")
     }
     // A session id the store has to look up reaches the (absent) database: a
     // failure there stays a 500, never a redirect.
-    const failed = await call({ cookie: `qwbe_session=${"a".repeat(43)}` })
+    const failed = await call({ cookie: `rfi_session=${"a".repeat(43)}` })
     assert.equal(failed.status, 500)
     assertSecured(failed, "docs failure")
-    assert.equal((await call({ cookie: "qwbe_session=" })).status, 400)
+    assert.equal((await call({ cookie: "rfi_session=" })).status, 400)
     ready = false
     const notReady = await call()
     assert.equal(notReady.status, 503)

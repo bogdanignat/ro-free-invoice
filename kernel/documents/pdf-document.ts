@@ -31,8 +31,8 @@ export const renderPdf = async (
   pdf.setTitle(`${titles[kind]} ${document.series} ${String(document.number)}`)
   pdf.setAuthor(document.issuer.name)
   pdf.setSubject(subjects[kind])
-  pdf.setCreator("QWBE Invoicing")
-  pdf.setProducer(`QWBE Invoicing ${templateVersion}`)
+  pdf.setCreator("RO Free Invoice")
+  pdf.setProducer(`RO Free Invoice ${templateVersion}`)
   pdf.setCreationDate(issuedAt)
   pdf.setModificationDate(issuedAt)
   const sheet: Sheet = { document: pdf, fonts: embedded, page: pdf.addPage([pageWidth, pageHeight]), y: contentTop }

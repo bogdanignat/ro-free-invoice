@@ -5,14 +5,14 @@
 # and the password path, and starts the project's `db` when it is down).
 #
 # No PostgreSQL of its own: the suite runs on the project's cluster (`db` of
-# compose.yaml, over its network), in throwaway databases named `qwbe_t_<run>_…`
+# compose.yaml, over its network), in throwaway databases named `rfi_t_<run>_…`
 # that the rig creates from `postgres` and drops again; `qwbe_invoicing` is never
 # used. Use `compose.test.yaml` for the fast test-only loop; this file exists so
 # the whole gate runs in one command.
-name: qwbe-invoicing-verify
+name: ro-free-invoice-verify
 
 x-verify-image: &verify-image
-  image: qwbe-invoicing-verify:${VERIFY_IMAGE_TAG:-local}
+  image: ro-free-invoice-verify:${VERIFY_IMAGE_TAG:-local}
   build:
     context: .
     dockerfile: Dockerfile.verify
@@ -58,7 +58,7 @@ services:
     # The run id the script reclaims by: a test database whose run has no live
     # container left is a leftover (scripts/verify-docker.sh).
     labels:
-      qwbe.test-run: ${QWBE_TEST_RUN:?run through scripts/verify-docker.sh}
+      rfi.test-run: ${RFI_TEST_RUN:?run through scripts/verify-docker.sh}
     environment:
       # NODE_ENV is deliberately not set: every caller that cares (CLI guards,
       # tests) sets it itself. PUBLIC_ORIGIN is deliberately not set either: the
@@ -77,11 +77,11 @@ services:
       PGUSER: postgres
       # The project's own secret, mounted read-only below; never an environment variable.
       PGPASSWORD_FILE: /run/secrets/pg_superuser_password
-      # Prefix of every test database this run creates (`qwbe_t_<run>_…`).
-      QWBE_TEST_RUN: ${QWBE_TEST_RUN:?run through scripts/verify-docker.sh}
+      # Prefix of every test database this run creates (`rfi_t_<run>_…`).
+      RFI_TEST_RUN: ${RFI_TEST_RUN:?run through scripts/verify-docker.sh}
       # Passed through only when set, for the CLI children the suite spawns; the
       # in-process fixtures choose their plugins themselves. Unset: every plugin.
-      QWBE_PLUGINS:
+      RFI_PLUGINS:
     secrets:
       - pg_superuser_password
     depends_on:
@@ -97,13 +97,13 @@ services:
 
 secrets:
   pg_superuser_password:
-    file: ${QWBE_PG_SUPERUSER_PASSWORD_FILE:?run through scripts/verify-docker.sh}
+    file: ${RFI_PG_SUPERUSER_PASSWORD_FILE:?run through scripts/verify-docker.sh}
 
 networks:
-  # The default network of the `qwbe-invoicing` project (compose.yaml), where `db` answers.
+  # The default network of the `ro-free-invoice` project (compose.yaml), where `db` answers.
   project:
     external: true
-    name: qwbe-invoicing_default
+    name: ro-free-invoice_default
 
 volumes:
   verify-node-modules: {}

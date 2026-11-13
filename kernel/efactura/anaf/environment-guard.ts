@@ -10,7 +10,7 @@ export class AnafEnvironmentMismatch extends Error {}
  * fetching received invoices from another system than the ones already
  * stored, would mix two systems' answers. Every received message and archive
  * hangs off a fetch, so the fetches stand for them. Runs regardless of
- * `QWBE_PLUGINS`, because the tables exist either way.
+ * `RFI_PLUGINS`, because the tables exist either way.
  */
 export const assertAnafEnvironment = async (pool: Pool, configured: AnafEnvironment): Promise<void> => {
   const { rows } = await pool.query<{ readonly environment: string }>(

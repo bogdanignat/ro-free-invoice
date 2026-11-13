@@ -11,14 +11,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/package.json
 
 FROM base AS dependencies
-RUN pnpm --filter qwbe-invoicing install --frozen-lockfile --prod
+RUN pnpm --filter ro-free-invoice install --frozen-lockfile --prod
 
 # The browser bundle. Its build dependencies (Vite, Tailwind, TypeScript) live only
 # in this stage: the runtime below receives `frontend/dist` and nothing else from it.
 # `frontend/` is self-contained: vite.config.ts, tsconfig.json and scripts/ import
 # nothing from outside it, so the root manifests are the only other input.
 FROM base AS ui-builder
-RUN pnpm --filter @qwbe/invoicing-frontend install --frozen-lockfile
+RUN pnpm --filter @ro-free-invoice/frontend install --frozen-lockfile
 COPY frontend ./frontend
 RUN pnpm build:frontend
 
@@ -27,7 +27,7 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
     DATA_DIR=/data \
-    QWBE_UI_DIR=/app/frontend/dist
+    RFI_UI_DIR=/app/frontend/dist
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json ./
@@ -45,7 +45,7 @@ COPY --from=ui-builder /app/frontend/dist ./frontend/dist
 # the current revision from the pinned base image itself:
 #   docker run --rm node:24.19.0-alpine@sha256:d32cdf61... \
 #     sh -c "apk add --no-cache --simulate postgresql16-client | tail -1"
-ARG PG_CLIENT_VERSION=16.15-r0
+ARG PG_CLIENT_VERSION=16.16-r0
 RUN apk add --no-cache "postgresql16-client=${PG_CLIENT_VERSION}" \
  && pg_dump --version | grep -q " 16\."
 # `/var/backups/staging` exists in the image and is owned by `node` because a named
@@ -59,4 +59,4 @@ EXPOSE 3000
 VOLUME ["/data"]
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
   CMD wget -q -O /dev/null http://127.0.0.1:3000/health/ready || exit 1
-CMD ["node", "bin/qwbe-invoicing.ts", "serve"]
+CMD ["node", "bin/ro-free-invoice.ts", "serve"]

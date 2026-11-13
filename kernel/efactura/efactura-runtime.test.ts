@@ -12,7 +12,7 @@ import { startEFacturaRuntime, type EFacturaRuntimeOptions } from "./efactura-ru
 
 /**
  * The e-Factura side of `serve`: the environment guard runs whatever
- * `QWBE_PLUGINS` says and stops `serve` when it refuses; the dispatcher runs
+ * `RFI_PLUGINS` says and stops `serve` when it refuses; the dispatcher runs
  * only with the plugin on, and only once the application is ready.
  */
 
@@ -93,9 +93,9 @@ void test("serve exits 1 when ANAF_ENVIRONMENT is not the stored submissions', e
   withMigrated("efrt_serve_refuses", async (fixture) => {
     await storedIn(fixture.pool, "prod")
     const port = await freePort()
-    const child = spawn("node", ["bin/qwbe-invoicing.ts", "serve"], {
+    const child = spawn("node", ["bin/ro-free-invoice.ts", "serve"], {
       cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"],
-      env: fixture.childEnv({ HOST: "127.0.0.1", PORT: String(port), NODE_ENV: "development", QWBE_PLUGINS: "", ANAF_ENVIRONMENT: "test" }),
+      env: fixture.childEnv({ HOST: "127.0.0.1", PORT: String(port), NODE_ENV: "development", RFI_PLUGINS: "", ANAF_ENVIRONMENT: "test" }),
     })
     let output = ""
     child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString("utf8") })

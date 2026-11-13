@@ -27,7 +27,7 @@ void test("a recognised positive answer connects: tokens sealed, the CIF and who
     assert.equal(JSON.stringify(row).includes("access-"), false, "the view never carries a token")
     const exchange = rig.fake.calls.find(({ operation }) => operation === "token")
     assert.ok(exchange !== undefined)
-    assert.equal(exchange.authorization, `Basic ${Buffer.from(`qwbe_test_client:${CLIENT_SECRET}`).toString("base64")}`)
+    assert.equal(exchange.authorization, `Basic ${Buffer.from(`rfi_test_client:${CLIENT_SECRET}`).toString("base64")}`)
     assert.deepEqual(Object.fromEntries(new URLSearchParams(exchange.body.toString("utf8"))), { grant_type: "authorization_code",
       code: "AUTH-CODE-DO-NOT-LEAK-91c2", redirect_uri: "https://invoice.test/api/anaf/callback", token_content_type: "jwt" })
     const list = rig.fake.calls.find(({ operation }) => operation === "lista")
@@ -44,7 +44,7 @@ void test("a recognised positive answer connects: tokens sealed, the CIF and who
 void test("every refused callback is a 303 with its fixed code and writes no connection", async () => {
   await withRig("efconn_refused", async (rig) => {
     assert.equal(await rig.callback(undefined, CODE), "tentativa_lipsa", "no cookie")
-    assert.equal(await rig.callback("qwbe_anaf_oauth=not-a-nonce", CODE), "tentativa_lipsa", "a malformed cookie")
+    assert.equal(await rig.callback("rfi_anaf_oauth=not-a-nonce", CODE), "tentativa_lipsa", "a malformed cookie")
     const replaced = await rig.start()
     await rig.start()
     assert.equal(await rig.callback(replaced, CODE), "tentativa_lipsa", "an attempt that is no longer current")
@@ -82,7 +82,7 @@ void test("an error or code-less callback leaves the attempt cookie; one with a 
       assert.deepEqual([reply.status, reply.headers.get("set-cookie")], [303, null], query)
     }
     const consumed = await rig.call("GET", `/anaf/callback${CODE}`, { cookie })
-    assert.match(consumed.headers.get("set-cookie") ?? "", /^qwbe_anaf_oauth=; Max-Age=0;/u)
+    assert.match(consumed.headers.get("set-cookie") ?? "", /^rfi_anaf_oauth=; Max-Age=0;/u)
     assert.equal((await status(rig)).status, "connected", "the foreign error answers did not cancel the started connection")
   })
 })

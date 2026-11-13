@@ -36,7 +36,7 @@ restore_waits_for_step_one() {
 deploy_new_migration() {
   local before tag
   docker tag "$project:install" "$project:0123456789ab"
-  sed -i 's|^CMD \["node", "-e", "process.exit(3)"\]|CMD ["node", "bin/qwbe-invoicing.ts", "serve"]|' "$author/Dockerfile"
+  sed -i 's|^CMD \["node", "-e", "process.exit(3)"\]|CMD ["node", "bin/ro-free-invoice.ts", "serve"]|' "$author/Dockerfile"
   commit_upstream "drill: v5, the new migration and an app that starts"
   v5="$(git -C "$author" rev-parse HEAD | cut -c1-12)"
   before="$(archives | tail -n 1)"
@@ -52,12 +52,12 @@ deploy_new_migration() {
 # (a) An archive older than the image: restored, then migrated on the target before the switch.
 restore_older_archive() {
   local archive="$1" source target
-  source="$(env_value QWBE_PGDATABASE)"
+  source="$(env_value RFI_PGDATABASE)"
   succeeds sh -c "$(confirmed "$archive")"
   { grep -q 'migrate  catalog/catalog-002-drill$' "$log" && grep -q "migrated the target to $project:$v5 (1 applied)" "$log"; } \
     || fail "the plan or the migration: $(tail -n 20 "$log")"
-  target="$(env_value QWBE_PGDATABASE)"
-  [[ "$target" != "$source" && "$(env_value IMAGE_TAG)" == "$v5" ]] || fail "the switch: $(grep -E '^(QWBE_PGDATABASE|IMAGE_TAG)=' "$checkout/.env")"
+  target="$(env_value RFI_PGDATABASE)"
+  [[ "$target" != "$source" && "$(env_value IMAGE_TAG)" == "$v5" ]] || fail "the switch: $(grep -E '^(RFI_PGDATABASE|IMAGE_TAG)=' "$checkout/.env")"
   doctor_ok ".schemaDrift == [] and .pendingMigrations == [] and .database.database == \"$target\"" || fail "doctor on the migrated target"
   [[ "$(drill_psql "$target" "SELECT to_regclass('drill_marker') IS NOT NULL")" == t ]] || fail "drill_marker missing on the target"
   [[ ",$(databases)," == *",$source,"* ]] || fail "the source $source was not kept"
@@ -94,7 +94,7 @@ restore_migrate_fails() {
   cp "$work/migrations.v5.json" "$migrations"
   set_env IMAGE_TAG fails
   cp "$checkout/.env" "$work/env.fails"
-  source="$(env_value QWBE_PGDATABASE)" dbs="$(databases)"
+  source="$(env_value RFI_PGDATABASE)" dbs="$(databases)"
   refused 'migrate failed on the restored target .*the source and .env are unchanged' sh -c "$(confirmed "$newer")"
   grep -q 'drill: this migration fails' "$log" || fail "the migration's error is not shown: $(tail -n 15 "$log")"
   cmp -s "$checkout/.env" "$work/env.fails" || fail ".env changed by a restore whose migration failed"

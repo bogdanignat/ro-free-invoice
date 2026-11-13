@@ -10,7 +10,7 @@
 #
 # Run:  docker compose --file compose.pg-schema-gate.yaml run --rm schema-gate
 # Down: docker compose --file compose.pg-schema-gate.yaml down   (no volume, no -v)
-name: qwbe-invoicing-pg-schema-gate
+name: ro-free-invoice-pg-schema-gate
 
 services:
   db:
@@ -63,7 +63,7 @@ services:
     restart: "no"
 
 volumes:
-  # Produced by the `qwbe-invoicing-verify` compose project; read-only here.
+  # Produced by the `ro-free-invoice-verify` compose project; read-only here.
   verify-node-modules:
     external: true
-    name: qwbe-invoicing-verify_verify-node-modules
+    name: ro-free-invoice-verify_verify-node-modules

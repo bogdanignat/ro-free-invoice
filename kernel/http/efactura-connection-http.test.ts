@@ -33,7 +33,7 @@ void test("start sets the attempt cookie, the callback passes without a session 
       const started = await raw(served, "POST", "/api/efactura/connection/start", { ...session, "x-csrf-token": served.csrfToken })
       assert.equal(started.status, 200)
       const [setCookie] = started.headers.getSetCookie()
-      assert.match(setCookie ?? "", /^qwbe_anaf_oauth=[A-Za-z0-9_-]{43}; Max-Age=600; Path=\/api\/anaf; HttpOnly; Secure; SameSite=Lax$/u)
+      assert.match(setCookie ?? "", /^rfi_anaf_oauth=[A-Za-z0-9_-]{43}; Max-Age=600; Path=\/api\/anaf; HttpOnly; Secure; SameSite=Lax$/u)
       const authorize = new URL((await started.json() as { authorizeUrl: string }).authorizeUrl)
       assert.equal(`${authorize.origin}${authorize.pathname}`, "https://logincert.anaf.ro/anaf-oauth2/v1/authorize")
       assert.deepEqual([...authorize.searchParams.keys()].sort(), ["client_id", "redirect_uri", "response_type", "token_content_type"])
@@ -44,7 +44,7 @@ void test("start sets the attempt cookie, the callback passes without a session 
       assert.equal(callback.headers.get("location"), "/integrations?anaf=conectat")
       assert.equal(callback.headers.get("cache-control"), "no-store")
       assert.equal(callback.headers.get("referrer-policy"), "no-referrer")
-      assert.deepEqual(callback.headers.getSetCookie(), ["qwbe_anaf_oauth=; Max-Age=0; Path=/api/anaf; HttpOnly; Secure; SameSite=Lax"])
+      assert.deepEqual(callback.headers.getSetCookie(), ["rfi_anaf_oauth=; Max-Age=0; Path=/api/anaf; HttpOnly; Secure; SameSite=Lax"])
       assert.equal((await ok(served.call("GET", "/api/efactura/connection"), "status")).status, "connected")
 
       for (const [headers, query] of [[{}, "?code=x"], [{ cookie: cookieOf(started) }, "?code=x"], [{ cookie: served.cookie }, "?error=x"]] as const) {
@@ -75,7 +75,7 @@ void test("without the ANAF variables the status says so and start answers 409",
       assert.equal((await ok(served.call("GET", "/api/efactura/connection"), "status")).status, "not_configured")
       const started = await served.call("POST", "/api/efactura/connection/start")
       assert.deepEqual([started.status, started.body], [409, { error: "DomainConflict", code: "efactura_not_configured" }])
-      const callback = await raw(served, "GET", "/api/anaf/callback?code=x", { cookie: `qwbe_anaf_oauth=${"a".repeat(43)}` })
+      const callback = await raw(served, "GET", "/api/anaf/callback?code=x", { cookie: `rfi_anaf_oauth=${"a".repeat(43)}` })
       assert.equal(callback.headers.get("location"), "/integrations?anaf=neconfigurat")
     } finally {
       await served.close()

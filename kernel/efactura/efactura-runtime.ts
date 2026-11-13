@@ -10,7 +10,7 @@ export interface EFacturaRuntimeOptions extends Omit<DispatcherOptions, "anaf" |
   readonly pool: Pool
   readonly anaf: AnafSettings
   readonly transport?: Transport
-  /** `QWBE_PLUGINS` has e-Factura on: only then does the dispatcher run. The guard runs regardless. */
+  /** `RFI_PLUGINS` has e-Factura on: only then does the dispatcher run. The guard runs regardless. */
   readonly pluginOn: boolean
   /** The database's readiness: the schema is current and the barrier held. Not the guard: traffic waits for both. */
   readonly ready: () => Promise<boolean>

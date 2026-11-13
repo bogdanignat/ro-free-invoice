@@ -44,7 +44,7 @@ const assertSourceIndexes = async (sql: RawSql): Promise<void> => {
 }
 
 const cli = (fixture: TestFixture, args: ReadonlyArray<string>, overrides: Readonly<Record<string, string>> = {}) =>
-  spawnSync(process.execPath, [join(process.cwd(), "bin", "qwbe-invoicing.ts"), ...args],
+  spawnSync(process.execPath, [join(process.cwd(), "bin", "ro-free-invoice.ts"), ...args],
     { encoding: "utf8", env: fixture.childEnv(overrides) })
 
 void test("migration apply is idempotent", async () => {
@@ -263,7 +263,7 @@ void test("CLI distinguishes invalid input, guard refusal, and execution failure
     // Execution failure, PostgreSQL flavoured: the target database does not
     // exist, so the command cannot connect. `DATA_DIR` is no longer involved —
     // `migrate` does not touch the filesystem.
-    const failed = cli(fixture, ["migrate", "--apply"], { PGDATABASE: "qwbe_t_absent_database" })
+    const failed = cli(fixture, ["migrate", "--apply"], { PGDATABASE: "rfi_t_absent_database" })
     assert.equal(failed.status, 1)
     return Promise.resolve()
   })

@@ -14,7 +14,7 @@
 #
 # Run:  docker compose --file compose.pg-adapters.yaml run --rm adapters
 # Down: docker compose --file compose.pg-adapters.yaml down   (no volume, no -v)
-name: qwbe-invoicing-pg-adapters
+name: ro-free-invoice-pg-adapters
 
 services:
   db:
@@ -82,7 +82,7 @@ services:
     restart: "no"
 
 volumes:
-  # Produced by the `qwbe-invoicing-verify` compose project; read-only here.
+  # Produced by the `ro-free-invoice-verify` compose project; read-only here.
   verify-node-modules:
     external: true
-    name: qwbe-invoicing-verify_verify-node-modules
+    name: ro-free-invoice-verify_verify-node-modules

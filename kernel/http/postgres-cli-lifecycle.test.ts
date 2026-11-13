@@ -76,7 +76,7 @@ interface Child {
 }
 
 const spawnServe = (fixture: TestFixture, overrides: Readonly<Record<string, string>>): Child => {
-  const child = spawn("node", ["bin/qwbe-invoicing.ts", "serve"], {
+  const child = spawn("node", ["bin/ro-free-invoice.ts", "serve"], {
     cwd: process.cwd(),
     env: fixture.childEnv({ HOST: "127.0.0.1", ...overrides }),
     stdio: ["ignore", "pipe", "pipe"],

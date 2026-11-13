@@ -154,7 +154,7 @@ void test("renders deterministic non-fiscal proformas and omits a null due date"
   const parsed = await PDFDocument.load(first.bytes, { updateMetadata: false })
   assert.equal(parsed.getTitle(), "Proformă QWBE 7")
   assert.equal(parsed.getSubject(), "PROFORMĂ — DOCUMENT NEFISCAL")
-  assert.equal(parsed.getProducer(), `QWBE Invoicing ${proformaTemplateVersion}`)
+  assert.equal(parsed.getProducer(), `RO Free Invoice ${proformaTemplateVersion}`)
 })
 
 void test("formats amounts with comma grouping, a decimal point and their scale, leaving unknown shapes untouched", () => {
@@ -288,14 +288,14 @@ void test("renders a deterministic storno with negated totals, the reversed invo
   const first = await Effect.runPromise(renderer.renderCorrection(correction))
   const second = await Effect.runPromise(renderer.renderCorrection(correction))
   assert.equal(first.templateVersion, correctionTemplateVersion)
-  assert.equal(first.templateVersion, "storno-v4")
+  assert.equal(first.templateVersion, "storno-v5")
   assert.equal(Buffer.from(first.bytes.subarray(0, 5)).toString("ascii"), "%PDF-")
   assert.deepEqual(first.bytes, second.bytes)
   const parsed = await PDFDocument.load(first.bytes, { updateMetadata: false })
   assert.equal(parsed.getPageCount(), 1)
   assert.equal(parsed.getTitle(), "Storno STORNO 3")
   assert.equal(parsed.getSubject(), "Factură storno")
-  assert.equal(parsed.getProducer(), `QWBE Invoicing ${correctionTemplateVersion}`)
+  assert.equal(parsed.getProducer(), `RO Free Invoice ${correctionTemplateVersion}`)
   assert.equal(formatAmount(correction.totalIncludingVat), "-121.00")
   // The reason block is the only content a storno adds beyond the reversed lines.
   const withoutReason = await Effect.runPromise(renderer.renderCorrection({ ...correction, reason: "" }))

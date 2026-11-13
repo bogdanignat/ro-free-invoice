@@ -22,7 +22,7 @@ const fakePackage = (root, name) => {
   write(root, `${directory}/index.js`, "export const value = 1\n")
 }
 const cruise = (build) => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-frontend-boundaries-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-frontend-boundaries-"))
   try {
     // A valid backend root makes every frontend-only rejection prove frontend/src was cruised.
     write(root, "cubes/invoicing/index.ts")

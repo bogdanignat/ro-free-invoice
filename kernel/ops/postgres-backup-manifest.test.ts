@@ -14,7 +14,7 @@ import { restrictedDump } from "./postgres-backup-restrict.test-support.ts"
 const staged = [{ path: "manifest.json", byteLength: 1 }, { path: "database.sql", byteLength: 10 }]
 
 const withStaging = async (use: (staging: string, manifest: BackupManifest) => Promise<void>): Promise<void> => {
-  const staging = mkdtempSync(join(tmpdir(), "qwbe-manifest-"))
+  const staging = mkdtempSync(join(tmpdir(), "rfi-manifest-"))
   try {
     writeFileSync(join(staging, "database.sql"), restrictedDump())
     await use(staging, {

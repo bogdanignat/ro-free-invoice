@@ -13,28 +13,36 @@ import { activePluginNames, allPlugins, optionalPlugins, parsePlugins } from "./
 
 const none = { payments: false, efactura: false, "company-lookup": false }
 
-void test("QWBE_PLUGINS absent runs every optional plugin", () => {
+void test("RFI_PLUGINS absent runs every optional plugin", () => {
   assert.deepEqual(parsePlugins(undefined), allPlugins)
   assert.deepEqual(runtimeConfig({ NODE_ENV: "test" }).plugins, allPlugins)
 })
 
-void test("QWBE_PLUGINS empty runs no optional plugin", () => {
+void test("RFI_PLUGINS empty runs no optional plugin", () => {
   for (const value of ["", " ", ",", " , , "]) assert.deepEqual(parsePlugins(value), none, JSON.stringify(value))
-  assert.deepEqual(runtimeConfig({ NODE_ENV: "test", QWBE_PLUGINS: "" }).plugins, none)
+  assert.deepEqual(runtimeConfig({ NODE_ENV: "test", RFI_PLUGINS: "" }).plugins, none)
 })
 
-void test("QWBE_PLUGINS ignores spaces and tolerates duplicates", () => {
+void test("RFI_PLUGINS ignores spaces and tolerates duplicates", () => {
   assert.deepEqual(parsePlugins(" payments "), { ...none, payments: true })
   assert.deepEqual(parsePlugins("efactura,efactura , efactura"), { ...none, efactura: true })
   assert.deepEqual(parsePlugins("company-lookup"), { ...none, "company-lookup": true })
   assert.deepEqual(parsePlugins(" efactura ,payments,payments, company-lookup "), allPlugins)
 })
 
-void test("QWBE_PLUGINS refuses an unknown name at startup, with the names it knows", () => {
+void test("RFI_PLUGINS refuses an unknown name at startup, with the names it knows", () => {
   for (const value of ["paymnets", "payments,crm", "Payments", "invoicing", "payments;efactura", "company_lookup", "company-lookup:x"]) {
-    assert.throws(() => parsePlugins(value), /QWBE_PLUGINS names unknown plugins: .* \(known: payments, efactura, company-lookup\)/u, value)
+    assert.throws(() => parsePlugins(value), /RFI_PLUGINS names unknown plugins: .* \(known: payments, efactura, company-lookup\)/u, value)
   }
-  assert.throws(() => runtimeConfig({ NODE_ENV: "test", QWBE_PLUGINS: "payment" }), /unknown plugins: payment /u)
+  assert.throws(() => runtimeConfig({ NODE_ENV: "test", RFI_PLUGINS: "payment" }), /unknown plugins: payment /u)
+})
+
+void test("a leftover QWBE_* key refuses to start, named without its value", () => {
+  for (const name of ["QWBE_PLUGINS", "QWBE_UI_DIR", "QWBE_ANYTHING"]) {
+    assert.throws(() => runtimeConfig({ NODE_ENV: "test", [name]: "secret-value" }),
+      (error: Error) => error.message.startsWith(`${name}: the QWBE_* variables were renamed to RFI_*`) && !error.message.includes("secret-value"), name)
+  }
+  assert.throws(() => runtimeConfig({ NODE_ENV: "test", RFI_PLUGINS: "", QWBE_PLUGINS: "" }), /^Error: QWBE_PLUGINS: /u)
 })
 
 void test("the optional plugins are exactly the declared units with required: false, and the selection covers each", async () => {
@@ -60,13 +68,13 @@ void test("the payments routes fail closed when the payments service is not comp
 })
 
 void test("a plugin's grants exist only with that plugin on; invoicing:read stays", async () => {
-  const directory = mkdtempSync(join(tmpdir(), "qwbe-plugins-"))
+  const directory = mkdtempSync(join(tmpdir(), "rfi-plugins-"))
   try {
     const tokenFile = join(directory, "api-token")
     writeFileSync(tokenFile, "t".repeat(64), { mode: 0o600 })
-    const grants = async (QWBE_PLUGINS: string | undefined) => {
+    const grants = async (RFI_PLUGINS: string | undefined) => {
       const config = runtimeConfig({ NODE_ENV: "test", AUTH_TOKEN_FILE: tokenFile, ORGANIZATION_ID: "org-1",
-        ...(QWBE_PLUGINS === undefined ? {} : { QWBE_PLUGINS }) })
+        ...(RFI_PLUGINS === undefined ? {} : { RFI_PLUGINS }) })
       const context = await Effect.runPromise(createRequestAuthenticator(config)(`Bearer ${"t".repeat(64)}`).current)
       return context.identity.permissions
     }

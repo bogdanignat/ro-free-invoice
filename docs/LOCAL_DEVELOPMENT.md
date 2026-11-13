@@ -2,7 +2,7 @@
 
 The local hostname is `invoice.test`. Warden owns ports 80/443, local `.test` DNS,
 and the development certificate authority. There is one image: the kernel `app`
-serves the UI (the Vite build in `frontend/dist`, `QWBE_UI_DIR`) and `/api` on
+serves the UI (the Vite build in `frontend/dist`, `RFI_UI_DIR`) and `/api` on
 `https://invoice.test`. `app` joins the external `warden` Docker network and Warden's
 Traefik routes `invoice.test` straight to it; no port is published.
 
@@ -78,13 +78,13 @@ The UI at `https://invoice.test` is the Vite + TanStack Router application in
 `frontend/`, built into `frontend/dist` and served by the kernel on the same origin as
 the API: the browser calls `/api/*` directly. The kernel pins `Host` and, on writes,
 `Origin` to `PUBLIC_ORIGIN`, which `compose.yaml` sets to `https://${APP_DOMAIN}`. The
-Bearer API is off on that listener unless `QWBE_BEARER_API=on`.
+Bearer API is off on that listener unless `RFI_BEARER_API=on`.
 
-Session mechanics are owned by the kernel. On unlock, it exchanges the local bearer token for a revocable, opaque session persisted in the `browser_sessions` table and referenced by the `qwbe_session` cookie (set at login with `Max-Age` equal to the 30-day absolute limit, so it survives a browser restart; `Path=/api`, `HttpOnly`, `SameSite=Strict`, `Secure` for HTTPS origins and in production). The session expires after 12 hours without an authenticated request and 30 days after login at the latest: each accepted request moves `expires_at` forward, written at most once every 5 minutes, and a write only after its CSRF check (`kernel/auth/browser-session-lifetime.ts`). The token is never written to browser JavaScript, storage, or the URL. State-changing requests carry a per-session CSRF token in `x-csrf-token`, held only in memory; the UI restores it from the cookie-backed session after a reload or host restart.
+Session mechanics are owned by the kernel. On unlock, it exchanges the local bearer token for a revocable, opaque session persisted in the `browser_sessions` table and referenced by the `rfi_session` cookie (set at login with `Max-Age` equal to the 30-day absolute limit, so it survives a browser restart; `Path=/api`, `HttpOnly`, `SameSite=Strict`, `Secure` for HTTPS origins and in production). The session expires after 12 hours without an authenticated request and 30 days after login at the latest: each accepted request moves `expires_at` forward, written at most once every 5 minutes, and a write only after its CSRF check (`kernel/auth/browser-session-lifetime.ts`). The token is never written to browser JavaScript, storage, or the URL. State-changing requests carry a per-session CSRF token in `x-csrf-token`, held only in memory; the UI restores it from the cookie-backed session after a reload or host restart.
 
 The authenticated Swagger page is `GET /api` on `invoice.test` (linked from Settings), behind the browser session: a caller without a valid session is redirected to `/unlock`. Its OpenAPI 3.1 document is generated from the same Effect `HttpApi` contract served by `HttpApiBuilder`; it is not a separately maintained endpoint list. The page stays behind the session so the full contract is not exposed anonymously.
 
-The backend serves the Vite build in `QWBE_UI_DIR`, read once at startup into memory; a request never builds a path on disk. `/api*` and `/health*` come first, then a file of the build (hashed `assets/*`: `public, max-age=31536000, immutable`; `index.html`: `no-store`), then `index.html` for every other `GET`/`HEAD`, so deep links load the application. A missing file under `/assets/` answers `404`, other methods `405`. `/` is the application: the old identity JSON is gone. A symlink or special file in the build refuses to start. In production `serve` refuses to start without a build; in development and tests the kernel runs without one and the UI routes answer `503` (`ui_not_built`).
+The backend serves the Vite build in `RFI_UI_DIR`, read once at startup into memory; a request never builds a path on disk. `/api*` and `/health*` come first, then a file of the build (hashed `assets/*`: `public, max-age=31536000, immutable`; `index.html`: `no-store`), then `index.html` for every other `GET`/`HEAD`, so deep links load the application. A missing file under `/assets/` answers `404`, other methods `405`. `/` is the application: the old identity JSON is gone. A symlink or special file in the build refuses to start. In production `serve` refuses to start without a build; in development and tests the kernel runs without one and the UI routes answer `503` (`ui_not_built`).
 
 ## UI development with vite dev
 
@@ -94,12 +94,12 @@ dependencies installed there (`pnpm install`); the kernel keeps running in Docke
 
 ```bash
 docker compose -f compose.yaml -f compose.vite.yaml up -d   # kernel on 127.0.0.1:3000
-pnpm --filter @qwbe/invoicing-frontend dev                  # http://localhost:5173
+pnpm --filter @ro-free-invoice/frontend dev                  # http://localhost:5173
 ```
 
 `compose.vite.yaml` publishes the kernel on `127.0.0.1:${KERNEL_DEV_PORT:-3000}` only and
 sets its `PUBLIC_ORIGIN` to `http://localhost:5173`. Vite forwards `/api` to
-`QWBE_KERNEL_URL` (default `http://127.0.0.1:3000`; set it when `KERNEL_DEV_PORT`
+`RFI_KERNEL_URL` (default `http://127.0.0.1:3000`; set it when `KERNEL_DEV_PORT`
 changes) with `Host` and `Origin` exactly as the browser sent them, so the kernel's
 Host, Origin and CSRF checks judge the real request; nothing is rewritten to make it
 pass. The dev server's port is fixed at 5173 for the same reason (`frontend/vite.config.ts`).
@@ -119,7 +119,7 @@ Every cube use-case is an `Effect` and has a 1:1 authenticated HTTP endpoint. Au
 - `POST /api/drafts/:id/issue` — atomically allocate the next number and freeze the immutable invoice snapshot; issued drafts can no longer be edited or deleted
 - `POST /api/invoices` — issue an invoice atomically from complete authoring content without first persisting a draft
 - `GET /api/invoices` / `GET /api/invoices/:id` — latest 100 issued invoices / immutable issued snapshot (Effect)
-- `GET /api/invoice-register` — read-only paged register combining issued invoices and storno documents; rows are discriminated by `kind`, retain stored signed totals, and corrections link to the organization-scoped original invoice. Invoice `dueDate` is nullable and `eFacturaStatus` is non-null unless the e-Factura plugin is off (`QWBE_PLUGINS`), when it is `null`; corrections have `dueDate: null` and their own `eFacturaStatus` (`null` on all rows when the plugin is off). It accepts the normal source filter, the register filters `from`/`to` (inclusive issue dates), `kind` and `q` (series + number or customer, case-insensitive, at most 100 characters), and a dedicated keyset cursor that pages inside the filter; `/api/invoices` remains invoice-only
+- `GET /api/invoice-register` — read-only paged register combining issued invoices and storno documents; rows are discriminated by `kind`, retain stored signed totals, and corrections link to the organization-scoped original invoice. Invoice `dueDate` is nullable and `eFacturaStatus` is non-null unless the e-Factura plugin is off (`RFI_PLUGINS`), when it is `null`; corrections have `dueDate: null` and their own `eFacturaStatus` (`null` on all rows when the plugin is off). It accepts the normal source filter, the register filters `from`/`to` (inclusive issue dates), `kind` and `q` (series + number or customer, case-insensitive, at most 100 characters), and a dedicated keyset cursor that pages inside the filter; `/api/invoices` remains invoice-only
 - `GET /api/reports/revenue?from=YYYY-MM-DD&to=YYYY-MM-DD` — dashboard revenue per issue month: issued invoices plus storno documents (negative), `revenueExcludingVat`, `invoicedIncludingVat`, `invoiceCount`, `correctionCount`, every month of the period (empty ones as zero) and the period `totals`. Both dates inclusive, at most 36 calendar months; anything else is `400 ValidationFailure`. Needs `invoicing:read`; always on
 - `GET /api/reports/collections?from&to&status=all|paid|unpaid|overdue` — payments plugin only (404 and absent from OpenAPI when it is off). `months`/`collected`: payments minus reversals by `paymentDate` in the period, so a month can be negative; independent of `status`. `invoices`: invoices issued in the period with today's status and balance (`paid` = paid + overpaid + credited, `unpaid` = unpaid + partially paid + overdue), totals over every match, `items` the first 50 by `dueDate` (none last), then id. Each row has `creditedAmount`: a storno lowers the invoice's debt, and a full storno makes it `credited` (`overpaid` if money was paid). Needs `payments:read` (or the legacy `invoicing:read`)
 - `POST /api/invoices/:id/pdf` (idempotent render) / `GET /api/invoices/:id/pdf` (download with SHA-256 ETag)
@@ -155,7 +155,7 @@ support, but no e-Factura, payment, overdue, or correction/storno semantics. The
 is conspicuously marked `DOCUMENT NEFISCAL`.
 
 Issued invoices remain immutable; payments are separate `Effect` records and never mutate the fiscal snapshot. For local Bearer
-calls, set `QWBE_BEARER_API=on` in `.env` (or export it) before `docker compose up -d`
+calls, set `RFI_BEARER_API=on` in `.env` (or export it) before `docker compose up -d`
 (off, the kernel answers 400 to any `Authorization`), call from inside the `app` container
 (no port is published) with the Host of `PUBLIC_ORIGIN`, and add `Origin: https://invoice.test`
 on POST, PUT, PATCH and DELETE (403 without it); a request that also carries the session
@@ -256,10 +256,10 @@ Warden Traefik.
 ## Operational checks
 
 ```bash
-docker compose exec app node bin/qwbe-invoicing.ts migrate --json
-docker compose exec app node bin/qwbe-invoicing.ts doctor --json
-docker compose exec app node bin/qwbe-invoicing.ts artifacts --limit 50 --json
-docker compose exec app node bin/qwbe-invoicing.ts artifacts --limit 50 --apply --json
+docker compose exec app node bin/ro-free-invoice.ts migrate --json
+docker compose exec app node bin/ro-free-invoice.ts doctor --json
+docker compose exec app node bin/ro-free-invoice.ts artifacts --limit 50 --json
+docker compose exec app node bin/ro-free-invoice.ts artifacts --limit 50 --apply --json
 docker compose logs --tail=100 app migrate
 ```
 
@@ -322,29 +322,29 @@ a plain `run` would also start the `migrate` service and change the schema first
 docker compose stop app
 
 # Create a versioned archive (or directory) with manifest + SHA-256 verification
-docker compose run --rm --no-deps app node bin/qwbe-invoicing.ts backup --output /data/backup-2026-08-31.tar.gz --json
-docker compose run --rm --no-deps -v $(pwd)/.local/backup:/backup app node bin/qwbe-invoicing.ts backup --output /backup/qwbe-backup.tar.gz --json
+docker compose run --rm --no-deps app node bin/ro-free-invoice.ts backup --output /data/backup-2026-08-31.tar.gz --json
+docker compose run --rm --no-deps -v $(pwd)/.local/backup:/backup app node bin/ro-free-invoice.ts backup --output /backup/rfi-backup.tar.gz --json
 
 # Restore — into a FRESH, empty database AND a fresh artifact volume, never the live
 # `qwbe_invoicing` and `/data`: restore deletes nothing, so it refuses a populated
 # target, the dry-run included. The archive comes from the host directory above.
 # Owned by qwbe_owner, with the grants in place before anything is restored into it.
 docker compose exec db psql -U postgres -d postgres \
-  -c "CREATE DATABASE qwbe_invoicing_restored OWNER qwbe_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
-docker compose run --rm --no-deps -e PGDATABASE=qwbe_invoicing_restored db-init
-docker volume create qwbe-invoicing-data-restored
+  -c "CREATE DATABASE ro_free_invoice_restored OWNER qwbe_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
+docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored db-init
+docker volume create ro-free-invoice-data-restored
 # Dry-run restore — validates the whole archive and reports the target, writing nothing.
 # In `migrate`: database.sql runs as the schema owner (qwbe_owner), staging on the staging volume.
-docker compose run --rm --no-deps -e PGDATABASE=qwbe_invoicing_restored \
+docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored \
   -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-qwbe-invoicing-backup-staging}:/var/backups/staging \
-  -v qwbe-invoicing-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
-  node bin/qwbe-invoicing.ts restore --input /backup/qwbe-backup.tar.gz --json
+  -v ro-free-invoice-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
+  node bin/ro-free-invoice.ts restore --input /backup/rfi-backup.tar.gz --json
 
 # Apply restore; outside development it also requires --confirm-production
-docker compose run --rm --no-deps -e PGDATABASE=qwbe_invoicing_restored \
+docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored \
   -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-qwbe-invoicing-backup-staging}:/var/backups/staging \
-  -v qwbe-invoicing-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
-  node bin/qwbe-invoicing.ts restore --input /backup/qwbe-backup.tar.gz --apply --json
+  -v ro-free-invoice-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
+  node bin/ro-free-invoice.ts restore --input /backup/rfi-backup.tar.gz --apply --json
 
 docker compose start app
 ```

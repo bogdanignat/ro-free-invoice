@@ -38,7 +38,7 @@ const unreachable = () => createQueryPool({
 const configFor = (port: number, tokenFile: string): RuntimeConfig => ({
   host: "127.0.0.1",
   port,
-  dataDirectory: mkdtempSync(join(tmpdir(), "qwbe-serve-")),
+  dataDirectory: mkdtempSync(join(tmpdir(), "rfi-serve-")),
   nodeEnvironment: "test",
   authTokenFile: tokenFile,
   organizationId: undefined,
@@ -51,7 +51,7 @@ const configFor = (port: number, tokenFile: string): RuntimeConfig => ({
 })
 
 const tokenFile = (): string => {
-  const path = join(mkdtempSync(join(tmpdir(), "qwbe-token-")), "api-token")
+  const path = join(mkdtempSync(join(tmpdir(), "rfi-token-")), "api-token")
   writeFileSync(path, randomBytes(24).toString("base64url"))
   return path
 }
@@ -93,7 +93,7 @@ void test("a session read that rejects answers 500 and the process survives", as
   const running = await startServer(configFor(0, tokenFile()), pool, () => Promise.resolve(true))
   try {
     const port = address(running.server)
-    const cookie = `qwbe_session=${randomBytes(32).toString("base64url")}`
+    const cookie = `rfi_session=${randomBytes(32).toString("base64url")}`
     const answer = await fetch(`http://127.0.0.1:${String(port)}/api`, { headers: { cookie } })
     assert.equal(answer.status, 500)
     assert.deepEqual(await answer.json(), { error: "internal_failure" })

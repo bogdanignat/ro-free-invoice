@@ -4,7 +4,7 @@ import { extname, join, resolve } from "node:path"
 import type { RuntimeConfig } from "../config.ts"
 
 /**
- * The Vite build (`QWBE_UI_DIR`), read once when a server starts and kept in
+ * The Vite build (`RFI_UI_DIR`), read once when a server starts and kept in
  * memory. A request only ever looks a path up in this map: it never builds a
  * path on disk, so no request can reach a file the build did not ship.
  */
@@ -52,7 +52,7 @@ export const cacheControlFor = (urlPath: string): string => {
   return hashedAsset.test(urlPath) ? immutable : "no-cache"
 }
 
-/** A misconfigured `QWBE_UI_DIR` (`/`, a home directory) refuses instead of filling the heap. */
+/** A misconfigured `RFI_UI_DIR` (`/`, a home directory) refuses instead of filling the heap. */
 export const maximumBundleBytes = 64 * 1024 * 1024
 
 interface Walk {
@@ -69,10 +69,10 @@ const readRegularFile = (path: string, urlPath: string, budget: number): Uint8Ar
   const descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW)
   try {
     const stat = fstatSync(descriptor)
-    if (!stat.isFile()) throw new Error(`QWBE_UI_DIR holds a non-regular file: ${urlPath}`)
-    if (stat.size > budget) throw new Error(`QWBE_UI_DIR is larger than ${String(maximumBundleBytes)} bytes (at ${urlPath})`)
+    if (!stat.isFile()) throw new Error(`RFI_UI_DIR holds a non-regular file: ${urlPath}`)
+    if (stat.size > budget) throw new Error(`RFI_UI_DIR is larger than ${String(maximumBundleBytes)} bytes (at ${urlPath})`)
     const body = readFileSync(descriptor)
-    if (body.length !== stat.size) throw new Error(`QWBE_UI_DIR changed while it was read: ${urlPath}`)
+    if (body.length !== stat.size) throw new Error(`RFI_UI_DIR changed while it was read: ${urlPath}`)
     return body
   } finally {
     closeSync(descriptor)
@@ -97,10 +97,10 @@ const walk = (state: Walk, directory: string, urlPrefix: string): void => {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (entry.name.startsWith(".")) continue
     const urlPath = `${urlPrefix}/${entry.name}`
-    if (!servableName.test(entry.name)) throw new Error(`QWBE_UI_DIR holds a name outside [A-Za-z0-9._~@+-]: ${JSON.stringify(urlPath)}`)
+    if (!servableName.test(entry.name)) throw new Error(`RFI_UI_DIR holds a name outside [A-Za-z0-9._~@+-]: ${JSON.stringify(urlPath)}`)
     const path = join(directory, entry.name)
     if (entry.isDirectory()) { walk(state, path, urlPath); continue }
-    if (!entry.isFile()) throw new Error(`QWBE_UI_DIR may hold only regular files and directories: ${urlPath}`)
+    if (!entry.isFile()) throw new Error(`RFI_UI_DIR may hold only regular files and directories: ${urlPath}`)
     const body = readRegularFile(path, urlPath, maximumBundleBytes - state.bytes)
     state.bytes += body.length
     const contentType = contentTypes[extname(entry.name).toLowerCase()] ?? "application/octet-stream"
@@ -122,7 +122,7 @@ export const loadUiBundle = (directory: string): UiBundle | undefined => {
   } catch {
     return undefined
   }
-  if (!rootStat.isDirectory()) throw new Error(`QWBE_UI_DIR must be a directory, not a file or a symlink: ${root}`)
+  if (!rootStat.isDirectory()) throw new Error(`RFI_UI_DIR must be a directory, not a file or a symlink: ${root}`)
   const state: Walk = { files: new Map(), bytes: 0 }
   walk(state, root, "")
   const index = state.files.get("/index.html")
@@ -138,6 +138,6 @@ export const loadUiBundle = (directory: string): UiBundle | undefined => {
 export const uiBundleFor = (config: RuntimeConfig): UiBundle | undefined => {
   const bundle = config.uiDirectory === undefined ? undefined : loadUiBundle(config.uiDirectory)
   if (bundle !== undefined || config.nodeEnvironment !== "production") return bundle
-  if (config.uiDirectory === undefined) throw new Error("QWBE_UI_DIR is required to serve in production")
-  throw new Error(`QWBE_UI_DIR has no index.html (run the Vite build): ${resolve(config.uiDirectory)}`)
+  if (config.uiDirectory === undefined) throw new Error("RFI_UI_DIR is required to serve in production")
+  throw new Error(`RFI_UI_DIR has no index.html (run the Vite build): ${resolve(config.uiDirectory)}`)
 }

@@ -1,4 +1,4 @@
-# QWBE Invoicing Product Scope
+# RO Free Invoice Product Scope
 
 Status: product baseline
 Jurisdiction: Romania  
@@ -8,11 +8,11 @@ Architecture companion: [`FOUNDATION.md`](./FOUNDATION.md)
 
 ## 1. Product direction
 
-QWBE Invoicing is a self-hosted invoicing application that:
+RO Free Invoice is a self-hosted invoicing application that:
 
 - runs as a useful standalone product;
 - is shaped as one QWBE plugin pack, `invoicing` with `payments`, `efactura` and
-  `company-lookup` as optional plugins (`required: false`, active by default; `QWBE_PLUGINS` switches them off
+  `company-lookup` as optional plugins (`required: false`, active by default; `RFI_PLUGINS` switches them off
   at startup, and a plugin that is off keeps its data), while the QWBE mother installs nothing;
 - is distributed primarily as versioned Docker images and a Docker Compose bundle;
 - issues and preserves Romanian invoices and submits them, and their stornos, to RO e-Factura (ANAF SPV) one by one through the `efactura` plugin;
@@ -424,7 +424,7 @@ The standalone product is installed through a versioned Docker Compose bundle:
 
 ```text
 Docker Compose
-├── app       versioned multi-architecture QWBE Invoicing image
+├── app       versioned multi-architecture RO Free Invoice image
 ├── db        PostgreSQL 16, pinned by digest, cluster initialised with the C locale
 ├── migrate   one-shot command from the same image, gated on `db` being healthy
 ├── data      persistent document (PDF) volume, plus a separate cluster volume
@@ -473,7 +473,7 @@ Deployment requirements:
 Recommended image location:
 
 ```text
-ghcr.io/<organization>/qwbe-invoicing:<version>
+ghcr.io/<organization>/ro-free-invoice:<version>
 ```
 
 Docker Hub may mirror the image for discoverability. GHCR is the canonical registry.
@@ -509,11 +509,11 @@ continues to run from immutable Docker images.
 The image itself should also expose operational commands so npm is never required:
 
 ```text
-qwbe-invoicing migrate
-qwbe-invoicing bootstrap-admin
-qwbe-invoicing doctor
-qwbe-invoicing backup
-qwbe-invoicing restore
+ro-free-invoice migrate
+ro-free-invoice bootstrap-admin
+ro-free-invoice doctor
+ro-free-invoice backup
+ro-free-invoice restore
 ```
 
 State-changing commands must be idempotent where possible, support explicit apply
@@ -602,14 +602,14 @@ The following decisions must be explicit before their relevant implementation:
 4. Resolved: React 19 + TypeScript + Tailwind CSS 4 in a single-page application
    built with Vite and routed with TanStack Router (file routes in `frontend/src/routes/`);
    TanStack Query holds React server state. One image: the kernel serves the build
-   (`QWBE_UI_DIR`), the API under `/api/*` and the Swagger page (`GET /api`) on one origin,
+   (`RFI_UI_DIR`), the API under `/api/*` and the Swagger page (`GET /api`) on one origin,
    `PUBLIC_ORIGIN`, behind the operator's TLS proxy, and owns the whole public edge itself:
    `Host`/`Origin` pinning, CSRF, CSP and the request deadline. The kernel exchanges the
    local API token for a revocable, opaque session persisted server-side (12 hours of
    inactivity, 30 days after login at most) and referenced by an HttpOnly `SameSite=Strict`
    cookie scoped to `/api`, whose `Max-Age` is that 30-day limit. The browser keeps
    only the per-session CSRF token in memory. The Bearer API is off on the public listener
-   unless `QWBE_BEARER_API=on`; the CLI inside the container is the operator's interface.
+   unless `RFI_BEARER_API=on`; the CLI inside the container is the operator's interface.
 
    Superseded decision, kept as history: for a while a Next.js App Router application
    (`frontend/`) ran next to the first Vite UI and replaced it (cutover 2026-10-09). It

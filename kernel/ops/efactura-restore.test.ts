@@ -49,12 +49,12 @@ const backupWithQueued = async (root: string, count = 1,
   })
 
 void test("a restored queued submission is unknown; reactivating e-Factura and reconnecting uploads nothing", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-efr-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-efr-"))
   const target = await emptyFixture("efr_target")
   try {
     const { archive, queued, settings } = await backupWithQueued(root)
     const { invoiceId, id } = queued[0] ?? assert.fail("one queued submission")
-    // `restore` reads no QWBE_PLUGINS at all: the transformation is part of the SQL it commits.
+    // `restore` reads no RFI_PLUGINS at all: the transformation is part of the SQL it commits.
     const restored = await executeRestore({ pool: target.pool, settings: target.settings, dataDirectory: target.dataDirectory, organizationId: ORG }, archive)
     assert.equal(restored.failed, 0)
     const [row] = (await target.pool.query<{ readonly state: string; readonly errors: string }>(
@@ -93,7 +93,7 @@ void test("a restored queued submission is unknown; reactivating e-Factura and r
 })
 
 void test("a transformation that fails leaves the target as it was: no table, no artifact", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-efr-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-efr-"))
   const target = await emptyFixture("efr_rollback")
   try {
     // The restore's audit row already exists, so its INSERT fails after the whole dump went in.
@@ -113,7 +113,7 @@ void test("a transformation that fails leaves the target as it was: no table, no
 })
 
 void test("a restore makes validating and uploading unknown, and leaves processing and a pending archive as they were", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-efr-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-efr-"))
   const target = await emptyFixture("efr_states")
   try {
     const changes = ["state='uploading'", "state='validating'", "state='processing', upload_index='5000000003'",

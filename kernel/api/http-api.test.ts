@@ -208,7 +208,7 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
   assert.equal(spec.openapi, "3.1.0")
   assert.deepEqual(openApiInventory, inventory)
   assert.deepEqual(spec.components.securitySchemes.bearerAuth, { type: "http", scheme: "bearer", description: "Authorization: Bearer <kernel API token>" })
-  assert.deepEqual(spec.components.securitySchemes.sessionCookie, { type: "apiKey", name: "qwbe_session", in: "cookie", description: "Opaque browser session cookie" })
+  assert.deepEqual(spec.components.securitySchemes.sessionCookie, { type: "apiKey", name: "rfi_session", in: "cookie", description: "Opaque browser session cookie" })
   assert.deepEqual(spec.paths["/api/customers"]?.get?.security, [{ bearerAuth: [] }, { sessionCookie: [] }])
   assert.deepEqual(spec.paths["/api/session"]?.post?.security, [])
   assert.deepEqual(spec.paths["/api/session"].get?.security, [{ sessionCookie: [] }])

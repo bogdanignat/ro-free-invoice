@@ -11,7 +11,8 @@
 # The three database roles of the shipped stacks (deploy/postgres/grants.sql): `postgres`,
 # the superuser, only for `db-init`; qwbe_owner, the schema owner, for `migrate`; qwbe_app,
 # DML only, for `app`. A preview cluster created with the old `qwbe_preview` superuser is
-# not converted: `docker compose -f compose.preview.yaml --profile preview down -v` first.
+# not converted; its volumes stay under the old project name and go with
+# `docker compose -p qwbe-invoicing-preview -f compose.preview.yaml --profile preview down -v`.
 #
 #   install -d -m 700 .local && umask 077
 #   for name in api-token pg-superuser-password pg-owner-password pg-app-password company-lookup-key; do
@@ -25,19 +26,19 @@
 #     docker compose -f compose.preview.yaml --profile preview up -d
 # To change the port, set PREVIEW_PORT and PREVIEW_ORIGIN together: the kernel pins
 # Host and Origin to PREVIEW_ORIGIN.
-name: qwbe-invoicing-preview
+name: ro-free-invoice-preview
 
 x-postgres-environment: &postgres-environment
   PGHOST: db
   PGPORT: "5432"
-  PGDATABASE: qwbe_preview
+  PGDATABASE: rfi_preview
 
 services:
   db:
     profiles: [preview]
     image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     environment:
-      POSTGRES_DB: qwbe_preview
+      POSTGRES_DB: rfi_preview
       # The cluster's superuser, for db-init only: never migrate or app.
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser_password
@@ -50,7 +51,7 @@ services:
       - preview-postgres:/var/lib/postgresql/data
     expose: ["5432"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d qwbe_preview"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d rfi_preview"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -64,13 +65,13 @@ services:
     profiles: [preview]
     image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     user: "0:0"
-    command: [sh, /qwbe-postgres/db-init.sh]
+    command: [sh, /rfi-postgres/db-init.sh]
     environment:
       PGHOST: db
-      PGDATABASE: qwbe_preview
+      PGDATABASE: rfi_preview
     secrets: [pg_superuser_password, pg_owner_password, pg_app_password]
     volumes:
-      - ./deploy/postgres:/qwbe-postgres:ro
+      - ./deploy/postgres:/rfi-postgres:ro
     depends_on:
       db:
         condition: service_healthy
@@ -79,11 +80,11 @@ services:
 
   migrate:
     profiles: [preview]
-    image: qwbe-invoicing:preview
+    image: ro-free-invoice:preview
     build:
       context: .
       dockerfile: Dockerfile
-    command: [node, bin/qwbe-invoicing.ts, migrate, --apply, --json]
+    command: [node, bin/ro-free-invoice.ts, migrate, --apply, --json]
     environment:
       <<: *postgres-environment
       PGUSER: qwbe_owner
@@ -104,7 +105,7 @@ services:
 
   app:
     profiles: [preview]
-    image: qwbe-invoicing:preview
+    image: ro-free-invoice:preview
     build:
       context: .
       dockerfile: Dockerfile
@@ -121,10 +122,12 @@ services:
       COMPANY_LOOKUP_KEY_FILE: /run/secrets/preview_company_lookup_key
       # Optional plugins, comma-separated (`payments`, `efactura`, `company-lookup`). Passed through
       # only when set: unset means every plugin runs, empty means none. Restart to apply.
-      QWBE_PLUGINS:
+      RFI_PLUGINS:
       # The origin the browser uses for the published port below.
       PUBLIC_ORIGIN: ${PREVIEW_ORIGIN:-http://invoicing-preview.localhost:3181}
       TMPDIR: /var/backups/staging
+      # A renamed key, passed through only when set, so a stale one in .env reaches the kernel's refusal.
+      QWBE_PLUGINS:
     secrets: [preview_api_token, pg_app_password, preview_company_lookup_key]
     volumes:
       - preview-data:/data

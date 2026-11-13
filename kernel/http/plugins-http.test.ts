@@ -7,7 +7,7 @@ import {
   customer, documentedPaths, dueDate, issueDate, issueInvoice, lines, ok, payment, seed, serve,
 } from "./plugins-http.test-support.ts"
 
-/** `QWBE_PLUGINS` end to end, for each of the four payments x e-Factura combinations; company-lookup rides along. */
+/** `RFI_PLUGINS` end to end, for each of the four payments x e-Factura combinations; company-lookup rides along. */
 const combinations: ReadonlyArray<PluginSelection> = [
   { payments: true, efactura: true, "company-lookup": true }, { payments: false, efactura: true, "company-lookup": false },
   { payments: true, efactura: false, "company-lookup": true }, { payments: false, efactura: false, "company-lookup": false },

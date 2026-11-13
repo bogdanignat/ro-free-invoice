@@ -12,7 +12,7 @@ import { sessionCookieValues } from "../auth/browser-session-helpers.ts"
 export interface EdgePolicy {
   /** The canonical public origin (`PUBLIC_ORIGIN`). Host and Origin are pinned to it. */
   readonly origin: URL
-  /** `QWBE_BEARER_API=on`. Off, any `Authorization` header is refused. */
+  /** `RFI_BEARER_API=on`. Off, any `Authorization` header is refused. */
   readonly bearerApi: boolean
 }
 

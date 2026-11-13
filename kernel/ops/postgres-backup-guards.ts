@@ -39,7 +39,7 @@ export const readSchemaMigrations = async (client: PoolClient): Promise<Readonly
 export const applicationBackends = async (client: PoolClient): Promise<number> => {
   const { rows } = await client.query<{ readonly count: string }>(
     `SELECT count(*) AS count FROM pg_stat_activity
-     WHERE datname = current_database() AND application_name = 'qwbe-invoicing' AND pid <> pg_backend_pid()`,
+     WHERE datname = current_database() AND application_name = 'ro-free-invoice' AND pid <> pg_backend_pid()`,
   )
   return Number(rows[0]?.count ?? "0")
 }

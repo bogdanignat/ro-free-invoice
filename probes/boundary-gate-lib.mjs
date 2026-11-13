@@ -33,7 +33,7 @@ export const staticRuleCount = configuration.forbidden.length
 // once and removes the config again. The gate and the read-only report both call this,
 // so they can only differ in the output type they ask for, never in the graph.
 export const cruiseBoundaries = (root, { roots, generated }, args = [], options = {}) => {
-  const temporary = mkdtempSync(join(tmpdir(), "qwbe-boundary-config-"))
+  const temporary = mkdtempSync(join(tmpdir(), "rfi-boundary-config-"))
   const configPath = join(temporary, "dependency-cruiser.config.cjs")
   try {
     writeFileSync(configPath, `module.exports = ${JSON.stringify(generated, null, 2)}\n`)

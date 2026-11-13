@@ -57,7 +57,7 @@ export interface RecoveryJournal {
   readonly dismiss: () => boolean
 }
 
-export const RECOVERY_SLOT = "qwbe.operation-recovery"
+export const RECOVERY_SLOT = "rfi.operation-recovery"
 
 export const BLOCKED_OTHER = "O operație anterioară nu este încă rezolvată. Retrimite-o sau confirmă că ai verificat registrul de facturi și proforme înainte de a începe alta."
 export const BLOCKED_CONFLICT = "Operația anterioară a fost refuzată definitiv de server. Verifică registrul de facturi și proforme și închide avertismentul înainte de a continua."
