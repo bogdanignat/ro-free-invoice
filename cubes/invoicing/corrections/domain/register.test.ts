@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { maximumRegisterSearchLength, normalizeRegisterFilter, registerFilterIssues } from "./register.ts"
+import { renderIssue } from "../../issues/index.ts"
+import { maximumRegisterSearchLength, normalizeRegisterFilter, registerFilterDetails, type InvoiceRegisterFilter } from "./register.ts"
+
+const registerFilterIssues = (filter: InvoiceRegisterFilter) => registerFilterDetails(filter).map(renderIssue)
 
 void test("an empty or complete register filter is accepted", () => {
   assert.deepEqual(registerFilterIssues({}), [])

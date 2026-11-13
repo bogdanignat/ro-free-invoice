@@ -1014,6 +1014,8 @@ qwbe-package.json            plugin pack manifest: invoicing and its eleven chil
 cubes/invoicing/             core: domain model, VAT arithmetic, ports, contracts, migrations, service composition
 cubes/invoicing/parties/     component: CUI, CNP, counties and sectors shared by issuer and buyers
 cubes/invoicing/items/       component: article code and GTIN rules shared by products and document lines
+cubes/invoicing/money/       component: decimal money and quantity arithmetic on bigint, half-up rounding
+cubes/invoicing/issues/      component: validation issue codes, their English templates and constructors
 cubes/invoicing/customers/   component: saved customers, their table and baseline migration
 cubes/invoicing/catalog/     component: saved products and services, their table and baseline migration
 cubes/invoicing/issuer/      component: issuer profile, branding, VAT configurations and baseline

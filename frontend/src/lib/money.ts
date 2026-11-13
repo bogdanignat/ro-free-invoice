@@ -3,7 +3,7 @@
  * `"12.34"` at scale 2 is `1234n`. Nothing goes through `number`, so a value past
  * 2^53 stays exact. These are the primitives only; whether a caller trims, allows
  * a sign, refuses zero or wants a canonical form is its own rule, next to it.
- * The browser cannot import the cube, so this mirrors cubes/invoicing/contracts/money.ts
+ * The browser cannot import the cube, so this mirrors cubes/invoicing/money/domain/money.ts
  * line for line, and the labels at the end mirror the PDF's (kernel/documents/pdf-format.ts);
  * probes/frontend-cube-parity.test.mjs holds both equal.
  */

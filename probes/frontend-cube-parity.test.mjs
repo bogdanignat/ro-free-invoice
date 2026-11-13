@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import * as cubeMoney from "../cubes/invoicing/contracts/money.ts"
+import * as cubeMoney from "../cubes/invoicing/money/index.ts"
 import { negateDecimal } from "../cubes/invoicing/corrections/index.ts"
 import { characterCount, normalizeSpace } from "../cubes/invoicing/efactura/decimals.ts"
 import { ROMANIAN_COUNTIES, addressCountyName } from "../cubes/invoicing/index.ts"
@@ -18,6 +18,8 @@ import { ROMANIAN_COUNTIES as FRONTEND_COUNTIES, addressCountyName as frontendAd
 import { vatTreatmentLabel } from "../frontend/src/lib/vat-snapshots.ts"
 import { normalizeItemCode, validateBarcode } from "../cubes/invoicing/items/index.ts"
 import { barcodeIssue, itemCodeIssue } from "../frontend/src/lib/item-identifiers.ts"
+import { issueTemplates } from "../cubes/invoicing/issues/index.ts"
+import { issueMessages } from "../frontend/src/lib/issue-messages.ts"
 
 // The frontend mirrors these rules instead of importing the cube. Nothing else
 // notices when one side changes alone (T-1651), so this probe holds them equal.
@@ -74,7 +76,7 @@ const units = [0n, 1n, -1n, 5n, -5n, 1234n, -1234n, 9007199254740993n, -90071992
 
 void test("the browser's money arithmetic is the cube's: parse, sign, format, half up and compare", () => {
   const labels = ["formatAmount", "formatRate", "money"]
-  assert.deepEqual(Object.keys(frontendMoney).filter((name) => !labels.includes(name)).sort(), Object.keys(cubeMoney).sort())
+  assert.deepEqual(Object.keys(frontendMoney).filter((name) => !labels.includes(name)).sort(), Object.keys(cubeMoney).filter((name) => name !== "cube").sort())
   for (const scale of [0, 2, 4]) {
     for (const value of decimals) {
       assert.deepEqual(frontendMoney.parseDecimal(value, scale), cubeMoney.parseDecimal(value, scale), `${value} @ ${String(scale)}`)
@@ -165,5 +167,15 @@ void test("the browser refuses an article code or an EAN exactly when the cube w
   }
   for (const barcode of ["96385074", "036000291452", "4006381333931", "00012345600012", "4006381333932", "1234567", "400638133393a", "123456789012345"]) {
     assert.equal(barcodeIssue(barcode) === null, accepts(() => { validateBarcode(barcode) }), barcode)
+  }
+})
+
+void test("every issue code of the cube has a Romanian message, and the table holds no other code", () => {
+  assert.deepEqual(Object.keys(issueMessages).sort(), Object.keys(issueTemplates).sort())
+  // A Romanian sentence may drop a parameter (or the field), never ask for one the code does not carry.
+  const placeholders = (text) => [...text.matchAll(/\{(\w+)\}/gu)].map((match) => match[1])
+  for (const [code, template] of Object.entries(issueTemplates)) {
+    const carried = ["field", ...placeholders(template)]
+    for (const name of placeholders(issueMessages[code])) assert.ok(carried.includes(name), `${code} {${name}}`)
   }
 })

@@ -1,4 +1,5 @@
 import { issuerSaveFailureMessages } from "./issuer-save-failures.ts"
+import { localizedIssue } from "./issue-messages.ts"
 
 export class ApiFailure extends Error {
   readonly status: number | undefined
@@ -119,7 +120,7 @@ export const parseApiFailure = (input: unknown, status: number): ApiFailure => {
   const localizedCode = code === undefined ? undefined : failureMessages[code]
   const message = localizedCode ?? (typeof value.message === "string"
     ? value.message
-    : issues[0] ?? (code === undefined
+    : localizedIssue(value.details) ?? issues[0] ?? (code === undefined
       ? (error === undefined ? `Cererea a eșuat (${String(status)}).` : failureMessages[error] ?? error)
       : error ?? code))
   return new ApiFailure({ message, status, issues, ...(code === undefined ? {} : { code }) })

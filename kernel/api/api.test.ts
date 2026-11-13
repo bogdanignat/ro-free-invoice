@@ -171,7 +171,8 @@ void test("requires host authentication and serves the complete invoice-core rou
         body: { partyType: "company", name, fiscalIdentifier: "87654329", vatRegistered: true,
           address: { countryCode: "RO", city: "Iași", street: "Strada 2", county: "RO-IS" } },
       }, runtime)
-      assert.deepEqual(refused, { status: 400, body: { error: "ValidationFailure", issues: ["name must not contain control characters"] } }, JSON.stringify(name))
+      assert.deepEqual(refused, { status: 400, body: { error: "ValidationFailure", issues: ["name must not contain control characters"],
+        details: [{ code: "control_characters", field: "name" }] } }, JSON.stringify(name))
     }
     const draftWithoutCui = await handleApiRequest({
       method: "POST", url: "/api/drafts", authorization, idempotencyKey: "http-draft-1",
@@ -179,6 +180,14 @@ void test("requires host authentication and serves the complete invoice-core rou
         address: { countryCode: "RO", city: "Iași", street: "Strada 2", county: "RO-IS" } }, issueDate: "2026-09-01", series: "QWBE" },
     }, runtime)
     assert.equal(draftWithoutCui.status, 400)
+    // A coded party issue next to one not coded yet: `details` stays aligned with `issues`, the latter as `unclassified`.
+    assert.deepEqual(await handleApiRequest({
+      method: "POST", url: "/api/drafts", authorization, idempotencyKey: "http-draft-long-name",
+      body: { customer: { partyType: "company", name: "N".repeat(201), fiscalIdentifier: "", vatRegistered: false,
+        address: { countryCode: "RO", city: "Iași", street: "Strada 2", county: "RO-IS" } }, issueDate: "2026-09-01", series: "QWBE" },
+    }, runtime), { status: 400, body: { error: "ValidationFailure",
+      issues: ["name must be at most 200 characters", "fiscalIdentifier is required for company"],
+      details: [{ code: "too_long", field: "name", params: { maximum: 200 } }, { code: "unclassified" }] } })
     const customerId = (customer.body as { id: string }).id
     const updatedCustomer = await handleApiRequest({
       method: "PUT", url: `/api/customers/${customerId}`, authorization,
@@ -273,6 +282,12 @@ void test("requires host authentication and serves the complete invoice-core rou
       body: { description: "Servicii extinse", quantity: "2", unitPrice: "100", unitOfMeasure: each, vatRateCode: "RO_STANDARD" },
     }, runtime)
     assert.equal((editedLine.body as { totalIncludingVat: string }).totalIncludingVat, "242.00")
+    const longLine = await handleApiRequest({
+      method: "POST", url: `/api/drafts/${draftId}/lines`, authorization,
+      body: { description: "x".repeat(101), quantity: "1", unitPrice: "100", unitOfMeasure: each, vatRateCode: "RO_STANDARD" },
+    }, runtime)
+    assert.deepEqual(longLine, { status: 400, body: { error: "ValidationFailure", issues: ["description must be at most 100 characters"],
+      details: [{ code: "too_long", field: "description", params: { maximum: 100 } }] } })
     const cleared = await handleApiRequest({
       method: "DELETE", url: `/api/drafts/${draftId}/lines/${lineId}`, authorization, body: undefined,
     }, runtime)
@@ -475,6 +490,9 @@ void test("requires host authentication and serves the complete invoice-core rou
     }
     assert.equal((await handleApiRequest({ method: "POST", url: "/api/invoices", authorization,
       idempotencyKey: "invalid-unit", body: { ...authoredBody, lines: [{ ...authoredBody.lines[0], unitOfMeasure: { code: "NOPE", name: "inventată" } }] } }, runtime)).status, 400)
+    assert.deepEqual(await handleApiRequest({ method: "POST", url: "/api/invoices", authorization, idempotencyKey: "future-invoice",
+      body: { ...authoredBody, issueDate: "2026-09-06" } }, runtime), { status: 400, body: { error: "ValidationFailure",
+      issues: ["issueDate cannot be in the future"], details: [{ code: "issue_date_future", field: "issueDate" }] } })
     const directInvoice = await handleApiRequest({ method: "POST", url: "/api/invoices", authorization, idempotencyKey: "direct-invoice-1", body: authoredBody }, runtime)
     assert.equal(directInvoice.status, 200)
     assert.equal((directInvoice.body as { actorId: string }).actorId, "kernel-owner")
@@ -558,6 +576,12 @@ void test("requires host authentication and serves the complete invoice-core rou
     assert.equal((convertedDraftFact.body as { convertedInvoiceId: string | null }).convertedInvoiceId,
       (issuedDerivedDraft.body as { id: string }).id)
     assert.deepEqual((await handleApiRequest({ method: "GET", url: "/api/drafts", authorization, body: undefined }, runtime)).body, { items: [], nextCursor: null })
+    const refusedCorrection = (key: string, body: Readonly<Record<string, unknown>>) => handleApiRequest({
+      method: "POST", url: `/api/invoices/${invoiceId}/corrections`, authorization, idempotencyKey: key, body }, runtime)
+    assert.deepEqual(await refusedCorrection("blank-reason", { reason: "   ", issueDate: "2026-09-05" }), { status: 400, body: {
+      error: "ValidationFailure", issues: ["reason is required"], details: [{ code: "required", field: "reason" }] } })
+    assert.deepEqual(await refusedCorrection("future-correction", { reason: "Corecție din viitor", issueDate: "2026-09-06" }), { status: 400,
+      body: { error: "ValidationFailure", issues: ["issueDate cannot be in the future"], details: [{ code: "issue_date_future", field: "issueDate" }] } })
     const correction = await handleApiRequest({
       method: "POST",
       url: `/api/invoices/${invoiceId}/corrections`,

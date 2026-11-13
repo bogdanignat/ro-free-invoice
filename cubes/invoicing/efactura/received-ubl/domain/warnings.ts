@@ -1,4 +1,4 @@
-import { compareDecimal, formatDecimal, parseDecimal } from "../../../contracts/money.ts"
+import { compareDecimal, formatDecimal, parseDecimal } from "../../../money/index.ts"
 import { spvCif } from "../../connection/index.ts"
 import type { ReceivedDocument, ReceivedWarning } from "./document.ts"
 import { computable } from "./fields.ts"

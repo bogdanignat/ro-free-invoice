@@ -1,5 +1,6 @@
 import type { EFacturaStatus } from "../../domain/invoice.ts"
-import { maximumSearchLength, normalizeSearchText, searchTextIssues } from "../../domain/search.ts"
+import { maximumSearchLength, normalizeSearchText, searchTextDetails } from "../../domain/search.ts"
+import { dateFormat, kindInvalid, rangeInverted, spvInvalid, type IssueDetail } from "../../issues/index.ts"
 import { isCalendarDate } from "./reports.ts"
 
 export type InvoiceRegisterKind = "invoice" | "correction"
@@ -26,19 +27,16 @@ const registerSpvFilters: ReadonlyArray<string> = ["unresolved"] satisfies Reado
 const registerKinds: ReadonlyArray<string> = ["invoice", "correction"] satisfies ReadonlyArray<InvoiceRegisterKind>
 
 /** Empty when the filter can be asked for; the rule lives here so every caller (HTTP, CLI) gets it. */
-export const registerFilterIssues = (filter: InvoiceRegisterFilter): ReadonlyArray<string> => {
-  const issues = (["from", "to"] as const)
+export const registerFilterDetails = (filter: InvoiceRegisterFilter): ReadonlyArray<IssueDetail> => {
+  const details = (["from", "to"] as const)
     .filter((field) => filter[field] !== undefined && !isCalendarDate(filter[field]))
-    .map((field) => `${field} must be a calendar date in YYYY-MM-DD format`)
-  if (issues.length === 0 && filter.from !== undefined && filter.to !== undefined && filter.from > filter.to) {
-    issues.push("from must not be after to")
+    .map(dateFormat)
+  if (details.length === 0 && filter.from !== undefined && filter.to !== undefined && filter.from > filter.to) {
+    details.push(rangeInverted())
   }
-  if (filter.kind !== undefined && !registerKinds.includes(filter.kind)) {
-    issues.push("kind must be invoice or correction")
-  }
-  if (filter.spv !== undefined && !registerSpvFilters.includes(filter.spv)) issues.push("spv must be unresolved")
-  issues.push(...searchTextIssues(filter.search))
-  return issues
+  if (filter.kind !== undefined && !registerKinds.includes(filter.kind)) details.push(kindInvalid())
+  if (filter.spv !== undefined && !registerSpvFilters.includes(filter.spv)) details.push(spvInvalid())
+  return [...details, ...searchTextDetails(filter.search)]
 }
 
 /** The filter the store runs: a blank search is no search, and the search is trimmed. */

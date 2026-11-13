@@ -1,4 +1,4 @@
-import { formatDecimal, parseDecimal } from "../../../contracts/money.ts"
+import { formatDecimal, parseDecimal } from "../../../money/index.ts"
 import {
   UblRefused, computable, readReceivedUbl, refuseField, type Amount, type ReadFailure, type ReceivedDocument, type ReceivedKind, type ReceivedWarning,
 } from "../../received-ubl/index.ts"

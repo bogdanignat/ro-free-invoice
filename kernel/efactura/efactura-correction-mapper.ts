@@ -1,4 +1,4 @@
-import { compareDecimal, isCanonicalDecimal } from "../../cubes/invoicing/contracts/money.ts"
+import { compareDecimal, isCanonicalDecimal } from "../../cubes/invoicing/money/index.ts"
 import type { EFacturaDocument } from "../../cubes/invoicing/efactura/index.ts"
 import { EFacturaContractViolation, validateEFacturaDocument } from "../../cubes/invoicing/efactura/index.ts"
 import type { CorrectionDocument, DraftLine, IssuedInvoice, VatBreakdown } from "../../cubes/invoicing/index.ts"

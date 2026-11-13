@@ -1,4 +1,4 @@
-import { divideHalfUp } from "../contracts/money.ts"
+import { divideHalfUp } from "../money/index.ts"
 import type { EFacturaLine, EFacturaTaxSubtotal, EFacturaVatCategory } from "./contracts/document.ts"
 import { amountOrSkip, characterCount, normalizeSpace, scaled } from "./decimals.ts"
 

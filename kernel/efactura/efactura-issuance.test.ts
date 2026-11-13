@@ -24,7 +24,7 @@ import { anafRegistry } from "../company-lookup/vat-registry.test-support.ts"
 
 const missingDueDate = {
   status: 400,
-  body: { error: "ValidationFailure", issues: ["dueDate is required for an invoice with a positive amount due"] },
+  body: { error: "ValidationFailure", issues: ["dueDate is required for an invoice with a positive amount due"], details: [{ code: "due_date_required", field: "dueDate" }] },
 } as const
 const line = {
   description: "Servicii", quantity: "1", unitPrice: "100", unitOfMeasure: { code: "HUR", name: "oră" },

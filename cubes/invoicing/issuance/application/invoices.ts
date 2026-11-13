@@ -2,7 +2,7 @@ import { Effect } from "effect"
 
 import { findIdempotencyReplay, idempotencyRecord, missingIdempotencyResult } from "../../application/idempotency.ts"
 import { checked, documentPageQuery, missing, pageOf, recordAuditEvent, type Authorize, type OperationDependencies, type Page, type PageRequest } from "../../application/support.ts"
-import { ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { validationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
 import type { DocumentSource, Idempotent, IssuedInvoice, IssuedInvoiceSummary } from "../../domain/invoice.ts"
 import type { AuthoringDocumentInput } from "../../domain/inputs.ts"
@@ -11,6 +11,7 @@ import type { AuthoringTransaction } from "../../drafts/index.ts"
 import { validateIssuerForIssuance } from "../../issuer/index.ts"
 import { ensureChronology } from "./chronology.ts"
 import { issuanceSource, numberedSnapshot } from "./snapshot.ts"
+import { dueDateRequired } from "../../issues/index.ts"
 
 export type IssueInvoiceInput = Idempotent<AuthoringDocumentInput | { readonly draftId: string }>
 
@@ -22,7 +23,7 @@ export interface InvoiceOperations {
 
 export const validateInvoiceDueDate = (document: { readonly dueDate: string | null; readonly totalIncludingVat: string }): void => {
   if (document.totalIncludingVat !== "0.00" && document.dueDate === null) {
-    throw new ValidationFailure({ issues: ["dueDate is required for an invoice with a positive amount due"] })
+    throw validationFailure([dueDateRequired()])
   }
 }
 

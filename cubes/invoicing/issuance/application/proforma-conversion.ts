@@ -2,7 +2,7 @@ import { Effect } from "effect"
 
 import { findIdempotencyReplay, idempotencyRecord, missingIdempotencyResult } from "../../application/idempotency.ts"
 import { checked, missing, recordAuditEvent, type Authorize, type OperationDependencies } from "../../application/support.ts"
-import { ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { validationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
 import type { DraftInvoice, Idempotent, IssuedInvoice } from "../../domain/invoice.ts"
 import { validateFiscalDocument } from "../../domain/calculation.ts"
@@ -15,6 +15,7 @@ import { validateInvoiceDueDate } from "./invoices.ts"
 import { conversionDates, conversionSource } from "./proforma-conversion-context.ts"
 import { createProformaDraftOperation } from "./proforma-draft.ts"
 import type { ProformaTransaction } from "./ports.ts"
+import { vatRegistrationChanged } from "../../issues/index.ts"
 
 export interface ProformaConversionOperations {
   readonly issueInvoiceFromProforma: (input: Idempotent<ConvertProformaInput>) => Effect.Effect<IssuedInvoice, InvoicingFailure>
@@ -49,7 +50,7 @@ export const createProformaConversionOperations = (
       yield* checked(() => {
         validateVatForIssuance(issuer, issueDate, proforma.lines)
         if (currentVatRegistration(issuer.vatConfigurations, issueDate)?.registered !== proforma.issuer.vatRegistered) {
-          throw new ValidationFailure({ issues: ["issuer VAT registration changed since the proforma was issued"] })
+          throw validationFailure([vatRegistrationChanged()])
         }
         validateInvoiceDueDate({ dueDate, totalIncludingVat: proforma.totalIncludingVat })
       })

@@ -107,3 +107,37 @@ void test("a taken article code shows the server's sentence, which names the cod
   assert.equal(failure.message, "Codul SRB-M6 e deja folosit.")
   assert.equal(failure.code, "product_preset_code_taken")
 })
+
+void test("a coded validation issue reads in Romanian with its field label and parameters", () => {
+  const failure = parseApiFailure({ error: "ValidationFailure", issues: ["description must be at most 100 characters"],
+    details: [{ code: "too_long", field: "description", params: { maximum: 100 } }] }, 400)
+  assert.equal(failure.message, "Câmpul „descrierea” este prea lung (maxim 100, în caractere).")
+  assert.deepEqual(failure.issues, ["description must be at most 100 characters"])
+  const unknownField = parseApiFailure({ error: "ValidationFailure", issues: ["x"], details: [{ code: "required", field: "address.county" }] }, 400)
+  assert.equal(unknownField.message, "Câmpul „address.county” este obligatoriu.")
+})
+
+void test("a payment amount, a storno reason and a future issue date read in Romanian", () => {
+  const read = (code: string, field?: string) => parseApiFailure({ error: "ValidationFailure", issues: ["x"], details: [{ code, field }] }, 400).message
+  assert.equal(read("amount_invalid", "amount"), "Câmpul „suma” trebuie să fie o sumă pozitivă cu cel mult două zecimale.")
+  assert.equal(read("required", "reason"), "Câmpul „motivul” este obligatoriu.")
+  assert.equal(read("empty_when_provided", "note"), "Câmpul „nota” nu poate fi gol când este trimis.")
+  assert.equal(read("issue_date_future", "issueDate"), "Data emiterii nu poate fi în viitor.")
+})
+
+void test("the first coded detail wins, and an unclassified one leaves the English issue", () => {
+  const issues = ["first", "second"]
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "unclassified" }, { code: "quantity_zero", field: "quantity" }] }, 400).message,
+    "Cantitatea trebuie să fie mai mare decât zero.")
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "unclassified" }, { code: "unclassified" }] }, 400).message, "first")
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues }, 400).message, "first")
+})
+
+void test("a malformed details is ignored: the English issue shows", () => {
+  const issues = ["english"]
+  for (const details of ["too_long", 7, null, {}, [null], [7], [{}], [{ code: 3 }], [{ code: "constructor" }], [{ code: "__proto__" }],
+    [{ code: "too_long", field: "description" }], [{ code: "too_long", field: "description", params: { maximum: {} } }],
+    [{ code: "too_long", field: 4, params: { maximum: 1 } }], [{ code: "too_long", params: "x" }]]) {
+    assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details }, 400).message, "english", JSON.stringify(details))
+  }
+})

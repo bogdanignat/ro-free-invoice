@@ -121,8 +121,9 @@ void test("customers and product presets take q over HTTP: filtered, literal wil
     assert.deepEqual(await names("/api/product-presets", "q=%25"), ["100% Bio"])
 
     for (const path of ["/api/customers", "/api/product-presets"]) {
-      for (const [query, issue] of [[`q=${"x".repeat(101)}`, "q must be at most 100 characters"], ["q=a%00b", "q must not contain control characters"]] as const) {
-        assert.deepEqual(await value.call("GET", `${path}?${query}`), { status: 400, body: { error: "ValidationFailure", issues: [issue] } }, `${path} ${query}`)
+      for (const [query, issue, detail] of [[`q=${"x".repeat(101)}`, "q must be at most 100 characters", { code: "too_long", field: "q", params: { maximum: 100 } }],
+        ["q=a%00b", "q must not contain control characters", { code: "control_characters", field: "q" }]] as const) {
+        assert.deepEqual(await value.call("GET", `${path}?${query}`), { status: 400, body: { error: "ValidationFailure", issues: [issue], details: [detail] } }, `${path} ${query}`)
       }
     }
   } finally { await value.close() }

@@ -1,14 +1,15 @@
 import { productPresetCodeTaken } from "../../cubes/invoicing/catalog/index.ts"
 import type { CompanyLookupFailure, ProviderFailureReason } from "../../cubes/invoicing/company-lookup/index.ts"
 import type { DocumentsFailure } from "../../cubes/invoicing/documents/index.ts"
-import type { InvoicingFailure } from "../../cubes/invoicing/index.ts"
+import type { InvoicingFailure, IssueDetail } from "../../cubes/invoicing/index.ts"
 import type { VatRegistryUnavailable } from "../../cubes/invoicing/issuer/index.ts"
 import type { PaymentsFailure } from "../../cubes/invoicing/payments/index.ts"
 import { logInternalFailure } from "../failure-log.ts"
 
 type Wire =
   | { readonly error: "AuthenticationRequired" | "OrganizationContextMissing" | "PermissionDenied" | "DocumentsPermissionDenied" }
-  | { readonly error: "ValidationFailure"; readonly issues: ReadonlyArray<string> }
+  | { readonly error: "ValidationFailure"; readonly issues: ReadonlyArray<string>
+    readonly details: ReadonlyArray<IssueDetail | { readonly code: "unclassified" }> }
   | { readonly error: "ResourceNotFound" | "DocumentNotFound" | "ArtifactConflict" | "PersistenceFailure"
     | "DocumentPersistenceFailure" | "DocumentRenderingFailure" | "internal_failure" }
   | { readonly error: "DomainConflict"; readonly code: string; readonly message?: string }
@@ -32,7 +33,8 @@ const publicConflictMessages: ReadonlySet<string> = new Set([productPresetCodeTa
 
 const toWire = (failure: ApiFailure): Wire => {
   switch (failure._tag) {
-    case "ValidationFailure": return { error: "ValidationFailure", issues: failure.issues }
+    case "ValidationFailure": return { error: "ValidationFailure", issues: failure.issues,
+      details: failure.issues.map((_, index) => failure.details?.[index] ?? { code: "unclassified" as const }) }
     case "DomainConflict": return { error: "DomainConflict", code: failure.code,
       ...(publicConflictMessages.has(failure.code) ? { message: failure.message } : {}) }
     case "RenderingFailure": return { error: "internal_failure" }

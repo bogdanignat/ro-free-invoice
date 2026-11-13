@@ -6,7 +6,7 @@ import {
   UnitOfMeasureInput,
 } from "./schema-primitives.ts"
 
-// The text limit is the cube's (`searchTextIssues`), so every client reads one message.
+// The text limit is the cube's (`searchTextDetails`), so every client reads one message.
 export const SearchPageQuery = Schema.Struct({
   ...PageQuery.fields,
   q: optional(InputText.annotations({

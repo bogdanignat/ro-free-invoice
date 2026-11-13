@@ -24,5 +24,5 @@ export { negateDecimal, validateCreateCorrectionInput } from "./domain/correctio
 export type { CorrectionDocument, CreateCorrectionInput } from "./domain/corrections.ts"
 export { SPV_UNRESOLVED_STATUSES, maximumRegisterSearchLength } from "./domain/register.ts"
 export type { InvoiceRegisterCursor, InvoiceRegisterFilter, InvoiceRegisterKind, InvoiceRegisterRow } from "./domain/register.ts"
-export { continuousMonths, reportPeriodIssues } from "./domain/reports.ts"
+export { continuousMonths, reportPeriodDetails } from "./domain/reports.ts"
 export type { ReportPeriod, RevenueFigures, RevenueReport } from "./domain/reports.ts"

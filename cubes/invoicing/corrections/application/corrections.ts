@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { DomainConflict, ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { DomainConflict, validationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
 import { negateDecimal, validateCreateCorrectionInput, type CorrectionDocument, type CreateCorrectionInput } from "../domain/corrections.ts"
 import type { DocumentSource, Idempotent } from "../../domain/invoice.ts"
@@ -7,6 +7,7 @@ import { calendarDate, validateDocumentSource } from "../../domain/validation.ts
 import { findIdempotencyReplay, idempotencyRecord, missingIdempotencyResult } from "../../application/idempotency.ts"
 import { checked, copyBuyer, copyIssuerCompanySnapshot, copySource, missing, recordAuditEvent, type Authorize, type OperationDependencies } from "../../application/support.ts"
 import { validateIssuerForIssuance } from "../../issuer/index.ts"
+import { issueDateBeforeOriginal, issueDateFuture } from "../../issues/index.ts"
 import { validateFiscalDocument } from "../../domain/calculation.ts"
 import { ensureChronology } from "./chronology.ts"
 import type { CorrectionWork } from "./ports.ts"
@@ -43,10 +44,10 @@ export const createCorrectionOperations = (d: OperationDependencies<CorrectionWo
       const today = calendarDate(now)
       const issueDate = input.issueDate ?? today
       const dateIssues = [
-        ...(issueDate < orig.issueDate ? ["issueDate cannot be before the original invoice issueDate"] : []),
-        ...(issueDate > today ? ["issueDate cannot be in the future"] : []),
+        ...(issueDate < orig.issueDate ? [issueDateBeforeOriginal()] : []),
+        ...(issueDate > today ? [issueDateFuture()] : []),
       ]
-      if (dateIssues.length > 0) return yield* Effect.fail(new ValidationFailure({ issues: dateIssues }))
+      if (dateIssues.length > 0) return yield* Effect.fail(validationFailure(dateIssues))
       // A storno is a new invoice with negative values (Codul fiscal art. 330): it takes the next number of the invoice series.
       yield* ensureChronology(tx, ctx.organization.id, "invoice", orig.series, issueDate, today)
       const number = yield* tx.allocateDocumentNumber(ctx.organization.id, "invoice", orig.series)

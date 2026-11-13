@@ -31,6 +31,7 @@ export { calculateTotals, validateFiscalDocument } from "./domain/calculation.ts
 export { hasControlCharacters, validateVatTreatment } from "./domain/validation.ts"
 export { maximumSearchLength } from "./domain/search.ts"
 export { unitOfMeasures } from "./items/index.ts"
+export type { IssueCode, IssueDetail } from "./issues/index.ts"
 export { ROMANIAN_COUNTIES, addressCountyName, isRomanianCountyCode, isValidRomanianCnp, romanianCountyName } from "./parties/index.ts"
 export type { RomanianCounty } from "./parties/index.ts"
 export { createInvoicingService } from "./application/invoicing.ts"

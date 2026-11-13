@@ -1,8 +1,9 @@
 import { Effect } from "effect"
 
-import { DomainConflict, PermissionDenied, ResourceNotFound, ValidationFailure, type PaymentsFailure } from "../contracts/failures.ts"
+import { DomainConflict, PermissionDenied, ResourceNotFound, validationFailure, type PaymentsFailure, type ValidationFailure } from "../contracts/failures.ts"
 import type { Clock, IdGenerator, RequestContext, RequestContextProvider, TransactionalStore } from "../contracts/host.ts"
 import { calendarDate, moneyMinor, type IdempotencyAttempt, type Payment, type PaymentIdempotencyRecord, type PaymentOperation } from "../domain/payments.ts"
+import { idempotencyFingerprintInvalid, idempotencyKeyInvalid } from "../../issues/index.ts"
 import { paymentAmounts, sumPaymentsMinor, type PaymentAmounts } from "../domain/settlement.ts"
 import type { AuditEvent, InvoiceSnapshot, PaymentsTransaction } from "./ports.ts"
 
@@ -49,7 +50,7 @@ export const validateAttempt = (attempt: IdempotencyAttempt): Effect.Effect<void
   const validFingerprint = /^sha256:[a-f0-9]{64}$/.test(attempt.fingerprint)
   return validKey && validFingerprint
     ? Effect.void
-    : Effect.fail(new ValidationFailure({ issues: [validKey ? "idempotency fingerprint is invalid" : "Idempotency-Key is invalid"] }))
+    : Effect.fail(validationFailure([validKey ? idempotencyFingerprintInvalid() : idempotencyKeyInvalid()]))
 }
 
 // Returns the id of the payment row an identical earlier request produced, or fails when the key was reused for a different request.

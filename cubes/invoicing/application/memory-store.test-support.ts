@@ -10,7 +10,7 @@ import {
   type RequestContext,
   type RequestContextProvider,
 } from "../contracts/index.ts"
-import { formatDecimal, parseDecimal } from "../contracts/money.ts"
+import { formatDecimal, parseDecimal } from "../money/index.ts"
 import type { BrandingNormalizer, IssuerTransaction } from "../issuer/index.ts"
 import { codeTakenConflict, type CatalogTransaction, type ProductPreset } from "../catalog/index.ts"
 import type { Customer, CustomersTransaction } from "../customers/index.ts"

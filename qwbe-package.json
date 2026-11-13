@@ -12,6 +12,8 @@
     "invoicing/issuance",
     "invoicing/issuer",
     "invoicing/items",
+    "invoicing/money",
+    "invoicing/issues",
     "invoicing/parties",
     "invoicing/payments",
     "invoicing/efactura",

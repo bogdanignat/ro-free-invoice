@@ -2,7 +2,7 @@ import { Effect } from "effect"
 
 import type { InvoicingTransaction } from "../../application/ports.ts"
 import { checked, copyBuyer, copySource, missing } from "../../application/support.ts"
-import { DomainConflict, ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { DomainConflict, validationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
 import type { IdGenerator } from "../../contracts/host.ts"
 import { calculateLine, calculateTotals } from "../../domain/calculation.ts"
 import type { BuyerSnapshot, DocumentSource, DocumentType, DraftInvoice } from "../../domain/invoice.ts"
@@ -10,6 +10,7 @@ import type { AuthoringDocumentInput, CreateDraftInput, UpdateDraftInput } from 
 import { isActiveCustomer, type CustomersTransaction } from "../../customers/index.ts"
 import { validateDate, validateDocumentNotes, validateDocumentSeries, validateDocumentSource, validateLineDescription } from "../../domain/validation.ts"
 import { validateBuyer } from "../../parties/index.ts"
+import { currencyNotRon, customerChoice, dueDateBeforeIssue, required } from "../../issues/index.ts"
 import { resolveVatConfiguration, type IssuerTransaction } from "../../issuer/index.ts"
 import { activeDocumentSeries } from "./active-series.ts"
 
@@ -43,10 +44,10 @@ export const buyerFrom = (
   const inline = "customer" in input ? input.customer : undefined
   yield* checked(() => {
     if ((customerId === undefined) === (inline === undefined)) {
-      throw new ValidationFailure({ issues: ["exactly one of customerId or customer is required"] })
+      throw validationFailure([customerChoice()])
     }
     if (customerId !== undefined && customerId.trim() === "") {
-      throw new ValidationFailure({ issues: ["customerId is required"] })
+      throw validationFailure([required("customerId")])
     }
   })
   if (customerId !== undefined) {
@@ -63,7 +64,7 @@ export const dates = (issueDate: string, dueDate: string | null | undefined) => 
   validateDate(issueDate, "issueDate")
   const due = dueDate ?? null
   if (due !== null) validateDate(due, "dueDate")
-  if (due !== null && due < issueDate) throw new ValidationFailure({ issues: ["dueDate cannot be before issueDate"] })
+  if (due !== null && due < issueDate) throw validationFailure([dueDateBeforeIssue()])
   return { issueDate, dueDate: due }
 })
 
@@ -82,7 +83,7 @@ export const authorDocument = (
 ) => Effect.gen(function*() {
   yield* checked(() => {
     validateDocumentSeries({ documentType, series: input.series })
-    if (input.currency !== undefined && input.currency !== "RON") throw new ValidationFailure({ issues: ["currency must be RON"] })
+    if (input.currency !== undefined && input.currency !== "RON") throw validationFailure([currencyNotRon()])
     validateDocumentNotes(input.notes)
   })
   const issuer = yield* transaction.findIssuer(organizationId)

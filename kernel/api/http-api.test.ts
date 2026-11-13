@@ -207,6 +207,17 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
   assert.equal(Object.hasOwn(proformaResponseSchema?.properties ?? {}, "invoiceSeries"), false)
   const draftResponseSchema = specJson.paths["/api/drafts/{id}"]?.get?.responses[200]?.content?.["application/json"]?.schema
   assert.ok(draftResponseSchema?.required?.includes("sourceProformaId"))
+  // Every ValidationFailure schema in the document declares the coded `details` next to `issues`.
+  const validationSchemas: Array<JsonSchema> = []
+  const collect = (node: unknown): void => {
+    if (typeof node !== "object" || node === null) return
+    const enumOfError = ((node as JsonSchema).properties?.error as { readonly enum?: unknown } | undefined)?.enum
+    if (JSON.stringify(enumOfError) === JSON.stringify(["ValidationFailure"])) validationSchemas.push(node)
+    for (const child of Object.values(node)) collect(child)
+  }
+  collect(spec)
+  assert.ok(validationSchemas.length > 0)
+  for (const schema of validationSchemas) assert.deepEqual([Object.hasOwn(schema.properties ?? {}, "issues"), Object.hasOwn(schema.properties ?? {}, "details")], [true, true])
   assert.ok(spec.paths["/api/customers"].post?.parameters.some((parameter) => parameter.name === "x-csrf-token"))
   assert.ok(spec.paths["/api/session"].delete?.parameters.some((parameter) => parameter.name === "x-csrf-token" && parameter.required))
   for (const path of ["/api/drafts", "/api/drafts/{draftId}/issue", "/api/invoices", "/api/drafts/{draftId}/proformas",

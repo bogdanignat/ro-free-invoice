@@ -1,3 +1,5 @@
+import { dateFormat, periodTooLong, rangeInverted, type IssueDetail } from "../../issues/index.ts"
+
 /** An inclusive calendar interval, YYYY-MM-DD at both ends. */
 export interface ReportPeriod { readonly from: string; readonly to: string }
 
@@ -15,13 +17,11 @@ const monthIndex = (date: string): number => Number(date.slice(0, 4)) * 12 + Num
 const monthCount = (period: ReportPeriod): number => monthIndex(period.to) - monthIndex(period.from) + 1
 
 /** Empty when the period is valid; shared by every report so the rule lives in one place. */
-export const reportPeriodIssues = (period: ReportPeriod): ReadonlyArray<string> => {
-  const issues = (["from", "to"] as const).filter((field) => !isCalendarDate(period[field]))
-    .map((field) => `${field} must be a calendar date in YYYY-MM-DD format`)
-  if (issues.length > 0) return issues
-  if (period.from > period.to) return ["from must not be after to"]
-  if (monthCount(period) > maximumReportMonths) return [`the period must span at most ${String(maximumReportMonths)} calendar months`]
-  return []
+export const reportPeriodDetails = (period: ReportPeriod): ReadonlyArray<IssueDetail> => {
+  const details = (["from", "to"] as const).filter((field) => !isCalendarDate(period[field])).map(dateFormat)
+  if (details.length > 0) return details
+  if (period.from > period.to) return [rangeInverted()]
+  return monthCount(period) > maximumReportMonths ? [periodTooLong(maximumReportMonths)] : []
 }
 
 /** Every calendar month the period touches, as YYYY-MM, oldest first. */

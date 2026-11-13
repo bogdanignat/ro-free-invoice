@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { maximumReportMonths, reportMonths, reportPeriodIssues, revenueReport } from "./reports.ts"
+import { renderIssue } from "../../issues/index.ts"
+import { maximumReportMonths, reportMonths, reportPeriodDetails, revenueReport, type ReportPeriod } from "./reports.ts"
+
+const reportPeriodIssues = (period: ReportPeriod) => reportPeriodDetails(period).map(renderIssue)
 
 void test("a period is two calendar dates, in order, inclusive and at most 36 calendar months", () => {
   assert.deepEqual(reportPeriodIssues({ from: "2026-09-10", to: "2026-09-10" }), [])
