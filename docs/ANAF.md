@@ -8,14 +8,15 @@ instalării, pe firma lui.
 
 | Funcție | Ce cere de la ANAF | Unde se configurează |
 | --- | --- | --- |
-| e-Factura (plugin `efactura`) | pentru XML, nimic; pentru SPV (conexiune OAuth, trimitere, stare, recipisă, reconciliere), aplicația OAuth a operatorului și accesul firmei în SPV, mai jos | `QWBE_PLUGINS`; variabilele `ANAF_*` și `compose.anaf.yaml`; conexiunea din **Integrări**; XML-ul se descarcă din factură (`GET /api/invoices/{id}/efactura.xml`, `GET /api/corrections/{id}/efactura.xml`) |
+| e-Factura (plugin `efactura`) | pentru XML, nimic; pentru SPV (conexiune OAuth, trimitere, stare, recipisă, reconciliere), aplicația OAuth a operatorului și accesul firmei în SPV, mai jos | `QWBE_PLUGINS`; variabilele `ANAF_*` și `compose.anaf.yaml`; conexiunea din **Integrări**; XML-ul unui document se descarcă prin API (`GET /api/invoices/{id}/efactura.xml`, `GET /api/corrections/{id}/efactura.xml`), interfața nu are buton pentru el; XML-ul deja trimis se descarcă din istoricul e-Factura al documentului |
 | Căutare firmă după CUI (plugin `company-lookup`, furnizor ANAF) | nimic: serviciul public de verificare TVA, fără cheie | **Integrări** în aplicație |
 
 **Aplicația trimite în SPV doar ce trimite utilizatorul**, document cu document, și
-numai cu plugin-ul `efactura` pornit și firma conectată la ANAF prin OAuth (T-1346, vezi
-[`EFACTURA.md`](EFACTURA.md), „Submitting to ANAF”). Dispatcher-ul validează XML-ul, îl
+numai cu plugin-ul `efactura` pornit și firma conectată la ANAF prin OAuth (vezi
+[`EFACTURA.md`](EFACTURA.md#submitting-to-anaf), „Submitting to ANAF”). Dispatcher-ul validează XML-ul, îl
 încarcă în SPV (`api.anaf.ro`), urmărește starea și păstrează recipisa ANAF. Fără
-conexiune, XML-ul se descarcă și se încarcă manual, pe canalul pe care îl folosești deja.
+conexiune, XML-ul se descarcă prin API și se încarcă manual, pe canalul pe care îl folosești
+deja.
 
 La validatorul public ANAF ajung două feluri de documente. Fixture-urile și orice
 încărcare manuală conțin doar date inventate („Validating the fixtures” din
@@ -26,7 +27,7 @@ pe `test`, și pe `prod`, la `webservicesp.anaf.ro/prod/FCTEL/rest/validare`, f�
 
 ## Ce înregistrezi pentru transmiterea în SPV
 
-Codul folosește tot ce e aici (T-1346): conexiunea OAuth, trimiterea, starea, recipisa și
+Codul folosește tot ce e aici: conexiunea OAuth, trimiterea, starea, recipisa și
 reconcilierea unei trimiteri `unknown` ([`EFACTURA.md`](EFACTURA.md)). Pașii de
 înregistrare sunt în [`LOCAL_DEVELOPMENT.md`](LOCAL_DEVELOPMENT.md), „ANAF e-Factura
 (OAuth client)”. Ce nu se poate deduce din cod rămâne marcat **de verificat** și se

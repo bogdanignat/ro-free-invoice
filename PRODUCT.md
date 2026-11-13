@@ -1,9 +1,9 @@
 # QWBE Invoicing Product Scope
 
-Status: product baseline; T-1069 implemented
+Status: product baseline
 Jurisdiction: Romania  
 Last researched: 2026-08-30  
-Mother alignment reviewed: 2026-09-02 against QWBE `a98d9ef` (historical, `FOUNDATION.md` section 18); direction since T-1876 in `FOUNDATION.md` sections 1, 3 and 13
+Mother alignment reviewed: 2026-09-02 against QWBE `a98d9ef` (historical, `FOUNDATION.md` section 18); current direction in `FOUNDATION.md` sections 1, 3 and 13
 Architecture companion: [`FOUNDATION.md`](./FOUNDATION.md)
 
 ## 1. Product direction
@@ -318,7 +318,7 @@ propose them from the CUI:
 
 ### Proforma
 
-Implemented in T-1069. A proforma is an immutable, numbered non-fiscal commercial
+A proforma is an immutable, numbered non-fiscal commercial
 snapshot emitted directly from authored content or from an optional saved draft. It uses a separately configured
 proforma series and sequence scope; its number is never reused and never consumes an
 invoice number. It can be listed, opened in detail, and rendered/downloaded as a PDF
@@ -592,13 +592,14 @@ are implemented. The e-Factura submission workflow is implemented.
 
 The following decisions must be explicit before their relevant implementation:
 
-1. Is the initial standalone product limited to one legal entity, or may one
-   installation manage several?
-2. Which VAT regimes are supported in the first public release beyond ordinary
-   domestic VAT and non-VAT-registered issuers?
+1. Resolved: one installation serves one legal entity (one organization) and one user
+   (section 2, "Who it is for and what it does not do").
+2. Resolved: ordinary domestic VAT and non-VAT-registered issuers (Article 310), for
+   issuers outside the VAT-on-collection system; the other regimes are outside the first
+   version (section 2, "Who it is for and what it does not do").
 3. Resolved for the first usable release: delivery is PDF download. Email remains a
    future capability; proforma delivery specifically means download, not email.
-4. Resolved (T-1910): React 19 + TypeScript + Tailwind CSS 4 in a single-page application
+4. Resolved: React 19 + TypeScript + Tailwind CSS 4 in a single-page application
    built with Vite and routed with TanStack Router (file routes in `frontend/src/routes/`);
    TanStack Query holds React server state. One image: the kernel serves the build
    (`QWBE_UI_DIR`), the API under `/api/*` and the Swagger page (`GET /api`) on one origin,
@@ -610,23 +611,22 @@ The following decisions must be explicit before their relevant implementation:
    only the per-session CSRF token in memory. The Bearer API is off on the public listener
    unless `QWBE_BEARER_API=on`; the CLI inside the container is the operator's interface.
 
-   Superseded decisions, kept as history: from T-1400 to T-1649 a Next.js App Router
-   application (`frontend/`) ran next to the first Vite UI and replaced it at the T-1649
-   cutover (2026-10-09). It was a second service and a second image, and reached the
-   kernel only through a backend-for-frontend under `/api/qwbe/*` that held the session
-   cookie, CSRF and `Origin` checks, while the kernel stayed internal. T-1910 removed it:
-   a server-rendering framework bought nothing for a UI behind a login, and the second
-   process doubled the edge that had to be secured, the images to pin and the self-host
-   steps. Its guards moved into the kernel (T-1911) and the UI became a static Vite build
-   the kernel serves (T-1912 to T-1914).
+   Superseded decision, kept as history: for a while a Next.js App Router application
+   (`frontend/`) ran next to the first Vite UI and replaced it (cutover 2026-10-09). It
+   was a second service and a second image, and reached the kernel only through a
+   backend-for-frontend under `/api/qwbe/*` that held the session cookie, CSRF and
+   `Origin` checks, while the kernel stayed internal. It was removed: a server-rendering
+   framework bought nothing for a UI behind a login, and the second process doubled the
+   edge that had to be secured, the images to pin and the self-host steps. Its guards
+   moved into the kernel and the UI became a static Vite build the kernel serves.
 5. What retention policy and backup targets are promised to operators?
 6. Resolved: no mandatory dependency on `qwbe-core`; shapes are copied and declared
    locally.
-7. Resolved: standalone owns its own database — PostgreSQL 16 since T-1480, SQLite
-   before it — and its own login. The mother installs and mounts nothing; invoicing
+7. Resolved: standalone owns its own database — PostgreSQL 16, SQLite before
+   it — and its own login. The mother installs and mounts nothing; invoicing
    data does not move into its database, and no shared topology is adopted. A future
    mother would call the API under `FOUNDATION.md` section 19, which is not implemented.
-8. Resolved (T-1876): package shape is one plugin pack, a root `qwbe-package.json` with
+8. Resolved: package shape is one plugin pack, a root `qwbe-package.json` with
    `kind: "plugin"` listing every unit, without claiming `qwbe-core/package` compatibility.
 
 ## 12. Primary references

@@ -84,7 +84,7 @@ Session mechanics are owned by the kernel. On unlock, it exchanges the local bea
 
 The authenticated Swagger page is `GET /api` on `invoice.test` (linked from Settings), behind the browser session: a caller without a valid session is redirected to `/unlock`. Its OpenAPI 3.1 document is generated from the same Effect `HttpApi` contract served by `HttpApiBuilder`; it is not a separately maintained endpoint list. The page stays behind the session so the full contract is not exposed anonymously.
 
-The backend serves the Vite build in `QWBE_UI_DIR` (T-1912), read once at startup into memory; a request never builds a path on disk. `/api*` and `/health*` come first, then a file of the build (hashed `assets/*`: `public, max-age=31536000, immutable`; `index.html`: `no-store`), then `index.html` for every other `GET`/`HEAD`, so deep links load the application. A missing file under `/assets/` answers `404`, other methods `405`. `/` is the application: the old identity JSON is gone. A symlink or special file in the build refuses to start. In production `serve` refuses to start without a build; in development and tests the kernel runs without one and the UI routes answer `503` (`ui_not_built`).
+The backend serves the Vite build in `QWBE_UI_DIR`, read once at startup into memory; a request never builds a path on disk. `/api*` and `/health*` come first, then a file of the build (hashed `assets/*`: `public, max-age=31536000, immutable`; `index.html`: `no-store`), then `index.html` for every other `GET`/`HEAD`, so deep links load the application. A missing file under `/assets/` answers `404`, other methods `405`. `/` is the application: the old identity JSON is gone. A symlink or special file in the build refuses to start. In production `serve` refuses to start without a build; in development and tests the kernel runs without one and the UI routes answer `503` (`ui_not_built`).
 
 ## UI development with vite dev
 
@@ -128,8 +128,9 @@ Every cube use-case is an `Effect` and has a 1:1 authenticated HTTP endpoint. Au
 - Issued invoices have no `DELETE` endpoint and allocated invoice numbers are never reused; mistakes are handled through correction documents
 - `POST /api/efactura/connection/start` / `GET /api/anaf/callback` / `GET|DELETE /api/efactura/connection` — the ANAF OAuth connection of the `efactura` plugin (404 when it is off): start answers ANAF's `authorizeUrl` and sets the attempt cookie (`efactura:connection.manage`, 409 without the ANAF variables), the callback answers only a 303 to `/integrations?anaf=<code>`, the status never carries a token (`efactura:read`); see docs/EFACTURA.md
 - `GET|PUT /api/settings/company-lookup` (`settings.manage`; `provider` `none`/`anaf`/`openapi`, write-only `openapiKey`, `clearOpenapiKey`; answers only `openapiKeyLast4`) / `GET /api/company-lookup/availability` / `POST /api/company-lookup/lookup` `{cui}` / `POST /api/company-lookup/search` `{q}` — the `company-lookup` plugin (404 when it is off); a CUI under 4 digits or with a wrong check digit and a name under 6 letters answer 400 without asking ANAF or openapi.ro
+- Creating a draft (also from a proforma), issuing an invoice or a proforma, a storno, and recording or reversing a payment require an `Idempotency-Key` header: a retry with the same key and body answers the first result instead of creating a second document or payment, and the key reused for a different request answers `409 idempotency_key_reused`
 
-T-1069 proforma route inventory (authenticated routes):
+Proforma routes (authenticated):
 
 - `POST /api/proformas` — emit an immutable proforma directly from complete authoring content; no draft is persisted
 - `POST /api/drafts/:draftId/proformas` — emit an immutable proforma from the editable draft, using the requested configured proforma series
@@ -218,11 +219,11 @@ On a new installation:
    Compose, and the application refuses a partial or malformed setup at startup (all four
    client values or none; the redirect URI must be `https://<PUBLIC_ORIGIN host>/api/anaf/callback`;
    the token key must differ from the company-lookup key).
-6. **Connect** in Integrări → ANAF e-Factura with "Conectează cu certificatul"
-   (T-1346): the browser goes to ANAF, the certificate is chosen there, and ANAF sends it
+6. **Connect** in Integrări → ANAF e-Factura with "Conectează cu certificatul":
+   the browser goes to ANAF, the certificate is chosen there, and ANAF sends it
    back to the callback. The tokens stay in the backend, encrypted with the token key.
    The flow, its codes and its residual
-   risk are in [EFACTURA.md](EFACTURA.md#connecting-to-anaf-oauth-t-1346).
+   risk are in [EFACTURA.md](EFACTURA.md#connecting-to-anaf-oauth).
 
 Keep `.local/anaf-token-key` for as long as the connection should survive: a new key
 makes the stored tokens unreadable and the organization reconnects with its certificate. Backups never carry the

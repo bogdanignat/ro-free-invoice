@@ -753,7 +753,7 @@ of a caller-authored `vatConfigurations` history. The server builds that history
 and returns it with `currentVat` (null when no registration is currently active).
 The catalogue supplies date-effective line rates separately from issuer registration.
 A change of regime or CIF is checked against ANAF's VAT registry and refused over
-issued documents in the period it rewrites (`docs/VAT_TREATMENT.md`, T-1977).
+issued documents in the period it rewrites (`docs/VAT_TREATMENT.md`).
 CUI is stored as canonical digits without `RO`; VAT registration is explicit, never
 inferred from a prefix. The UI may strip a typed `RO` prefix without changing the
 registration checkbox. Company buyers also carry an explicit `vatRegistered` flag;
@@ -1001,7 +1001,8 @@ The rest of the model:
   answered, logged or put in an error; the settings show only its last four characters.
   Provider calls have a 5-second timeout, refuse redirects and bodies over 256 KB, and never
   pass the provider's error text on. A key openapi.ro refuses answers `502 auth_failed`,
-  never `401`, so it does not end the browser session.
+  never `401`, so it does not end the browser session. ANAF calls share one queue per
+  process, at most one a second; with 10 already waiting, a lookup answers `unavailable`.
 - The container is read-only and non-root, and every service in `compose.prod.yaml` drops
   all capabilities (the database and Caddy add back only what their entrypoints need) with
   `no-new-privileges`. TLS and network exposure are the reverse proxy's job; the application
@@ -1076,6 +1077,25 @@ from `cubes/`, no imports between separate cube trees, inside the invoicing tree
 enters a sibling or a child only through its `index.ts` (it may use its ancestors' modules),
 no required cube imports a plugin, size caps per file and per unit, a test next to every
 cube. A change that breaks a gate is not mergeable.
+
+### Compose files
+
+| File | What it is for | Who starts it |
+|---|---|---|
+| `compose.yaml` | development stack: PostgreSQL, `db-init`, `migrate` and `app`, routed by Warden at `https://invoice.test` | developer, `docker compose up -d` |
+| `compose.vite.yaml` | overlay on `compose.yaml` for UI work with the Vite dev server; publishes the kernel on loopback | developer |
+| `compose.anaf.yaml` | overlay on `compose.yaml` or `compose.prod.yaml`: the ANAF OAuth client and its secrets for e-Factura | developer or operator, through `COMPOSE_FILE` in `.env` |
+| `compose.prod.yaml` | production / self-host bundle; the bundled Caddy runs under the `proxy` profile | operator; `scripts/smoke-image.sh` |
+| `compose.loopback.yaml` | overlay on `compose.prod.yaml`: publishes `app` on `127.0.0.1` for a reverse proxy already on the host | operator; `scripts/smoke-image.sh` |
+| `compose.ipv4-only.yaml` | overlay on `compose.prod.yaml` for a host without IPv6 | operator |
+| `compose.preview.yaml` | the image built from the checkout, on its own cluster, secrets and volumes, at `http://invoicing-preview.localhost:3181` | developer, opt-in (`--profile preview`) |
+| `compose.verify.yaml` | verification: `pnpm verify` in the pinned Node container, on the project's `db` | `scripts/verify-docker.sh verify` |
+| `compose.test.yaml` | the fast loop: `pnpm test` on the project's `db` | `scripts/verify-docker.sh test` |
+| `compose.pg-probe.yaml` | test rig: PostgreSQL 16 server probes (`scripts/pg16-probe.sh`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
+| `compose.pg-driver-probe.yaml` | test rig: the `pg` driver probe (`probes/pg-driver-probe.mjs`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
+| `compose.pg-schema-gate.yaml` | test rig: the schema gate (`probes/pg-schema-gate.mjs`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
+| `compose.pg-adapters.yaml` | test rig: the PostgreSQL adapter tests on a throwaway cluster of its own (`pnpm test` runs them too) | by hand; `pnpm verify` does not use it |
+| `compose.pg-backup.yaml` | test rig: the backup and restore tests (`pg_dump`, `psql`) on a throwaway cluster of its own (`pnpm test` runs them too) | by hand; `pnpm verify` does not use it |
 
 ### UI theme and dependency policy
 

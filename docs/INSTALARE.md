@@ -213,8 +213,8 @@ instalare separată sau pe o bază recreată înainte de trecere.
 Facturile către persoane fizice (B2C) se trimit din același buton: aplicația le încarcă prin
 `uploadb2c`, cu CNP-ul clientului dacă e completat, altfel cu 13 zerouri.
 
-Fluxul în detaliu: [Connecting to ANAF](./EFACTURA.md#connecting-to-anaf-oauth-t-1346) și
-[Submitting to ANAF](./EFACTURA.md#submitting-to-anaf-t-1346).
+Fluxul în detaliu: [Connecting to ANAF](./EFACTURA.md#connecting-to-anaf-oauth) și
+[Submitting to ANAF](./EFACTURA.md#submitting-to-anaf).
 
 ## 6. Backup, restaurare, actualizare
 

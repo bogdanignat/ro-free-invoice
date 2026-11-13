@@ -4,7 +4,7 @@ The `efactura` plugin turns a frozen fiscal snapshot into UBL 2.1 / CIUS-RO XML 
 generator, a host mapping from the invoicing model, and synthetic fixtures for the
 official validator) and submits invoices and stornos to the ANAF SPV, one document at a
 time and only when the user asks. It was accepted on the ANAF TEST environment. See
-[Submitting to ANAF](#submitting-to-anaf-t-1346).
+[Submitting to ANAF](#submitting-to-anaf).
 
 Two download routes remain: `GET /api/invoices/{id}/efactura.xml` and `GET
 /api/corrections/{id}/efactura.xml`. They read a frozen snapshot and render it on the
@@ -16,10 +16,11 @@ Both routes belong to the `efactura` plugin. With it off (`QWBE_PLUGINS` without
 `efactura`) they answer 404, are absent from OpenAPI, and every invoice response
 says `eFacturaStatus: null`; issuance, PDF and the fiscal validations do not change.
 
-A refusal is reachable today: the invoicing domain does not cap line
-descriptions or party names at input, while CIUS-RO does at export (T-1390), so
-an invoice can be issued — and, being immutable, stays issued — that the export
-answers with `400` and the list of limits it breaks.
+The invoicing domain applies the CIUS-RO text limits at input, so an issued document
+does not break them at export: party name 200 characters, street 150, city 50 and
+postal code 20 (issuer, customer and one-time buyer), line description 100, document
+notes 300 and storno reason 300. The export still checks the limits and answers `400`
+with the list of those a document breaks.
 
 ## Layout
 
@@ -194,7 +195,7 @@ valid**, no assertion of any kind. That settles several things at once.
 | Can a buyer company without a VAT registration be named by BT-47 alone? | Yes. |
 | Is Article 310 `E` or `O`? | **Both are accepted**, so the validator did not decide it. The product issues `O`; see below. |
 
-## VAT category for Article 310 issuers: `O`, as ANAF recommends (T-1383)
+## VAT category for Article 310 issuers: `O`, as ANAF recommends
 
 `docs/VAT_TREATMENT.md` and migration 020 originally chose category **E** with
 the Article 310 text in BT-120, recording that "no specific VATEX mapping for
@@ -286,7 +287,7 @@ corrections domain rather than in the HTTP schema, because the storno reason is
 a fiscal element of the document, and the rule holds for every caller, not only
 for the one that arrives over HTTP.
 
-## Connecting to ANAF (OAuth, T-1346)
+## Connecting to ANAF (OAuth)
 
 The SPV is reached with an OAuth token issued to one organization's certificate.
 The connection lives in `cubes/invoicing/efactura/connection` (states, attempt,
@@ -388,7 +389,7 @@ yet: it needs a new connection with the certificate on ANAF TEST, followed separ
 Until that test the risk stays, accepted by Bogdan on 2026-10-19. If ANAF accepts PKCE
 without closing the session it is added; otherwise the acceptance stands.
 
-## Submitting to ANAF (T-1346)
+## Submitting to ANAF
 
 A user submits one issued document at a time; nothing is ever submitted on its
 own. The states and the reading of ANAF's answers are pure functions in
@@ -717,7 +718,7 @@ recompressed in exactly ANAF's layout (rebuilt unchanged, the writer gives back
 ANAF's bytes). The signature entry is ANAF's, untouched, so its `DigestValue` no
 longer matches the anonymised XML.
 
-### The received-invoice routes (T-2027)
+### The received-invoice routes
 
 Mounted only with the `efactura` plugin (404 when it is off). Every read is of the
 request's organization in the current ANAF environment: another organization's id, or
