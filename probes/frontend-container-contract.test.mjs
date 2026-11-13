@@ -113,7 +113,12 @@ void test("production: no Warden, no public port, PUBLIC_ORIGIN and the image ta
 void test("production: every service drops its capabilities, Caddy is pinned, the throttle trusts the fixed project subnet", () => {
   const compose = code("compose.prod.yaml")
   assert.match(compose, /^x-hardening: &hardening\n {2}cap_drop: \[ALL\]\n {2}security_opt: \["no-new-privileges:true"\]$/mu)
-  for (const name of services(compose)) assert.match(serviceBlock(compose, name), /^ {4}<<: \*hardening$/mu, name)
+  assert.match(compose, /^x-logging: &logging\n {2}driver: json-file\n {2}options:\n {4}max-size: 10m\n {4}max-file: "5"$/mu)
+  for (const name of services(compose)) {
+    assert.match(serviceBlock(compose, name), /^ {4}<<: \*hardening$/mu, name)
+    assert.match(serviceBlock(compose, name), /^ {4}logging: \*logging$/mu, `${name} rotates its logs`)
+  }
+  assert.match(serviceBlock(compose, "caddy"), /^ {4}read_only: true\n {4}tmpfs:\n {6}- \/tmp:size=\d+m$/mu, "Caddy: read-only root, bounded /tmp")
   const added = (name) => serviceBlock(compose, name).match(/^ {4}cap_add: .*$/gmu) ?? []
   assert.deepEqual(added("db"), ["    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]"])
   assert.deepEqual(added("caddy"), ["    cap_add: [NET_BIND_SERVICE]"])
@@ -218,7 +223,9 @@ void test("the release publishes one image and verifies through the Docker harne
   const release = source(".github/workflows/release.yaml")
   assert.equal((release.match(/docker\/build-push-action/gu) ?? []).length, 1)
   assert.doesNotMatch(release, /-frontend|frontend\/Dockerfile/u)
-  assert.match(release, /run: scripts\/verify-docker\.sh verify/u)
+  assert.match(release, /^ {2}verify:\n {4}uses: \.\/\.github\/workflows\/verify\.yaml$/mu)
+  assert.match(release, /^ {2}build:\n {4}needs: verify$/mu, "nothing is published without verify")
+  assert.match(source(".github/workflows/verify.yaml"), /run: scripts\/verify-docker\.sh verify/u)
   assert.doesNotMatch(release, /run: pnpm verify/u, "pnpm verify needs PostgreSQL; the runner has none")
   const digests = source("image-digests.txt.example").split("\n").filter((line) => line !== "" && !line.startsWith("#"))
   assert.equal(digests.length, 2, "the version, then one digest")
