@@ -44,7 +44,7 @@ const assertSourceIndexes = async (sql: RawSql): Promise<void> => {
 }
 
 const cli = (fixture: TestFixture, args: ReadonlyArray<string>, overrides: Readonly<Record<string, string>> = {}) =>
-  spawnSync(process.execPath, [join(process.cwd(), "bin", "qwbe-invoicing.ts"), ...args],
+  spawnSync(process.execPath, [join(process.cwd(), "bin", "ro-free-invoice.ts"), ...args],
     { encoding: "utf8", env: fixture.childEnv(overrides) })
 
 void test("migration apply is idempotent", async () => {
@@ -56,6 +56,8 @@ void test("migration apply is idempotent", async () => {
       "catalog/catalog-001-baseline",
       "issuer/issuer-001-baseline",
       "invoicing/invoicing-001-baseline",
+      "invoicing/invoicing-002-seal-issued-documents",
+      "invoicing/invoicing-003-supply-date",
       "payments/payments-001-baseline",
       "documents/documents-001-baseline",
       "company-lookup/company-lookup-001-baseline",
@@ -64,7 +66,7 @@ void test("migration apply is idempotent", async () => {
       "received/efactura-received-001-baseline",
       "kernel/000-browser-sessions",
     ])
-    assert.equal((await applyMigrations(pool)).changed, 12)
+    assert.equal((await applyMigrations(pool)).changed, 14)
     await assertSourceIndexes(sql)
     assert.equal((await applyMigrations(pool)).changed, 0)
     await assertSourceIndexes(sql)
@@ -78,11 +80,11 @@ void test("migrate CLI reapplies the complete schema with zero changes", async (
     assert.equal(first.status, 0, first.stderr)
     const firstReport: unknown = JSON.parse(first.stdout)
     assert.ok(typeof firstReport === "object" && firstReport !== null && "changed" in firstReport)
-    assert.equal(firstReport.changed, 12)
+    assert.equal(firstReport.changed, 14)
     const second = cli(fixture, ["migrate", "--apply", "--json"])
     assert.equal(second.status, 0, second.stderr)
     const secondReport: unknown = JSON.parse(second.stdout)
-    assert.deepEqual(secondReport, { scanned: 12, changed: 0, skipped: 12, failed: 0, pending: [], schemaDrift: [] })
+    assert.deepEqual(secondReport, { scanned: 14, changed: 0, skipped: 14, failed: 0, pending: [], schemaDrift: [] })
     return Promise.resolve()
   })
 })
@@ -261,7 +263,7 @@ void test("CLI distinguishes invalid input, guard refusal, and execution failure
     // Execution failure, PostgreSQL flavoured: the target database does not
     // exist, so the command cannot connect. `DATA_DIR` is no longer involved —
     // `migrate` does not touch the filesystem.
-    const failed = cli(fixture, ["migrate", "--apply"], { PGDATABASE: "qwbe_t_absent_database" })
+    const failed = cli(fixture, ["migrate", "--apply"], { PGDATABASE: "rfi_t_absent_database" })
     assert.equal(failed.status, 1)
     return Promise.resolve()
   })

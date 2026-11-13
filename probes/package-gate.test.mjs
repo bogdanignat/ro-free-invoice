@@ -12,7 +12,7 @@ const write = (root, path, content) => {
   writeFileSync(target, content)
 }
 const withPackage = async (manifest, cubes, use) => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-package-gate-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-package-gate-"))
   try {
     write(root, "qwbe-package.json", JSON.stringify({ ...manifest, cubes: Object.keys(cubes) }))
     for (const [path, source] of Object.entries(cubes)) {

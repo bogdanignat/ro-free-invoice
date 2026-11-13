@@ -1,4 +1,6 @@
-import type { UnitOfMeasure } from "./unit-of-measures.ts"
+import type { ItemIdentifiers, UnitOfMeasure } from "../items/index.ts"
+
+export type { ItemIdentifiers }
 
 export interface Address {
   readonly countryCode: string
@@ -102,12 +104,6 @@ export interface DocumentSeries {
   readonly archived: boolean
 }
 
-/** BT-155 and BT-157: copied from the product when one is chosen, absent on a line typed by hand. */
-export interface ItemIdentifiers {
-  readonly itemCode?: string
-  readonly barcode?: string
-}
-
 export interface DraftLine extends VatTreatment, ItemIdentifiers {
   readonly id: string
   readonly description: string
@@ -141,6 +137,8 @@ export interface DraftInvoice extends DocumentContent {
   readonly sourceProformaId: string | null
   readonly customerId?: string
   readonly series: string
+  /** Data livrarii (art. 319 alin. (20) lit. c) Cod fiscal); absent = issue date. */
+  readonly supplyDate?: string
   readonly status: "draft" | "issued" | "proforma_issued"
 }
 
@@ -188,6 +186,8 @@ export type EFacturaStatus = (typeof E_FACTURA_STATUSES)[number]
 export interface IssuedInvoice extends NumberedDocumentSnapshot {
   readonly draftId: string | null
   readonly sourceProformaId: string | null
+  /** Data livrarii (art. 319 alin. (20) lit. c) Cod fiscal), never after the issue date. */
+  readonly supplyDate: string
   readonly eFacturaStatus: EFacturaStatus
 }
 

@@ -1,4 +1,4 @@
-import { formatDecimal, isCanonicalDecimal, parseDecimal } from "../../cubes/invoicing/contracts/money.ts"
+import { formatDecimal, isCanonicalDecimal, parseDecimal } from "../../cubes/invoicing/money/index.ts"
 import type { Row } from "./postgres-rows.ts"
 
 /**

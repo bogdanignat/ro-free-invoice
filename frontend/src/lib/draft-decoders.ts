@@ -87,6 +87,7 @@ export const decodeDraft: Decoder<DraftInvoice> = (input) => {
   }
   const customerId = optionalText(value.customerId, "customerId")
   const source = value.source === undefined || value.source === null ? undefined : decodeDocumentSource(value.source)
+  const supplyDate = optionalText(value.supplyDate, "supplyDate")
   return {
     id: text(value.id, "id"),
     organizationId: text(value.organizationId, "organizationId"),
@@ -97,6 +98,7 @@ export const decodeDraft: Decoder<DraftInvoice> = (input) => {
     series: text(value.series, "series"),
     issueDate: text(value.issueDate, "issueDate"),
     dueDate: nullableText(value.dueDate, "dueDate"),
+    ...(supplyDate === undefined ? {} : { supplyDate }),
     currency: text(value.currency, "currency"),
     notes: nullableText(value.notes, "notes"),
     status,

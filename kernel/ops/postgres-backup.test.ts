@@ -37,7 +37,7 @@ import { writeArchive } from "./postgres-backup-writer.ts"
 /**
  * Backup and restore against a real PostgreSQL 16 server, a database per case.
  * Every dump source and every restore target is a rig database
- * (`freshRuntime`/`emptyRuntime`, `qwbe_t_<run>_…`), never the application's.
+ * (`freshRuntime`/`emptyRuntime`, `rfi_t_<run>_…`), never the application's.
  */
 
 const settingsFor = (database: string): PostgresSettings => ({
@@ -124,7 +124,7 @@ void test("the dump client and the server are both major 16", async () => {
 })
 
 void test("backup and restore round-trip the schema, the ledger and the artifact hashes", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-roundtrip-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-roundtrip-"))
   const source = await freshRuntime("bkpsrc")
   const target = await emptyRuntime("bkptgt")
   try {
@@ -188,7 +188,7 @@ void test("backup and restore round-trip the schema, the ledger and the artifact
 })
 
 void test("backup refuses while a live client holds the shared maintenance lock, and writes nothing", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-live-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-live-"))
   const runtime = await freshRuntime("bkplive")
   const live = await runtime.maintenance.connect()
   try {
@@ -211,7 +211,7 @@ void test("backup refuses while a live client holds the shared maintenance lock,
 })
 
 void test("restore refuses a populated database and a populated artifact tree, and changes neither", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-populated-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-populated-"))
   const source = await freshRuntime("bkpfull")
   const populated = await freshRuntime("bkpfull2")
   try {
@@ -250,7 +250,7 @@ void test("restore refuses a populated database and a populated artifact tree, a
 })
 
 void test("the dry runs read only, leave no staging directory and predict the refusal", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-dryrun-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-dryrun-"))
   const source = await freshRuntime("bkpdry")
   const target = await emptyRuntime("bkpdry2")
   try {
@@ -271,8 +271,8 @@ void test("the dry runs read only, leave no staging directory and predict the re
     await assert.rejects(() => counts(target.pool), /does not exist/u)
     const after = await readdir(tmpdir())
     assert.deepEqual(
-      after.filter((entry) => entry.startsWith("qwbe-pg-restore-")),
-      before.filter((entry) => entry.startsWith("qwbe-pg-restore-")),
+      after.filter((entry) => entry.startsWith("rfi-pg-restore-")),
+      before.filter((entry) => entry.startsWith("rfi-pg-restore-")),
       "a dry run must leave no staging directory behind",
     )
     await assert.rejects(
@@ -287,7 +287,7 @@ void test("the dry runs read only, leave no staging directory and predict the re
 })
 
 void test("a failing subprocess reports a redacted error and never touches process.env", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-secret-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-secret-"))
   const runtime = await freshRuntime("bkpsecret")
   const secret = "s3cr3t-must-not-appear-anywhere"
   const snapshot = process.env["PGPASSWORD"]
@@ -335,7 +335,7 @@ const withLockedRestore = async <Value>(
   }) => Promise<Value>,
 ): Promise<Value> => {
   const client = await runtime.pool.connect()
-  const staging = mkdtempSync(join(tmpdir(), "qwbe-pg-restore-direct-"))
+  const staging = mkdtempSync(join(tmpdir(), "rfi-pg-restore-direct-"))
   try {
     assert.equal(await tryAcquireMaintenanceLock(client), true)
     return await use({ client, settings: settingsFor(runtime.database), dataDirectory, staging, organizationId })
@@ -347,7 +347,7 @@ const withLockedRestore = async <Value>(
 }
 
 void test("a missing DATA_DIR is refused, never created, by both the plan and the apply", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-nodir-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-nodir-"))
   const runtime = await freshRuntime("bkpnodir")
   try {
     const absent = join(root, "not-mounted")
@@ -363,7 +363,7 @@ void test("a missing DATA_DIR is refused, never created, by both the plan and th
 })
 
 void test("backup refuses when a referenced PDF is absent or has the wrong digest", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-crosscheck-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-crosscheck-"))
   const runtime = await freshRuntime("bkpcross")
   try {
     const dataDirectory = join(root, "data")
@@ -406,7 +406,7 @@ void test("backup refuses when a referenced PDF is absent or has the wrong diges
 })
 
 void test("a non-empty destination is refused before the dump runs, not after", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-dest-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-dest-"))
   const runtime = await freshRuntime("bkpdest")
   try {
     const dataDirectory = join(root, "data")
@@ -434,7 +434,7 @@ void test("a non-empty destination is refused before the dump runs, not after", 
 })
 
 void test("the subprocess deadline is reported as a deadline and the lock survives it", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-deadline-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-deadline-"))
   const runtime = await freshRuntime("bkpdeadline")
   try {
     await assert.rejects(
@@ -458,7 +458,7 @@ void test("the subprocess deadline is reported as a deadline and the lock surviv
 })
 
 void test("a second maintenance operation on the same pool is refused while the first holds the lock", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-concurrent-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-concurrent-"))
   const runtime = await freshRuntime("bkpconc")
   const holder = await runtime.pool.connect()
   try {
@@ -479,7 +479,7 @@ void test("a second maintenance operation on the same pool is refused while the 
 })
 
 void test("a fault between two artifact copies reports what landed and refuses an in-place retry", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-midcopy-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-midcopy-"))
   const source = await freshRuntime("bkpmid")
   const target = await emptyRuntime("bkpmid2")
   try {
@@ -524,7 +524,7 @@ void test("a fault between two artifact copies reports what landed and refuses a
 })
 
 void test("a check that fails after the commit says the database was restored", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-postcommit-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-postcommit-"))
   const source = await freshRuntime("bkppost")
   const target = await emptyRuntime("bkppost2")
   try {
@@ -535,7 +535,7 @@ void test("a check that fails after the commit says the database was restored", 
 
     // A tampered archive whose SQL leaves a session row behind: the restore commits,
     // then `assertSessionsEmpty` fails. Nothing can take the commit back.
-    const staging = mkdtempSync(join(tmpdir(), "qwbe-pg-tamper-"))
+    const staging = mkdtempSync(join(tmpdir(), "rfi-pg-tamper-"))
     const tampered = join(root, "tampered.tar.gz")
     try {
       const staged = await stageSource(archive, staging)
@@ -583,7 +583,7 @@ void test("the facade exports the trust warning the CLI has to print", () => {
 })
 
 void test("the write guard refuses a backup the restore could not read, and leaves no artifact", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-writerbound-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-writerbound-"))
   const runtime = await freshRuntime("bkpbound")
   try {
     const dataDirectory = join(root, "data")
@@ -621,7 +621,7 @@ void test("the write guard refuses a backup the restore could not read, and leav
 })
 
 void test("an interruption during the FIRST artifact reports a possibly partial copy", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-firstartifact-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-firstartifact-"))
   const source = await freshRuntime("bkpfirst")
   const target = await emptyRuntime("bkpfirst2")
   try {
@@ -657,7 +657,7 @@ void test("an interruption during the FIRST artifact reports a possibly partial 
 })
 
 void test("the archive the writer produces and the one BusyBox tar produces are mutually readable", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-tar-interop-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-tar-interop-"))
   const runtime = await freshRuntime("bkptar")
   try {
     const dataDirectory = join(root, "data")
@@ -715,7 +715,7 @@ const withManifest = async (
   edit: (manifest: BackupManifest) => BackupManifest,
   editDump?: (sql: string) => string,
 ): Promise<string> => {
-  const staging = mkdtempSync(join(tmpdir(), "qwbe-pg-manifest-edit-"))
+  const staging = mkdtempSync(join(tmpdir(), "rfi-pg-manifest-edit-"))
   try {
     const members = (await stageSource(archive, staging)).map((member) => member.path)
     const dump = join(staging, "database.sql")
@@ -734,7 +734,7 @@ const withManifest = async (
 }
 
 void test("restore refuses another organization, and a migration the image does not know, before writing", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-organization-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-organization-"))
   const source = await freshRuntime("bkporg")
   const target = await emptyRuntime("bkporg2")
   try {
@@ -771,7 +771,7 @@ void test("restore refuses another organization, and a migration the image does 
 })
 
 void test("restore rolls back a dump whose ledger is not exactly the manifest's, naming both sides", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-pg-ledger-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-pg-ledger-"))
   const source = await freshRuntime("bkpledger")
   const target = await emptyRuntime("bkpledger2")
   try {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Production backup: the database and the artifact tree, as one archive in BACKUP_DIR.
 #
-#   scripts/production/backup.sh          (deploy/systemd/qwbe-invoicing-backup.service runs this)
+#   scripts/production/backup.sh          (deploy/systemd/ro-free-invoice-backup.service runs this)
 #
 # The CLI's backup takes the maintenance key EXCLUSIVE, so `app` is stopped for the
 # whole backup and started again afterwards, also when the backup fails or on INT/TERM
@@ -10,12 +10,12 @@
 # started again: a run killed in between (SIGKILL, power loss) leaves it, and the next
 # backup or deploy refuses until the operator has checked and started the stack.
 #
-# The downtime is the dump, the copy, the compression and the verification (the CLI bounds them: a 10-minute dump timeout,
-# 1 GiB expanded); measure it on real data before choosing the timer's hour.
+# The downtime is the dump, the copy, the compression and the verification (the CLI bounds them: a 30-minute dump timeout,
+# 64 GiB expanded); measure it on real data before choosing the timer's hour.
 #
 # Success is the CLI's own report: exit 0, `failed` 0, `copied` equal to `scanned`, the
 # output that was asked for. Only then the archive gets its final name,
-# qwbe-invoicing-<UTC time>.tar.gz, with qwbe-invoicing-<UTC time>.meta next to it:
+# ro-free-invoice-<UTC time>.tar.gz, with ro-free-invoice-<UTC time>.meta next to it:
 # the image, its ID, the commit, ORGANIZATION_ID, the database and the data volume, no
 # secret; it is for people, restore.sh reads only the archive. No script ever deletes an archive: removing old ones is the operator's job.
 #
@@ -46,7 +46,7 @@ backup_dir_ready() {
 }
 
 backup_meta() {
-  local image="$QWBE_IMAGE:$1" id commit
+  local image="$RFI_IMAGE:$1" id commit
   id="$(image_id "$image")" || return 1
   commit="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")"
   [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || commit=unknown
@@ -63,12 +63,12 @@ remove_partial() {
 # `app` is already stopped. Sets BACKUP_FILE. A failure leaves nothing behind.
 backup_archive() {
   local tag="$1" name report
-  name="qwbe-invoicing-$(stamp)"
+  name="ro-free-invoice-$(stamp)"
   PARTIAL=".partial-$name"
-  say "backup: $BACKUP_DIR/$name.tar.gz, made by $QWBE_IMAGE:$tag"
+  say "backup: $BACKUP_DIR/$name.tar.gz, made by $RFI_IMAGE:$tag"
   if ! report="$(compose_tag "$tag" run --rm --no-deps -T -v "$BACKUP_DIR:/backup" app \
-      node bin/qwbe-invoicing.ts backup --output "/backup/$PARTIAL.tar.gz" --json)" \
-    || ! json_ok "$QWBE_IMAGE:$tag" "r.failed === 0 && r.scanned === r.copied && r.output === '/backup/$PARTIAL.tar.gz'" <<<"$report" \
+      node bin/ro-free-invoice.ts backup --output "/backup/$PARTIAL.tar.gz" --json)" \
+    || ! json_ok "$RFI_IMAGE:$tag" "r.failed === 0 && r.scanned === r.copied && r.output === '/backup/$PARTIAL.tar.gz'" <<<"$report" \
     || [[ ! -s "$BACKUP_DIR/$PARTIAL.tar.gz" ]] \
     || ! backup_meta "$tag" > "$BACKUP_DIR/$PARTIAL.meta"; then
     remove_partial
@@ -106,7 +106,7 @@ main() {
   refuse_pending
   local running image
   running="$(running_app_image || true)"
-  image="$QWBE_IMAGE:$IMAGE_TAG"
+  image="$RFI_IMAGE:$IMAGE_TAG"
   image_id "$image" >/dev/null || die "image $image (IMAGE_TAG in .env) is not on this host"
   [[ -z "$running" || "$(image_id "$image")" == "$running" ]] \
     || die "app runs image $running, but .env names $image: a backup with another version is refused"

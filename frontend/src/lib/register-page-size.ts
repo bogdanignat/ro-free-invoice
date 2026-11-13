@@ -11,7 +11,7 @@ export type PageSize = typeof PAGE_SIZES[number]
 
 export const DEFAULT_PAGE_SIZE: PageSize = 20
 
-const STORAGE_KEY = "qwbe.invoice-register.page-size"
+const STORAGE_KEY = "rfi.invoice-register.page-size"
 
 export const pageSizeFrom = (value: string | null): PageSize | undefined =>
   PAGE_SIZES.find((size) => String(size) === value)

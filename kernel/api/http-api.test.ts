@@ -138,6 +138,26 @@ void test("proforma authoring and conversion expose only their dedicated series 
   assert.throws(() => Schema.decodeUnknownSync(S.ConvertProformaInput)({}))
 })
 
+void test("supply date is optional on draft and conversion input, null on a draft without one, required on an invoice", () => {
+  assert.deepEqual(Schema.decodeUnknownSync(S.ConvertProformaInput)({ invoiceSeries: "INV", supplyDate: "2026-08-20" }),
+    { invoiceSeries: "INV", supplyDate: "2026-08-20" })
+  assert.equal(Schema.decodeUnknownSync(S.ConvertProformaInput)({ invoiceSeries: "INV", supplyDate: null }).supplyDate, null)
+  const direct = { customerId: "customer-1", issueDate: "2026-09-01", currency: "RON", lines: [] }
+  assert.equal(Schema.decodeUnknownSync(S.AuthoringDocumentInput)({ ...direct, series: "INV", supplyDate: "2026-08-20" }).supplyDate, "2026-08-20")
+  assert.equal(Schema.decodeUnknownSync(S.AuthoringDocumentInput)({ ...direct, series: "INV", supplyDate: null }).supplyDate, null)
+  assert.equal("supplyDate" in Schema.decodeUnknownSync(S.AuthoringProformaInput)({ ...direct, proformaSeries: "PRO", supplyDate: "2026-08-20" }), false)
+  const header = { customerId: "customer-1", series: "INV", issueDate: "2026-09-01" }
+  assert.equal(Schema.decodeUnknownSync(S.DraftInput)({ ...header, supplyDate: null }).supplyDate, null)
+  assert.equal(Schema.decodeUnknownSync(S.UpdateDraftInput)({ ...header, supplyDate: "2026-08-20" }).supplyDate, "2026-08-20")
+  const draft = { id: "draft-1", organizationId: "org-1", sourceProformaId: null, series: "INV", issueDate: "2026-09-01",
+    dueDate: null, currency: "RON", notes: null, status: "draft" as const, lines: [], vatBreakdown: [],
+    totalExcludingVat: "0.00", vatTotal: "0.00", totalIncludingVat: "0.00", customer: { partyType: "individual" as const,
+      name: "Ion", fiscalIdentifier: "", vatRegistered: false, address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" } } }
+  assert.equal(Schema.encodeSync(S.DraftInvoice)(draft).supplyDate, null)
+  assert.equal(Schema.encodeSync(S.DraftInvoice)({ ...draft, supplyDate: "2026-08-20" }).supplyDate, "2026-08-20")
+  assert.ok(SchemaAST.getPropertySignatures(S.IssuedInvoice.ast).some((field) => field.name === "supplyDate" && !field.isOptional))
+})
+
 void test("issuer VAT status is required on document responses but absent from issuer configuration", () => {
   const company = {
     name: "Furnizor SRL", fiscalIdentifier: "12345674", legalForm: "srl" as const,
@@ -188,7 +208,7 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
   assert.equal(spec.openapi, "3.1.0")
   assert.deepEqual(openApiInventory, inventory)
   assert.deepEqual(spec.components.securitySchemes.bearerAuth, { type: "http", scheme: "bearer", description: "Authorization: Bearer <kernel API token>" })
-  assert.deepEqual(spec.components.securitySchemes.sessionCookie, { type: "apiKey", name: "qwbe_session", in: "cookie", description: "Opaque browser session cookie" })
+  assert.deepEqual(spec.components.securitySchemes.sessionCookie, { type: "apiKey", name: "rfi_session", in: "cookie", description: "Opaque browser session cookie" })
   assert.deepEqual(spec.paths["/api/customers"]?.get?.security, [{ bearerAuth: [] }, { sessionCookie: [] }])
   assert.deepEqual(spec.paths["/api/session"]?.post?.security, [])
   assert.deepEqual(spec.paths["/api/session"].get?.security, [{ sessionCookie: [] }])
@@ -207,6 +227,17 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
   assert.equal(Object.hasOwn(proformaResponseSchema?.properties ?? {}, "invoiceSeries"), false)
   const draftResponseSchema = specJson.paths["/api/drafts/{id}"]?.get?.responses[200]?.content?.["application/json"]?.schema
   assert.ok(draftResponseSchema?.required?.includes("sourceProformaId"))
+  // Every ValidationFailure schema in the document declares the coded `details` next to `issues`.
+  const validationSchemas: Array<JsonSchema> = []
+  const collect = (node: unknown): void => {
+    if (typeof node !== "object" || node === null) return
+    const enumOfError = ((node as JsonSchema).properties?.error as { readonly enum?: unknown } | undefined)?.enum
+    if (JSON.stringify(enumOfError) === JSON.stringify(["ValidationFailure"])) validationSchemas.push(node)
+    for (const child of Object.values(node)) collect(child)
+  }
+  collect(spec)
+  assert.ok(validationSchemas.length > 0)
+  for (const schema of validationSchemas) assert.deepEqual([Object.hasOwn(schema.properties ?? {}, "issues"), Object.hasOwn(schema.properties ?? {}, "details")], [true, true])
   assert.ok(spec.paths["/api/customers"].post?.parameters.some((parameter) => parameter.name === "x-csrf-token"))
   assert.ok(spec.paths["/api/session"].delete?.parameters.some((parameter) => parameter.name === "x-csrf-token" && parameter.required))
   for (const path of ["/api/drafts", "/api/drafts/{draftId}/issue", "/api/invoices", "/api/drafts/{draftId}/proformas",
@@ -255,6 +286,13 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
   for (const path of ["/api/customers", "/api/product-presets", "/api/drafts", "/api/invoice-register", "/api/invoices", "/api/proformas",
     "/api/reports/revenue", "/api/reports/collections"]) {
     expectStatuses("get", path, ["400"])
+  }
+  // q is the one filter of the customer and product pickers; it sits beside the page parameters, never required.
+  for (const path of ["/api/customers", "/api/product-presets"]) {
+    const parameters = (spec.paths[path]?.get?.parameters ?? []) as ReadonlyArray<{ readonly name: string; readonly in: string; readonly required?: boolean }>
+    const query = parameters.filter((parameter) => parameter.in === "query")
+    assert.deepEqual(query.map((parameter) => parameter.name).sort(), ["cursor", "limit", "q"], path)
+    assert.equal(query.some((parameter) => parameter.required === true), false, path)
   }
   for (const path of ["/api/issuer", "/api/customers/{id}", "/api/drafts/{id}", "/api/invoices/{invoiceId}/payments", "/api/corrections/{id}", "/api/invoices/{id}", "/api/invoices/{invoiceId}/pdf", "/api/proformas/{id}", "/api/proformas/{proformaId}/pdf",
     "/api/invoices/{id}/efactura.xml", "/api/corrections/{id}/efactura.xml", "/api/corrections/{id}/pdf"]) {

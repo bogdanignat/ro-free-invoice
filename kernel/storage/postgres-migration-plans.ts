@@ -50,7 +50,7 @@ export const migrationScopes: ReadonlyArray<MigrationScope> = [
   { scope: documentsCube.manifest.name, migrations: documentsMigrations, tables: documentsCube.manifest.tables },
   { scope: companyLookupCube.manifest.name, migrations: companyLookupMigrations, tables: companyLookupCube.manifest.tables },
   // e-Factura's tables exist whether or not the plugin is on: a restore and the
-  // environment guard read them regardless of QWBE_PLUGINS.
+  // environment guard read them regardless of RFI_PLUGINS.
   { scope: connectionCube.manifest.name, migrations: connectionMigrations, tables: connectionCube.manifest.tables },
   { scope: submissionsCube.manifest.name, migrations: submissionsMigrations, tables: submissionsCube.manifest.tables },
   { scope: receivedCube.manifest.name, migrations: receivedMigrations, tables: receivedCube.manifest.tables },

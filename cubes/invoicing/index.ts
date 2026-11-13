@@ -29,7 +29,9 @@ export const cube = {
 export * from "./contracts/index.ts"
 export { calculateTotals, validateFiscalDocument } from "./domain/calculation.ts"
 export { hasControlCharacters, validateVatTreatment } from "./domain/validation.ts"
-export { unitOfMeasures } from "./domain/unit-of-measures.ts"
+export { maximumSearchLength } from "./domain/search.ts"
+export { unitOfMeasures } from "./items/index.ts"
+export type { IssueCode, IssueDetail } from "./issues/index.ts"
 export { ROMANIAN_COUNTIES, addressCountyName, isRomanianCountyCode, isValidRomanianCnp, romanianCountyName } from "./parties/index.ts"
 export type { RomanianCounty } from "./parties/index.ts"
 export { createInvoicingService } from "./application/invoicing.ts"
@@ -46,5 +48,5 @@ export type { Proforma, ProformaSummary, ProformaConversion, ProformaInvoiceConv
 export type {
   CorrectionDocument, CreateCorrectionInput, InvoiceRegisterCursor, InvoiceRegisterFilter, InvoiceRegisterKind, InvoiceRegisterRow,
 } from "./corrections/index.ts"
-export { maximumRegisterSearchLength } from "./corrections/index.ts"
-export type * from "./domain/unit-of-measures.ts"
+export { SPV_UNRESOLVED_STATUSES, maximumRegisterSearchLength } from "./corrections/index.ts"
+export type { UnitOfMeasure } from "./items/index.ts"

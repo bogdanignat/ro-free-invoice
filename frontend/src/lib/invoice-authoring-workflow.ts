@@ -54,6 +54,7 @@ export interface IssueBlockInput {
   readonly pending: boolean
   readonly staleTaxWarning: string | null
   readonly dueDateIssue: string | null
+  readonly supplyDateIssue: string | null
   readonly seriesWarning: string | undefined
 }
 
@@ -65,6 +66,7 @@ export const issueBlockReasons = (input: IssueBlockInput): ReadonlyArray<string>
     input.hasDraft && !input.readiness.synchronized ? UNSAVED_CHANGES_ISSUE : null,
     input.staleTaxWarning,
     input.dueDateIssue,
+    input.supplyDateIssue,
     input.seriesWarning ?? null,
   ].filter((reason) => reason !== null)
 }

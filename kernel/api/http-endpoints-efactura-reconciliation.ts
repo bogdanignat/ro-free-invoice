@@ -4,7 +4,7 @@ import { Schema } from "effect"
 import { MAX_LINK_PAGES, MAX_WINDOW_DAYS } from "../../cubes/invoicing/efactura/reconciliation/index.ts"
 import { EFacturaSubmission } from "./http-endpoints-efactura-submissions.ts"
 import { body, conflict, id, invoicingBase, notFound, validation } from "./http-api-shared.ts"
-import { bodyObject, optional } from "./schema-primitives.ts"
+import { bodyObject, InputText, optional } from "./schema-primitives.ts"
 
 const Page = Schema.String.pipe(
   Schema.pattern(/^[1-9][0-9]{0,3}$/u, { message: () => "page must be an integer from 1" }),
@@ -20,7 +20,7 @@ export const EFacturaCandidates = Schema.Struct({
   })),
 })
 const Confirmed = Schema.Boolean.annotations({ description: "Must be `true`: your explicit confirmation." })
-export const LinkInput = Schema.Struct({ uploadIndex: Schema.String, confirmed: Confirmed }).annotations(bodyObject)
+export const LinkInput = Schema.Struct({ uploadIndex: InputText, confirmed: Confirmed }).annotations(bodyObject)
 export const ResubmitInput = Schema.Struct({ confirmed: Confirmed }).annotations(bodyObject)
 
 const refusals = "409: not a current unknown submission, e-Factura not configured or not connected, the connection is for another CIF,"

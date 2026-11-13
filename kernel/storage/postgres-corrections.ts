@@ -25,7 +25,7 @@ const correctionColumns = [
 
 export const correctionsTransactionAdapter = (client: TransactionClient): CorrectionDocumentsTransaction => ({
   saveCorrection: (correction) => write("save correction", async () => {
-    const statement = insertStatement("correction_documents", pairs(correctionColumns, [
+    const statement = insertStatement("correction_documents", pairs([...correctionColumns, "sealed"], [
       correction.id, correction.organizationId, ...sourceValues(correction.source),
       correction.originalInvoiceId, correction.fiscalYear, "correction",
       correction.series, correction.number, correction.issueDate, correction.issuedAt,
@@ -35,7 +35,7 @@ export const correctionsTransactionAdapter = (client: TransactionClient): Correc
       correction.issuer.bankName, optionalMoneyValue(correction.issuer.socialCapital), booleanValue(correction.issuer.vatRegistered),
       correction.customer.name, correction.customer.fiscalIdentifier, correction.customer.partyType,
       ...addressValues(correction.customer.address), booleanValue(correction.customer.vatRegistered),
-      moneyValue(correction.totalExcludingVat), moneyValue(correction.vatTotal), moneyValue(correction.totalIncludingVat), correction.actorId,
+      moneyValue(correction.totalExcludingVat), moneyValue(correction.vatTotal), moneyValue(correction.totalIncludingVat), correction.actorId, 0,
     ]))
     await client.query(statement.sql, statement.values)
     for (const [position, line] of correction.lines.entries()) {
@@ -52,6 +52,12 @@ export const correctionsTransactionAdapter = (client: TransactionClient): Correc
       ))
       await client.query(taxStatement.sql, taxStatement.values)
     }
+    // Sealing last: the late-insert triggers refuse lines and breakdown rows once `sealed` is 1.
+    const { rowCount } = await client.query(
+      "UPDATE correction_documents SET sealed=1 WHERE id=$1 AND organization_id=$2 AND sealed=0",
+      [correction.id, correction.organizationId],
+    )
+    if (rowCount !== 1) throw new Error("correction was not sealed")
   }),
   findCorrection: (organizationId, id) => read("find correction", async () => {
     const { rows } = await client.query(

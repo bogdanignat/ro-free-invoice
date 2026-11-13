@@ -63,7 +63,7 @@ const baseConfig = (settings: PostgresSettings): PoolConfig => ({
   // The schema is explicit so an inherited search_path cannot decide which
   // table a contract-owned statement means.
   options: "-c search_path=public",
-  application_name: "qwbe-invoicing",
+  application_name: "ro-free-invoice",
   connectionTimeoutMillis: settings.connectTimeoutMillis ?? defaults.connectTimeoutMillis,
   lock_timeout: settings.lockTimeoutMillis ?? defaults.lockTimeoutMillis,
 })

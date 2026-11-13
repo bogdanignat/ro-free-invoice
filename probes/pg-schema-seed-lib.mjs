@@ -19,10 +19,10 @@ const CUSTOMER = `INSERT INTO customers(id,organization_id,legal_name,tax_identi
 
 const draft = (id, status) => `INSERT INTO invoice_drafts(id,organization_id,customer_id,customer_party_type,
   customer_legal_name,customer_tax_identifier,customer_country_code,customer_city,customer_street,
-  customer_county,customer_sector,customer_postal_code,customer_vat_registered,series,issue_date,due_date,
+  customer_county,customer_sector,customer_postal_code,customer_vat_registered,series,issue_date,due_date,supply_date,
   currency,status,notes)
   VALUES('${id}','org-1','customer-1','company','Client SRL','87654329','RO','Iasi','Strada 2','RO-IS',
-  NULL,NULL,1,'INV','2026-09-01',NULL,'RON','${status}','Observatie')`
+  NULL,NULL,1,'INV','2026-09-01',NULL,'2026-08-31','RON','${status}','Observatie')`
 
 const proforma = (id, number) => `INSERT INTO proformas(id,source_draft_id,organization_id,fiscal_year,
   document_type,series,number,issue_date,due_date,issued_at,currency,
@@ -38,19 +38,19 @@ const proforma = (id, number) => `INSERT INTO proformas(id,source_draft_id,organ
   10000,2100,12100,0,NULL,'srl','J22/123/2020','RO49','Banca',100000,'operator',1)`
 
 const invoice = (id, draftId, proformaId, number) => `INSERT INTO issued_invoices(id,draft_id,organization_id,
-  fiscal_year,document_type,series,number,issue_date,due_date,issued_at,currency,
+  fiscal_year,document_type,series,number,issue_date,due_date,supply_date,issued_at,currency,
   issuer_legal_name,issuer_tax_identifier,issuer_country_code,issuer_city,issuer_street,issuer_county,
   issuer_sector,issuer_postal_code,customer_legal_name,customer_tax_identifier,customer_country_code,
   customer_city,customer_street,customer_county,customer_sector,customer_postal_code,
   total_excluding_tax,tax_total,total_including_tax,customer_party_type,customer_vat_registered,
   source_proforma_id,issuer_branding,issuer_legal_form,issuer_trade_registry_number,issuer_iban,
-  issuer_bank_name,issuer_social_capital,actor_id,issuer_vat_registered)
+  issuer_bank_name,issuer_social_capital,actor_id,issuer_vat_registered,sealed)
   VALUES('${id}',${draftId === null ? "NULL" : `'${draftId}'`},'org-1',2026,'invoice','INV',${number},
-  '2026-09-01',NULL,'2026-09-01T10:00:00.000Z','RON',
+  '2026-09-01',NULL,'2026-09-01','2026-09-01T10:00:00.000Z','RON',
   'Furnizor SRL','12345674','RO','Iasi','Strada 1','RO-IS',NULL,NULL,
   'Client SRL','87654329','RO','Iasi','Strada 2','RO-IS',NULL,NULL,
   10000,2100,12100,'company',1,${proformaId === null ? "NULL" : `'${proformaId}'`},
-  '{"logo":"x"}','srl','J22/123/2020','RO49','Banca',100000,'operator',1)`
+  '{"logo":"x"}','srl','J22/123/2020','RO49','Banca',100000,'operator',1,0)`
 
 // An e-Factura submission row: the XML and its hash are derived in SQL so the
 // sha256/size CHECKs hold by construction.
@@ -114,16 +114,19 @@ export const seedStatements = [
      customer_tax_identifier,customer_country_code,customer_city,customer_street,customer_county,
      customer_sector,customer_postal_code,total_excluding_tax,tax_total,total_including_tax,
      customer_party_type,customer_vat_registered,issuer_legal_form,issuer_trade_registry_number,issuer_iban,
-     issuer_bank_name,issuer_social_capital,actor_id,issuer_vat_registered)
+     issuer_bank_name,issuer_social_capital,actor_id,issuer_vat_registered,sealed)
      VALUES('corr-1','org-1','invoice-1',2026,'correction','INV',1,'2026-09-02','2026-09-02T10:00:00.000Z',
      'Eroare','RON','Furnizor SRL','12345674','RO','Iasi','Strada 1','RO-IS',NULL,NULL,
      'Client SRL','87654329','RO','Iasi','Strada 2','RO-IS',NULL,NULL,-10000,-2100,-12100,
-     'company',1,'srl','J22/123/2020','RO49','Banca',100000,'operator',1)`,
+     'company',1,'srl','J22/123/2020','RO49','Banca',100000,'operator',1,0)`,
   `INSERT INTO correction_lines(id,correction_id,line_position,description,quantity,unit_price,tax_code,
      tax_category,tax_rate,vat_exemption_reason,total_excluding_tax,tax_amount,total_including_tax,unit_code,
      unit_name) VALUES('cl-1','corr-1',1,${STORNO_LINE})`,
   `INSERT INTO correction_tax_breakdown(correction_id,line_position,tax_code,category,rate,
      vat_exemption_reason,taxable_amount,tax_amount) VALUES('corr-1',1,${STORNO_BREAKDOWN})`,
+  // An issued document is sealed once its lines and VAT breakdown are written.
+  "UPDATE issued_invoices SET sealed=1 WHERE sealed=0",
+  "UPDATE correction_documents SET sealed=1 WHERE sealed=0",
   `INSERT INTO audit_events(id,organization_id,actor_id,occurred_at,action,target_kind,target_id,reason)
      VALUES('ae-1','org-1','operator','2026-09-01T10:00:00.000Z','issue','invoice','invoice-1',NULL)`,
   `INSERT INTO idempotency_records(organization_id,idempotency_key,operation,fingerprint,result_kind,

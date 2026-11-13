@@ -1,4 +1,4 @@
-import { parseUnsignedDecimal } from "../contracts/money.ts"
+import { parseUnsignedDecimal } from "../money/index.ts"
 
 /**
  * Exact decimal handling for the amounts the generator renders.
@@ -6,7 +6,7 @@ import { parseUnsignedDecimal } from "../contracts/money.ts"
  * Snapshot amounts arrive as decimal strings and must be compared exactly:
  * binary floating point would make a one-cent VAT discrepancy invisible here
  * and visible at ANAF. Everything is scaled into integers by the invoicing
- * cube's shared arithmetic (contracts/money.ts); what stays here is this
+ * cube's shared arithmetic (money/domain/money.ts); what stays here is this
  * plugin's rule: the value exactly as written, unsigned, every fault recorded.
  */
 

@@ -17,7 +17,7 @@
 #
 # Run:  docker compose --file compose.pg-backup.yaml run --rm backup
 # Down: docker compose --file compose.pg-backup.yaml down   (no volume, no -v)
-name: qwbe-invoicing-pg-backup
+name: ro-free-invoice-pg-backup
 
 services:
   db:
@@ -61,7 +61,7 @@ services:
       PGDATABASE: backup
       PGUSER: backup
       PGPASSWORD: rig-only-backup-password
-      POSTGRESQL_CLIENT_PACKAGE: postgresql16-client=16.15-r0
+      POSTGRESQL_CLIENT_PACKAGE: postgresql16-client=16.16-r0
       # The staging tree of every operation lives here, and it is a tmpfs.
       TMPDIR: /tmp
     volumes:
@@ -96,7 +96,7 @@ services:
     restart: "no"
 
 volumes:
-  # Produced by the `qwbe-invoicing-verify` compose project; read-only here.
+  # Produced by the `ro-free-invoice-verify` compose project; read-only here.
   verify-node-modules:
     external: true
-    name: qwbe-invoicing-verify_verify-node-modules
+    name: ro-free-invoice-verify_verify-node-modules

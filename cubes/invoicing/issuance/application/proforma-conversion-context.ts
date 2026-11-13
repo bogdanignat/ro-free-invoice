@@ -2,7 +2,7 @@ import { Effect } from "effect"
 import type { InvoicingTransaction } from "../../application/ports.ts"
 import type { ProformaTransaction } from "./ports.ts"
 import { checked, missing } from "../../application/support.ts"
-import { activeDocumentSeries } from "../../drafts/index.ts"
+import { activeDocumentSeries, validateSupplyDate } from "../../drafts/index.ts"
 import { DomainConflict } from "../../contracts/failures.ts"
 import { calendarDate, validateDocumentSeries } from "../../domain/validation.ts"
 import type { ConvertProformaInput, Proforma } from "../domain/proforma.ts"
@@ -28,3 +28,10 @@ export const conversionDates = (proforma: Proforma, now: Date) => {
   const dueDate = term === null ? null : new Date(Date.parse(`${issueDate}T00:00:00Z`) + term * dayMs).toISOString().slice(0, 10)
   return { issueDate, dueDate }
 }
+
+// The invoice may record an earlier supply (art. 319 alin. (20)); absent, the supply is the conversion day.
+export const conversionSupplyDate = (input: ConvertProformaInput, issueDate: string) => checked(() => {
+  if (input.supplyDate == null) return issueDate
+  validateSupplyDate(input.supplyDate, issueDate)
+  return input.supplyDate
+})

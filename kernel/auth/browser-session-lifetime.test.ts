@@ -42,7 +42,7 @@ const openSession = async (fixture: TestFixture) => {
 void test("the cookie, set once at login, ends with the absolute limit: 30 days", async () => {
   await withMigrated("session_lifetime_cookie", async (fixture) => {
     const { login } = await openSession(fixture)
-    assert.match(login.setCookie, /^qwbe_session=[A-Za-z0-9_-]{43}; Path=\/api; HttpOnly; SameSite=Strict; Secure; Max-Age=2592000$/u)
+    assert.match(login.setCookie, /^rfi_session=[A-Za-z0-9_-]{43}; Path=\/api; HttpOnly; SameSite=Strict; Secure; Max-Age=2592000$/u)
   })
 })
 

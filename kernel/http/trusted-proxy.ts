@@ -3,7 +3,7 @@ import { BlockList, isIP } from "node:net"
 import { normalizedAddress } from "../auth/login-throttle.ts"
 
 /**
- * `QWBE_TRUSTED_PROXY`: the reverse proxies whose `X-Forwarded-For` the kernel
+ * `RFI_TRUSTED_PROXY`: the reverse proxies whose `X-Forwarded-For` the kernel
  * believes, as comma-separated addresses or CIDR ranges (`10.0.0.5`,
  * `172.18.0.0/16`, `fd00::/8`). Absent or empty trusts nothing, and then the
  * socket peer is the client. A malformed entry, or a range that trusts every
@@ -14,7 +14,7 @@ export interface TrustedProxies {
 }
 
 const entryError = (entry: string): Error =>
-  new Error(`QWBE_TRUSTED_PROXY entries must be IP addresses or CIDR ranges narrower than /0: ${entry}`)
+  new Error(`RFI_TRUSTED_PROXY entries must be IP addresses or CIDR ranges narrower than /0: ${entry}`)
 
 export const parseTrustedProxies = (value: string | undefined): TrustedProxies => {
   const list = new BlockList()

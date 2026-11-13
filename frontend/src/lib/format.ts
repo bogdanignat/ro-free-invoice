@@ -2,12 +2,6 @@
 export const orDash = (value: string | null | undefined): string =>
   value === null || value === undefined || value === "" ? "—" : value
 
-export const today = (): string => {
-  const date = new Date()
-  const twoDigits = (value: number): string => String(value).padStart(2, "0")
-  return `${String(date.getFullYear())}-${twoDigits(date.getMonth() + 1)}-${twoDigits(date.getDate())}`
-}
-
 /** The zone the organization's fiscal dates are read in (cubes/invoicing/domain/validation.ts:16). */
 export const ORGANIZATION_TIME_ZONE = "Europe/Bucharest"
 

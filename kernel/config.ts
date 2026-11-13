@@ -18,7 +18,7 @@ export interface RuntimeConfig {
   readonly organizationId: string | undefined
   /** Everything the pools need. The password is already read from its file. */
   readonly pgSettings: PostgresSettings
-  /** `QWBE_PLUGINS`, parsed at startup: an unknown name fails here. */
+  /** `RFI_PLUGINS`, parsed at startup: an unknown name fails here. */
   readonly plugins: PluginSelection
   /** `COMPANY_LOOKUP_KEY_FILE`, read at startup. Absent: the openapi.ro key cannot be stored, everything else runs. */
   readonly companyLookupKey?: MasterKey | undefined
@@ -34,15 +34,15 @@ export interface RuntimeConfig {
    * `migrate`, `backup`, `restore` and `doctor` run without it.
    */
   readonly publicOrigin: string | undefined
-  /** `QWBE_BEARER_API=on`: the Bearer API is served on the public listener. Off by default. */
+  /** `RFI_BEARER_API=on`: the Bearer API is served on the public listener. Off by default. */
   readonly bearerApi: boolean
   /**
-   * `QWBE_UI_DIR`, the Vite build (`index.html` and `assets/`). Read once when a
+   * `RFI_UI_DIR`, the Vite build (`index.html` and `assets/`). Read once when a
    * server starts (`kernel/http/ui-bundle.ts`); required to serve in production,
    * optional elsewhere. Empty means unset.
    */
   readonly uiDirectory: string | undefined
-  /** `QWBE_TRUSTED_PROXY`: whose `X-Forwarded-For` keys the login throttle. Nobody by default. */
+  /** `RFI_TRUSTED_PROXY`: whose `X-Forwarded-For` keys the login throttle. Nobody by default. */
   readonly trustedProxies: TrustedProxies
 }
 
@@ -89,7 +89,7 @@ const secretFrom = (path: string | undefined, nodeEnvironment: string): string =
 const postgresSettings = (environment: NodeJS.ProcessEnv, nodeEnvironment: string): PostgresSettings => ({
   host: environment.PGHOST ?? "db",
   port: boundedPort(environment.PGPORT, "PGPORT", "5432"),
-  database: environment.PGDATABASE ?? "qwbe_invoicing",
+  database: environment.PGDATABASE ?? "ro_free_invoice",
   user: environment.PGUSER ?? "qwbe_app",
   password: secretFrom(environment.PGPASSWORD_FILE, nodeEnvironment),
 })
@@ -129,11 +129,18 @@ const canonicalOrigin = (value: string | undefined): string | undefined => {
 const bearerSwitch = (value: string | undefined): boolean => {
   if (value === undefined || value === "" || value === "off") return false
   if (value === "on") return true
-  throw new Error("QWBE_BEARER_API must be on or off")
+  throw new Error("RFI_BEARER_API must be on or off")
+}
+
+/** A renamed key left behind would be ignored: an old `QWBE_PLUGINS` would quietly run every plugin. */
+const refuseRenamedVariables = (environment: NodeJS.ProcessEnv): void => {
+  const stale = Object.keys(environment).filter((name) => name.startsWith("QWBE_"))
+  if (stale.length > 0) throw new Error(`${stale.join(", ")}: the QWBE_* variables were renamed to RFI_*; rename or remove them`)
 }
 
 export const runtimeConfig = (environment: NodeJS.ProcessEnv = process.env): RuntimeConfig => {
-  const nodeEnvironment = environment.NODE_ENV ?? "development"
+  refuseRenamedVariables(environment)
+  const nodeEnvironment = environment.NODE_ENV ?? "production"
   const publicOrigin = canonicalOrigin(environment.PUBLIC_ORIGIN)
   const companyLookupKey = companyLookupKeyFrom(environment.COMPANY_LOOKUP_KEY_FILE)
   return {
@@ -144,12 +151,12 @@ export const runtimeConfig = (environment: NodeJS.ProcessEnv = process.env): Run
     authTokenFile: environment.AUTH_TOKEN_FILE,
     organizationId: environment.ORGANIZATION_ID,
     pgSettings: postgresSettings(environment, nodeEnvironment),
-    plugins: parsePlugins(environment.QWBE_PLUGINS),
+    plugins: parsePlugins(environment.RFI_PLUGINS),
     companyLookupKey,
     anaf: separateKeys(companyLookupKey, anafSettings(environment, publicOrigin)),
     publicOrigin,
-    bearerApi: bearerSwitch(environment.QWBE_BEARER_API),
-    trustedProxies: parseTrustedProxies(environment.QWBE_TRUSTED_PROXY),
-    uiDirectory: environment.QWBE_UI_DIR === "" ? undefined : environment.QWBE_UI_DIR,
+    bearerApi: bearerSwitch(environment.RFI_BEARER_API),
+    trustedProxies: parseTrustedProxies(environment.RFI_TRUSTED_PROXY),
+    uiDirectory: environment.RFI_UI_DIR === "" ? undefined : environment.RFI_UI_DIR,
   }
 }

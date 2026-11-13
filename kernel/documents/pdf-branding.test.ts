@@ -16,7 +16,7 @@ type RenderableInvoiceFixture = Omit<RenderableInvoice, "lines" | "vatBreakdown"
 
 const invoice: RenderableInvoiceFixture = {
   id: "brand-invoice", organizationId: "org", series: "F", number: 1,
-  issueDate: "2026-09-10", dueDate: "2026-09-10", issuedAt: "2026-09-10T10:00:00Z", currency: "RON", notes: null,
+  issueDate: "2026-09-10", supplyDate: "2026-09-10", dueDate: "2026-09-10", issuedAt: "2026-09-10T10:00:00Z", currency: "RON", notes: null,
   issuer: { name: "Legal Issuer SRL", fiscalIdentifier: "12345674", address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" },
     legalForm: "srl", vatRegistered: true, tradeRegistryNumber: "J22/123/2020", iban: "RO49AAAA1B31007593840000",
     bankName: "Banca Română", socialCapital: "1000.00", branding: null },
@@ -37,7 +37,7 @@ void test("renders none, custom text, image and both deterministically in invoic
   for (const branding of [null, { text, image: null }, { text: null, image }, { text, image }]) {
     const source = { ...invoice, issuer: { ...invoice.issuer, branding } }
     const proforma: RenderableProforma = { ...source, sourceDraftId: null, convertedDraftId: null, convertedInvoiceId: null }
-    for (const [render, version] of [[() => renderer.render(source), "invoice-v12"], [() => renderer.renderProforma(proforma), "proforma-v11"]] as const) {
+    for (const [render, version] of [[() => renderer.render(source), "invoice-v13"], [() => renderer.renderProforma(proforma), "proforma-v12"]] as const) {
       const first = await Effect.runPromise(render())
       assert.equal(first.templateVersion, version)
       assert.deepEqual(first.bytes, (await Effect.runPromise(render())).bytes)

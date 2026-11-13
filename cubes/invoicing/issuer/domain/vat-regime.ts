@@ -1,8 +1,9 @@
-import { ValidationFailure } from "../../contracts/failures.ts"
-import { compareDecimal } from "../../contracts/money.ts"
+import { ValidationFailure, validationFailure } from "../../contracts/failures.ts"
+import { compareDecimal } from "../../money/index.ts"
 import type { DraftLine, VatConfiguration } from "../../domain/invoice.ts"
 import type { IssuerProfile, VatChange } from "./issuer.ts"
 import { validateVatTreatment } from "../../domain/validation.ts"
+import { vatPairNeedsNonVat, vatPairNeedsVat, vatPairUnsupported, vatRegistrationMissing } from "../../issues/index.ts"
 import { activeOn, romanianVatRates, vatRatesOn } from "./vat-catalogue.ts"
 
 type VatRegistrationPeriod = {
@@ -92,14 +93,14 @@ export const validateVatForIssuance = (
 ): void => {
   const registration = vatRegistrationOn(issuer.vatConfigurations, issueDate)
   const legal = vatRatesOn(issueDate)
-  if (registration === undefined) throw new ValidationFailure({ issues: [`issuer VAT registration must be configured on ${issueDate}`] })
+  if (registration === undefined) throw validationFailure([vatRegistrationMissing(issueDate)])
   for (const line of lines) {
     validateVatTreatment(line.vatRateCode, line.vatRate, line.vatCategoryCode, line.vatExemptionReason)
     const pair = legal.find(({ code, rate, vatCategoryCode, vatExemptionReason }) => code === line.vatRateCode
       && sameRate(rate, line.vatRate) && vatCategoryCode === line.vatCategoryCode && vatExemptionReason === line.vatExemptionReason)
-    const issue = pair === undefined ? `VAT pair ${line.vatRateCode}/${line.vatRate} is not supported on ${issueDate}`
-      : registration.registered && pair.kind === "non_vat" ? `VAT pair ${line.vatRateCode}/${line.vatRate} requires a non-VAT issuer on ${issueDate}`
-      : !registration.registered && pair.kind !== "non_vat" ? `VAT pair ${line.vatRateCode}/${line.vatRate} requires a VAT-registered issuer on ${issueDate}` : undefined
-    if (issue !== undefined) throw new ValidationFailure({ issues: [issue] })
+    const pairIssue = pair === undefined ? vatPairUnsupported
+      : registration.registered && pair.kind === "non_vat" ? vatPairNeedsNonVat
+      : !registration.registered && pair.kind !== "non_vat" ? vatPairNeedsVat : undefined
+    if (pairIssue !== undefined) throw validationFailure([pairIssue(line.vatRateCode, line.vatRate, issueDate)])
   }
 }

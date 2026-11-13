@@ -3,6 +3,7 @@ import { Effect } from "effect"
 import { checked, copyBuyer, missing, namePageQuery, pageOf, type Authorize, type OperationDependencies, type Page, type PageRequest } from "../../application/support.ts"
 import { DomainConflict, type InvoicingFailure } from "../../contracts/failures.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
+import { requireSearchText } from "../../domain/search.ts"
 import { isActiveCustomer, validateCustomer, type CreateCustomerInput, type Customer, type UpdateCustomerInput } from "../domain/customer.ts"
 import type { CustomersTransaction } from "./ports.ts"
 
@@ -10,7 +11,7 @@ export interface CustomerOperations {
   readonly createCustomer: (input: CreateCustomerInput) => Effect.Effect<Customer, InvoicingFailure>
   readonly updateCustomer: (input: UpdateCustomerInput) => Effect.Effect<Customer, InvoicingFailure>
   readonly getCustomer: (id: string) => Effect.Effect<Customer, InvoicingFailure>
-  readonly listCustomers: (page?: PageRequest) => Effect.Effect<Page<Customer>, InvoicingFailure>
+  readonly listCustomers: (page?: PageRequest, search?: string) => Effect.Effect<Page<Customer>, InvoicingFailure>
   readonly deleteCustomer: (id: string) => Effect.Effect<void, InvoicingFailure>
 }
 
@@ -44,10 +45,11 @@ export const createCustomerOperations = (
     const customer = yield* dependencies.store.transaction((transaction) => transaction.findCustomer(context.organization.id, id))
     return isActiveCustomer(customer) ? structuredClone(customer) : yield* Effect.fail(missing("customer", id))
   })
-  const listCustomers = (page?: PageRequest) => Effect.gen(function*() {
+  const listCustomers = (page?: PageRequest, search?: string) => Effect.gen(function*() {
     const query = yield* checked(() => namePageQuery(page))
+    const text = yield* checked(() => requireSearchText(search))
     const context = yield* authorize(permissions.read)
-    const rows = yield* dependencies.store.transaction((transaction) => transaction.listCustomers(context.organization.id, query))
+    const rows = yield* dependencies.store.transaction((transaction) => transaction.listCustomers(context.organization.id, query, text))
     return pageOf(rows, query, (customer) => ({ name: customer.name, id: customer.id }))
   })
   const deleteCustomer = (id: string) => Effect.gen(function*() {

@@ -1,5 +1,5 @@
 import type { BuyerSnapshot, DocumentSeries, DocumentSource, ItemIdentifiers } from "./invoice.ts"
-import type { UnitOfMeasure } from "./unit-of-measures.ts"
+import type { UnitOfMeasure } from "../items/index.ts"
 
 export type ConfigureDocumentSeriesInput = Pick<DocumentSeries, "documentType" | "series">
 
@@ -18,6 +18,7 @@ export type AuthoringDocumentInput = BuyerSource & {
   readonly series: string
   readonly issueDate: string
   readonly dueDate?: string | null
+  readonly supplyDate?: string | null
   readonly currency: "RON"
   readonly notes?: string | null
   readonly lines: ReadonlyArray<RawDocumentLine>
@@ -31,6 +32,7 @@ export type CreateDraftInput = BuyerSource & {
   readonly issueDate: string
   readonly currency?: string
   readonly dueDate?: string | null
+  readonly supplyDate?: string | null
   readonly notes?: string | null
   readonly lines?: ReadonlyArray<RawDocumentLine>
 }
@@ -42,6 +44,8 @@ export type UpdateDraftInput = BuyerSource & {
   readonly source?: DocumentSource | null
   readonly issueDate: string
   readonly dueDate?: string | null
+  // Like dueDate: absent clears it, so the draft's VAT follows the issue date again.
+  readonly supplyDate?: string | null
   readonly notes?: string | null
 }
 

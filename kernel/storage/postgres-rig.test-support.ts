@@ -31,7 +31,7 @@ import { parseTrustedProxies } from "../http/trusted-proxy.ts"
  * more.
  *
  * Nothing existing is removed or reset. Every database this rig touches it
- * created itself, named `qwbe_t_<run>_…`, and only such a name can be dropped
+ * created itself, named `rfi_t_<run>_…`, and only such a name can be dropped
  * here. A fixture gives its database back on `close`; the `freshRuntime` /
  * `emptyRuntime` databases, whose callers may still probe them after closing
  * the runtime, are dropped when the file's tests are done (`after` below).
@@ -40,11 +40,11 @@ import { parseTrustedProxies } from "../http/trusted-proxy.ts"
 
 const identifier = /^[a-z][a-z0-9_]{0,62}$/u
 
-/** `QWBE_TEST_RUN` is set by `scripts/verify-docker.sh`; a standalone rig on its own cluster gets `rig`. */
-const testPrefix = "qwbe_t_"
+/** `RFI_TEST_RUN` is set by `scripts/verify-docker.sh`; a standalone rig on its own cluster gets `rig`. */
+const testPrefix = "rfi_t_"
 const runPrefix = (): string => {
-  const run = process.env.QWBE_TEST_RUN ?? "rig"
-  if (!/^[a-z0-9]{1,16}$/u.test(run)) throw new Error(`invalid QWBE_TEST_RUN: ${run}`)
+  const run = process.env.RFI_TEST_RUN ?? "rig"
+  if (!/^[a-z0-9]{1,16}$/u.test(run)) throw new Error(`invalid RFI_TEST_RUN: ${run}`)
   return `${testPrefix}${run}_`
 }
 
@@ -494,7 +494,7 @@ const fixtureOn = (database: string): TestFixture => {
   const configured = settings(database)
   const runtime = createQueryRuntime(configured)
   const sql = rawSql(database)
-  const dataDirectory = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "qwbe-fixture-"))
+  const dataDirectory = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "rfi-fixture-"))
   let closing: Promise<void> | undefined
   return {
     database,

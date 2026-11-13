@@ -62,6 +62,22 @@ const drawPartyColumn = (
 
 const titles: Readonly<Record<DocumentKind, string>> = { invoice: "FACTURĂ", proforma: "PROFORMĂ", correction: "FACTURĂ STORNO" }
 
+/** Date rows; the supply date only when earlier than the issue date (art. 319 alin. (20) lit. c) Cod fiscal). */
+export const documentRows = (document: RenderableDocument, kind: DocumentKind): ReadonlyArray<readonly [string, string, boolean]> => {
+  const reversed = "original" in document ? document.original : undefined
+  // Only the invoice declares it: a proforma and a storno record no supply.
+  const supplyDate = kind === "invoice" && "supplyDate" in document ? document.supplyDate : undefined
+  return [
+    ["Data emiterii", document.issueDate, false],
+    ...(supplyDate === undefined || supplyDate === document.issueDate ? []
+      : [["Data livrării/prestării", supplyDate, false] as const]),
+    ...(reversed === undefined ? []
+      : [["Stornează", `${reversed.series} ${String(reversed.number)} · ${reversed.issueDate}`, true] as const]),
+    ...(document.dueDate === null ? [] : [["Scadență", document.dueDate, true] as const]),
+    ["Monedă", document.currency, false],
+  ]
+}
+
 const drawDocumentColumn = (sheet: Sheet, document: RenderableDocument, kind: DocumentKind): number => {
   const shared = { x: headerMidX, width: headerMidWidth, align: "center" as const }
   const titleSize = kind === "correction" ? 14 : 19
@@ -76,15 +92,7 @@ const drawDocumentColumn = (sheet: Sheet, document: RenderableDocument, kind: Do
   cursor = putLines(sheet.page, [`${document.series} ${String(document.number)}`], {
     ...shared, top: cursor + 2, size: 10.5, font: sheet.fonts.bold, color: accent, leading: 18,
   })
-  const reversed = "original" in document ? document.original : undefined
-  const rows: ReadonlyArray<readonly [string, string, boolean]> = [
-    ["Data emiterii", document.issueDate, false],
-    ...(reversed === undefined ? []
-      : [["Stornează", `${reversed.series} ${String(reversed.number)} · ${reversed.issueDate}`, true] as const]),
-    ...(document.dueDate === null ? [] : [["Scadență", document.dueDate, true] as const]),
-    ["Monedă", document.currency, false],
-  ]
-  for (const [label, value, emphasised] of rows) {
+  for (const [label, value, emphasised] of documentRows(document, kind)) {
     putText(sheet.page, label, { x: headerMidX, y: cursor, size: 8, font: sheet.fonts.regular, color: muted })
     putText(sheet.page, value, { x: headerMidX, y: cursor, size: 8,
       font: emphasised ? sheet.fonts.bold : sheet.fonts.regular, color: emphasised ? warning : ink,

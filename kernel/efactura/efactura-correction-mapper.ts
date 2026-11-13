@@ -1,4 +1,4 @@
-import { compareDecimal, isCanonicalDecimal } from "../../cubes/invoicing/contracts/money.ts"
+import { compareDecimal, isCanonicalDecimal } from "../../cubes/invoicing/money/index.ts"
 import type { EFacturaDocument } from "../../cubes/invoicing/efactura/index.ts"
 import { EFacturaContractViolation, validateEFacturaDocument } from "../../cubes/invoicing/efactura/index.ts"
 import type { CorrectionDocument, DraftLine, IssuedInvoice, VatBreakdown } from "../../cubes/invoicing/index.ts"
@@ -87,6 +87,7 @@ export const mapCorrection = (correction: CorrectionDocument, original: IssuedIn
     id: documentNumber(correction),
     issueDate: correction.issueDate,
     dueDate: null,
+    actualDeliveryDate: null,
     currencyCode: correction.currency,
     notes: documentNotes(legalReference(vatBreakdown), correction.reason),
     precedingInvoice: { id: documentNumber(original), issueDate: original.issueDate },

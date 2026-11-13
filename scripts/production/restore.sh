@@ -3,8 +3,8 @@
 # it to the installed version, then switch the installation to them. Nothing old is
 # deleted or overwritten.
 #
-#   scripts/production/restore.sh <BACKUP_DIR/qwbe-invoicing-<time>.tar.gz>           dry-run
-#   scripts/production/restore.sh <BACKUP_DIR/qwbe-invoicing-<time>.tar.gz> --apply   restore + migrate + switch
+#   scripts/production/restore.sh <BACKUP_DIR/ro-free-invoice-<time>.tar.gz>           dry-run
+#   scripts/production/restore.sh <BACKUP_DIR/ro-free-invoice-<time>.tar.gz> --apply   restore + migrate + switch
 #
 # Any archive made by backup.sh, with the image installed now (IMAGE_TAG in .env), which
 # never changes. The archive is untrusted input: before anything is created, that image
@@ -20,10 +20,10 @@
 #
 # --apply asks for the archive name, typed, after showing the archive and its time,
 # the source, the target, the image, the migrations it will apply and what is lost.
-# Then: a new database <QWBE_PGDATABASE>_r<time> and volume <QWBE_DATA_VOLUME>-r<time>,
+# Then: a new database <RFI_PGDATABASE>_r<time> and volume <RFI_DATA_VOLUME>-r<time>,
 # restore (the restored ledger must equal the manifest), `migrate --apply` (drift
 # checked before and after, as `migrate` does), `doctor` on them; only once that is
-# ready, `app` stops and `.env` switches QWBE_PGDATABASE and QWBE_DATA_VOLUME in one
+# ready, `app` stops and `.env` switches RFI_PGDATABASE and RFI_DATA_VOLUME in one
 # atomic write (the previous copy is kept in .local/production/), and the stack starts
 # and must become ready. A target that failed, the migration included, is left as it
 # is, for investigation, with the source and `.env` unchanged; a new attempt makes a
@@ -39,11 +39,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 read_archive() {
   [[ -f "$ARCHIVE" && ! -L "$ARCHIVE" ]] || die "not a regular file: $ARCHIVE"
   NAME="$(basename "$ARCHIVE")"
-  [[ "$NAME" =~ ^qwbe-invoicing-([0-9]{8}T[0-9]{6}Z)\.tar\.gz$ ]] || die "not an archive made by backup.sh: $NAME"
+  [[ "$NAME" =~ ^ro-free-invoice-([0-9]{8}T[0-9]{6}Z)\.tar\.gz$ ]] || die "not an archive made by backup.sh: $NAME"
   CREATED="${BASH_REMATCH[1]}"
   ARCHIVE_DIR="$(cd "$(dirname "$ARCHIVE")" && pwd)"
   [[ "$ARCHIVE_DIR" =~ ^/[^:,]*$ ]] || die "the archive's directory cannot be mounted (no ':' or ','): $ARCHIVE_DIR"
-  IMAGE="$QWBE_IMAGE:$IMAGE_TAG"
+  IMAGE="$RFI_IMAGE:$IMAGE_TAG"
   image_id "$IMAGE" >/dev/null || die "image $IMAGE (IMAGE_TAG in .env) is not on this host"
   [[ -n "$(compose ps -q --status running db)" ]] || die "db is not running"
 }
@@ -66,7 +66,7 @@ the restore again; nothing was created"
   step="$(sed -n 's/^image: \(.*\) ([^()]*)$/\1/p' "$RECOVERY_MARKER" | head -n 1)"
   die "refused: a failed deploy waits for a restore with $needed ($id), but .env names $IMAGE ($(image_id "$IMAGE")).
 Run step 1 of $RECOVERY_MARKER first:
-  ${step:-set IMAGE_TAG in $ENV_FILE to ${needed#"$QWBE_IMAGE":}}
+  ${step:-set IMAGE_TAG in $ENV_FILE to ${needed#"$RFI_IMAGE":}}
 then run the restore again; nothing was created"
 }
 
@@ -91,7 +91,7 @@ json_print() {
 inspect_archive() {
   local report organization
   report="$(with_archive -v "$DATA_VOLUME_ACTIVE:/data:ro" migrate \
-    node bin/qwbe-invoicing.ts backup-inspect --input "/backup/$NAME" --json </dev/null)" \
+    node bin/ro-free-invoice.ts backup-inspect --input "/backup/$NAME" --json </dev/null)" \
     || die "refused: $IMAGE cannot restore this archive (above); nothing was created"
   if ! json_ok "$IMAGE" "r.organizationId === '$ORGANIZATION_ID'" <<<"$report"; then
     organization="$(json_print 'JSON.stringify(r.organizationId)' <<<"$report")"
@@ -156,15 +156,15 @@ on_target() { compose run --rm --no-deps -T -e "PGDATABASE=$TARGET_DB" -v "$TARG
 # database.sql is executed as the schema owner: `migrate` holds qwbe_owner's secret.
 restore_on_target() {
   with_archive -e "PGDATABASE=$TARGET_DB" -v "$TARGET_DATA" migrate \
-    node bin/qwbe-invoicing.ts restore --input "/backup/$NAME" "$@"
+    node bin/ro-free-invoice.ts restore --input "/backup/$NAME" "$@"
 }
 
 # The archive's schema up to this image's: `migrate` refuses a drifted schema before
 # writing and checks it again after.
-migrate_target() { on_target migrate node bin/qwbe-invoicing.ts migrate --apply --confirm-production --json; }
+migrate_target() { on_target migrate node bin/ro-free-invoice.ts migrate --apply --confirm-production --json; }
 
 # What the application will see: `doctor` as qwbe_app, in `app`.
-doctor_on_target() { on_target app node bin/qwbe-invoicing.ts doctor --json; }
+doctor_on_target() { on_target app node bin/ro-free-invoice.ts doctor --json; }
 
 # The dry-run's database goes again, once confirmed empty; its /data was an empty
 # temporary directory, mounted read-only, so no volume is ever made for a dry-run.
@@ -236,7 +236,7 @@ report_switch() {
   if [[ -e "$RECOVERY_MARKER" ]]; then
     source="Do not start the source $PGDATABASE_ACTIVE with $IMAGE: a failed deploy left it ($RECOVERY_MARKER)."
   fi
-  if [[ "$(env_get QWBE_PGDATABASE || true)" != "$TARGET_DB" ]]; then
+  if [[ "$(env_get RFI_PGDATABASE || true)" != "$TARGET_DB" ]]; then
     warn "the switch did not finish: .env is NOT switched (still $PGDATABASE_ACTIVE / $DATA_VOLUME_ACTIVE, image $IMAGE) and app may be stopped.
 The restored target $TARGET_DB / $TARGET_VOLUME, migrated to $IMAGE, stays as it is. Nothing was started.
 ${source:-To start the source again: $stack up -d, then remove $APP_STOPPED_MARKER.}
@@ -255,7 +255,7 @@ switch() {
   trap report_switch EXIT
   stop_app "restore.sh (switching to $TARGET_DB / $TARGET_VOLUME)" || die "could not stop app"
   ENV_BEFORE="$(env_keep restore)" || die "could not keep a copy of .env"
-  env_set "QWBE_PGDATABASE=$TARGET_DB" "QWBE_DATA_VOLUME=$TARGET_VOLUME" || die "could not write .env"
+  env_set "RFI_PGDATABASE=$TARGET_DB" "RFI_DATA_VOLUME=$TARGET_VOLUME" || die "could not write .env"
   start_stack "$IMAGE_TAG" "r.database.database === '$TARGET_DB'" || die "switched, but the stack is not ready"
   SWITCHING=0
   rm -f "$RECOVERY_MARKER"

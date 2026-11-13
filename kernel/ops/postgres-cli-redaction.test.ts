@@ -10,7 +10,7 @@ void test("the literal secret is removed, not only the password= pattern", () =>
     "connection failed: password=[redacted] host=db",
   )
   assert.equal(redact("pg_dump: error: s3cr3t-value rejected"), "pg_dump: error: [redacted] rejected")
-  assert.equal(redact("postgres://qwbe:s3cr3t-value@db:5432/x"), "postgres://qwbe:[redacted]@db:5432/x")
+  assert.equal(redact("postgres://rfi:s3cr3t-value@db:5432/x"), "postgres://rfi:[redacted]@db:5432/x")
 })
 
 void test("an empty secret does not redact every empty string", () => {

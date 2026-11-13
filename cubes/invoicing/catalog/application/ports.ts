@@ -13,6 +13,7 @@ export interface CatalogTransaction {
   readonly saveProductPreset: (preset: ProductPreset) => Write
   readonly findProductPreset: (organizationId: string, id: string) => Read<ProductPreset | undefined>
   // At most limit + 1 rows ordered by description then id; `after` is the key of the last item of the previous page.
-  readonly listProductPresets: (organizationId: string, page: PageQuery<NameCursor>) => Read<ReadonlyArray<ProductPreset>>
+  // `search` (validated, trimmed) keeps the presets whose code, description or barcode contains it, ignoring case only, diacritic letters included ("ștefan" finds "ȘTEFAN", "stefan" does not find "Ștefan").
+  readonly listProductPresets: (organizationId: string, page: PageQuery<NameCursor>, search?: string) => Read<ReadonlyArray<ProductPreset>>
   readonly deleteProductPreset: (organizationId: string, id: string) => Write
 }

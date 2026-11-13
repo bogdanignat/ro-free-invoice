@@ -8,7 +8,7 @@
 #     required keys are there, the checkout is `main` and clean, `app` runs the image
 #     `.env` names, and no other deploy/backup/restore holds the host lock.
 #  2. Records the active version: the ID of the image `app` runs, and the commit.
-#  3. `git pull --ff-only` and `docker build`, tagged ${QWBE_IMAGE}:<12-hex commit> (the
+#  3. `git pull --ff-only` and `docker build`, tagged ${RFI_IMAGE}:<12-hex commit> (the
 #     previous image keeps its own tag for the rollback). Then the project network must
 #     have the subnets the new Compose files fix: Compose does not move a running
 #     network, so a mismatch would only fail at `up`, after `app` stopped. Production
@@ -29,7 +29,7 @@
 #       .local/production/recovery-required, with the commands for any of those
 #       steps that failed; deploy/backup refuse until then.
 #     Every failure exits non-zero.
-#  7. On success: removes ${QWBE_IMAGE}:<commit> images other than the new one and the
+#  7. On success: removes ${RFI_IMAGE}:<commit> images other than the new one and the
 #     previous one (restore.sh restores any archive with the image installed).
 #
 # `git pull` rewrites this file, lib.sh and backup.sh while they run, and bash reads
@@ -46,11 +46,11 @@ source "$here/backup.sh"
 PHASE=preflight
 
 checkout_ready() {
-  git -C "$QWBE_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "$QWBE_ROOT is not a git checkout"
+  git -C "$RFI_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "$RFI_ROOT is not a git checkout"
   local branch changes
-  branch="$(git -C "$QWBE_ROOT" branch --show-current)"
+  branch="$(git -C "$RFI_ROOT" branch --show-current)"
   [[ "$branch" == main ]] || die "the checkout is on '$branch', not main"
-  changes="$(git -C "$QWBE_ROOT" status --porcelain)"
+  changes="$(git -C "$RFI_ROOT" status --porcelain)"
   [[ -z "$changes" ]] || die "the checkout has local changes; the image would not be the commit:
 $changes"
 }
@@ -59,21 +59,21 @@ record_active() {
   ACTIVE_ID="$(running_app_image || true)"
   [[ -n "$ACTIVE_ID" ]] || die "app is not running: deploy upgrades a running installation"
   OLD_TAG="$IMAGE_TAG"
-  [[ "$(image_id "$QWBE_IMAGE:$OLD_TAG" || true)" == "$ACTIVE_ID" ]] \
-    || die "app runs image $ACTIVE_ID, but .env names $QWBE_IMAGE:$OLD_TAG; make .env name the running version first"
-  OLD_COMMIT="$(git -C "$QWBE_ROOT" rev-parse HEAD)"
-  say "active: $QWBE_IMAGE:$OLD_TAG ($ACTIVE_ID), checkout $OLD_COMMIT"
+  [[ "$(image_id "$RFI_IMAGE:$OLD_TAG" || true)" == "$ACTIVE_ID" ]] \
+    || die "app runs image $ACTIVE_ID, but .env names $RFI_IMAGE:$OLD_TAG; make .env name the running version first"
+  OLD_COMMIT="$(git -C "$RFI_ROOT" rev-parse HEAD)"
+  say "active: $RFI_IMAGE:$OLD_TAG ($ACTIVE_ID), checkout $OLD_COMMIT"
 }
 
 pull_and_build() {
   say "git pull --ff-only"
-  git -C "$QWBE_ROOT" pull --ff-only || die "git pull failed; production is untouched"
+  git -C "$RFI_ROOT" pull --ff-only || die "git pull failed; production is untouched"
   local commit
-  commit="$(git -C "$QWBE_ROOT" rev-parse HEAD)"
+  commit="$(git -C "$RFI_ROOT" rev-parse HEAD)"
   NEW_TAG="${commit:0:12}"
   if [[ "$NEW_TAG" == "$OLD_TAG" ]]; then say "already running $NEW_TAG; nothing to deploy"; exit 0; fi
-  say "building $QWBE_IMAGE:$NEW_TAG"
-  docker build --label "org.opencontainers.image.revision=$commit" -t "$QWBE_IMAGE:$NEW_TAG" "$QWBE_ROOT" \
+  say "building $RFI_IMAGE:$NEW_TAG"
+  docker build --label "org.opencontainers.image.revision=$commit" -t "$RFI_IMAGE:$NEW_TAG" "$RFI_ROOT" \
     || die "build failed; production is untouched"
   compose_tag "$NEW_TAG" config --quiet || die "the new Compose files do not accept this .env; production is untouched"
 }
@@ -85,7 +85,7 @@ network_ready() {
   local name wanted actual
   local -a network
   mapfile -t network < <(compose_tag "$NEW_TAG" config --format json \
-    | docker run --rm -i --network none --entrypoint node "$QWBE_IMAGE:$NEW_TAG" -e '
+    | docker run --rm -i --network none --entrypoint node "$RFI_IMAGE:$NEW_TAG" -e '
       const n = JSON.parse(require("node:fs").readFileSync(0, "utf8")).networks.default
       console.log([n.name, ...(n.ipam?.config ?? []).map((c) => c.subnet)].join("\n"))')
   name="${network[0]:-}"
@@ -100,11 +100,11 @@ then run the deploy again. Production is untouched."
 }
 
 stop_and_backup() {
-  backup_dir_ready "$QWBE_IMAGE:$OLD_TAG" || die "production is untouched"
+  backup_dir_ready "$RFI_IMAGE:$OLD_TAG" || die "production is untouched"
   PHASE=stopped
   APP_STOPPED=1
-  say "stopping app ($QWBE_IMAGE:$OLD_TAG)"
-  stop_app "deploy.sh ($QWBE_IMAGE:$OLD_TAG, deploying $NEW_TAG)" || die "could not stop app"
+  say "stopping app ($RFI_IMAGE:$OLD_TAG)"
+  stop_app "deploy.sh ($RFI_IMAGE:$OLD_TAG, deploying $NEW_TAG)" || die "could not stop app"
   backup_archive "$OLD_TAG" || die "no backup, no deploy: $NEW_TAG is not started"
   DEPLOY_BACKUP="$BACKUP_FILE"
 }
@@ -113,13 +113,13 @@ switch_to_new() {
   ENV_BEFORE="$(env_keep deploy)" || die "could not keep a copy of .env"
   env_set "IMAGE_TAG=$NEW_TAG" || die "could not write IMAGE_TAG to .env"
   PHASE=switched
-  say "starting $QWBE_IMAGE:$NEW_TAG: migrate, then app (previous .env kept at $ENV_BEFORE)"
+  say "starting $RFI_IMAGE:$NEW_TAG: migrate, then app (previous .env kept at $ENV_BEFORE)"
   start_stack "$NEW_TAG"
 }
 
 # none: this run's migrate did not run or reported `changed: 0`; changed; unknown.
 migrate_outcome() {
-  local container report image="$QWBE_IMAGE:$NEW_TAG"
+  local container report image="$RFI_IMAGE:$NEW_TAG"
   container="$(compose ps -a -q migrate 2>/dev/null || true)"
   [[ -n "$container" ]] || { echo none; return; }
   [[ "$(docker inspect -f '{{.State.StartedAt}}' "$container")" != 0001-01-01T00:00:00Z ]] || { echo none; return; }
@@ -131,10 +131,10 @@ migrate_outcome() {
 }
 
 # The previous image, under its own tag, is pinned again to the ID recorded at step 2.
-pin_previous() { [[ "$OLD_TAG" == *@* ]] || docker tag "$ACTIVE_ID" "$QWBE_IMAGE:$OLD_TAG"; }
+pin_previous() { [[ "$OLD_TAG" == *@* ]] || docker tag "$ACTIVE_ID" "$RFI_IMAGE:$OLD_TAG"; }
 
 roll_back() {
-  say "rolling back to $QWBE_IMAGE:$OLD_TAG: the schema is unchanged; writes $NEW_TAG made while it ran are kept"
+  say "rolling back to $RFI_IMAGE:$OLD_TAG: the schema is unchanged; writes $NEW_TAG made while it ran are kept"
   if pin_previous && env_set "IMAGE_TAG=$OLD_TAG" && start_stack "$OLD_TAG"; then
     say "rolled back to $OLD_TAG and ready; the deploy of $NEW_TAG FAILED"
   else
@@ -150,15 +150,15 @@ roll_back() {
 require_restore() {
   local restore="scripts/production/restore.sh $DEPLOY_BACKUP --apply" image state="done by this deploy"
   image="sed -i 's|^[[:space:]]*IMAGE_TAG=.*|IMAGE_TAG=$OLD_TAG|' $ENV_FILE"
-  [[ "$OLD_TAG" == *@* ]] || image="docker tag $ACTIVE_ID $QWBE_IMAGE:$OLD_TAG && $image"
+  [[ "$OLD_TAG" == *@* ]] || image="docker tag $ACTIVE_ID $RFI_IMAGE:$OLD_TAG && $image"
   pin_previous || state="FAILED here: run it first"
   env_set "IMAGE_TAG=$OLD_TAG" || state="FAILED here: run it first"
   printf '%s\n' "deploy of $NEW_TAG failed $(date -u +%FT%TZ), migrate outcome: $1" \
-    "backup before it: $DEPLOY_BACKUP (made by $QWBE_IMAGE:$OLD_TAG, $ACTIVE_ID)" \
+    "backup before it: $DEPLOY_BACKUP (made by $RFI_IMAGE:$OLD_TAG, $ACTIVE_ID)" \
     "image: $image ($state)" "restore: $restore" > "$RECOVERY_MARKER"
   warn "the deploy of $NEW_TAG FAILED and the schema may have changed (migrate: $1).
 The previous version is not started on this database, and app stays stopped.
-Restore the backup taken before this deploy with the previous image, $QWBE_IMAGE:$OLD_TAG:
+Restore the backup taken before this deploy with the previous image, $RFI_IMAGE:$OLD_TAG:
   1. .env names it ($state): $image
   2. $restore"
 }
@@ -170,10 +170,10 @@ recover() {
   # the safe path, a restore.
   outcome="$(migrate_outcome || echo unknown)"
   [[ "$outcome" == none || "$outcome" == changed ]] || outcome=unknown
-  warn "$QWBE_IMAGE:$NEW_TAG did not become ready; migrate outcome: $outcome"
+  warn "$RFI_IMAGE:$NEW_TAG did not become ready; migrate outcome: $outcome"
   # A `migrate` still running would go on changing the schema after the decision.
   compose stop migrate || warn "could not stop migrate: check docker compose ps"
-  stop_app "deploy.sh (recovering from $QWBE_IMAGE:$NEW_TAG)" || warn "could not stop app: check docker compose ps"
+  stop_app "deploy.sh (recovering from $RFI_IMAGE:$NEW_TAG)" || warn "could not stop app: check docker compose ps"
   if [[ "$outcome" == none ]]; then roll_back; else require_restore "$outcome"; fi
 }
 
@@ -188,9 +188,9 @@ on_exit() {
 
 prune_images() {
   local tag
-  for tag in $(docker image ls "$QWBE_IMAGE" --format '{{.Tag}}' | grep -E '^[0-9a-f]{12}$' || true); do
+  for tag in $(docker image ls "$RFI_IMAGE" --format '{{.Tag}}' | grep -E '^[0-9a-f]{12}$' || true); do
     [[ "$tag" == "$NEW_TAG" || "$tag" == "$OLD_TAG" ]] && continue
-    if docker image rm "$QWBE_IMAGE:$tag" >/dev/null; then say "removed image $QWBE_IMAGE:$tag"; else warn "kept image $QWBE_IMAGE:$tag (in use)"; fi
+    if docker image rm "$RFI_IMAGE:$tag" >/dev/null; then say "removed image $RFI_IMAGE:$tag"; else warn "kept image $RFI_IMAGE:$tag (in use)"; fi
   done
 }
 
@@ -209,7 +209,7 @@ main() {
   if ! switch_to_new; then recover; exit 1; fi
   PHASE=finished
   prune_images
-  say "deployed $QWBE_IMAGE:$NEW_TAG; backup before it: $DEPLOY_BACKUP"
+  say "deployed $RFI_IMAGE:$NEW_TAG; backup before it: $DEPLOY_BACKUP"
 }
 
 main "$@"; exit $?

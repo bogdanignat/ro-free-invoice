@@ -7,7 +7,7 @@ import test from "node:test"
 import { listCube } from "./cube-fixture.test-support.mjs"
 import { inspectTestCoverage, untestedUnits } from "./test-gate-lib.mjs"
 
-const fixture = () => mkdtempSync(join(tmpdir(), "qwbe-test-gate-"))
+const fixture = () => mkdtempSync(join(tmpdir(), "rfi-test-gate-"))
 const write = (root, path, content = "export const value = 1\n") => {
   const target = join(root, path)
   mkdirSync(join(target, ".."), { recursive: true })

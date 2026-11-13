@@ -28,7 +28,7 @@ export const InvoicesView = () => {
               ? null
               : <span className="count" aria-live="polite">{register.rows.length} încărcate</span>}
           </div>
-          <RegisterFilters filters={register.filters} />
+          <RegisterFilters filters={register.filters} eFactura={register.eFacturaColumn} />
           <RegisterResults register={register} />
         </section>
         <DraftsSection drafts={drafts} />

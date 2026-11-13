@@ -11,6 +11,7 @@ import {
   type PdfObjectStore,
   type ProformaArtifact,
   type RenderableInvoice,
+  type RenderableProforma,
   type RenderedDocument,
   type RequestContext,
 } from "./artifact-ports.ts"
@@ -35,7 +36,7 @@ export const createArtifactOperations = (
   authorized: Authorize,
   { readPermission, renderPermission }: { readonly readPermission: string; readonly renderPermission: string },
 ) => {
-  const render = <Artifact extends InvoiceArtifact | ProformaArtifact, Source extends RenderableInvoice>(options: {
+  const render = <Artifact extends InvoiceArtifact | ProformaArtifact, Source extends RenderableInvoice | RenderableProforma>(options: {
     readonly kind: "invoice" | "proforma"
     readonly id: string
     readonly findArtifact: (organizationId: string, id: string) => Effect.Effect<Artifact | undefined, DocumentsFailure>

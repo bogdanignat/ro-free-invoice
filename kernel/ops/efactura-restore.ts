@@ -1,5 +1,5 @@
 /**
- * What a restore does to e-Factura before it commits, whatever `QWBE_PLUGINS`
+ * What a restore does to e-Factura before it commits, whatever `RFI_PLUGINS`
  * says (the tables exist either way). `psql --single-transaction` runs it
  * after the dump and inside the same transaction, so a database is either
  * restored with it or not restored at all.

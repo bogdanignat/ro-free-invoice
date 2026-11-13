@@ -10,7 +10,10 @@ import { reportsApi, seedOrganization } from "./reports-api.test-support.ts"
 interface Situation {
   readonly count: number
   readonly overdueCount: number
-  readonly items: ReadonlyArray<{ readonly id: string; readonly status: string; readonly paidAmount: string; readonly remainingAmount: string }>
+  readonly creditedAmount: string
+  readonly remainingAmount: string
+  readonly overdueAmount: string
+  readonly items: ReadonlyArray<{ readonly id: string; readonly status: string; readonly paidAmount: string; readonly creditedAmount: string; readonly remainingAmount: string }>
 }
 interface Report { readonly months: unknown; readonly collected: string; readonly invoices: Situation }
 const quarter = "/api/reports/collections?from=2026-07-01&to=2026-09-30"
@@ -29,16 +32,16 @@ void test("collections report: payments by payment date, invoices of the period 
       months: [{ month: "2026-07", collected: "50.00" }, { month: "2026-08", collected: "342.00" }, { month: "2026-09", collected: "-172.00" }],
       collected: "220.00" })
     assert.deepEqual(invoices, {
-      count: 4, totalIncludingVat: "665.50", paidAmount: "183.00", remainingAmount: "492.00", overdueCount: 1, overdueAmount: "242.00",
+      count: 4, totalIncludingVat: "665.50", paidAmount: "183.00", creditedAmount: "0.00", remainingAmount: "492.00", overdueCount: 1, overdueAmount: "242.00",
       items: [
         { id: b, series: "REP", number: 2, issueDate: "2026-07-10", dueDate: "2026-07-25", customer: { name: "Client SRL" },
-          totalIncludingVat: "242.00", paidAmount: "0.00", remainingAmount: "242.00", status: "overdue" },
+          totalIncludingVat: "242.00", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "242.00", status: "overdue" },
         { id: e, series: "REP", number: 6, issueDate: "2026-09-05", dueDate: "2026-09-20", customer: { name: "Client SRL" },
-          totalIncludingVat: "60.50", paidAmount: "70.00", remainingAmount: "0.00", status: "overpaid" },
+          totalIncludingVat: "60.50", paidAmount: "70.00", creditedAmount: "0.00", remainingAmount: "0.00", status: "overpaid" },
         { id: c, series: "REP", number: 3, issueDate: "2026-08-05", dueDate: "2026-12-31", customer: { name: "Client SRL" },
-          totalIncludingVat: "363.00", paidAmount: "113.00", remainingAmount: "250.00", status: "partially_paid" },
+          totalIncludingVat: "363.00", paidAmount: "113.00", creditedAmount: "0.00", remainingAmount: "250.00", status: "partially_paid" },
         { id: d, series: "REP", number: 5, issueDate: "2026-09-01", dueDate: null, customer: { name: "Client SRL" },
-          totalIncludingVat: "0.00", paidAmount: "0.00", remainingAmount: "0.00", status: "unpaid" },
+          totalIncludingVat: "0.00", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "0.00", status: "unpaid" },
       ],
     })
 
@@ -82,8 +85,51 @@ void test("collections report totals every matching invoice and lists the first 
     const report = (await api.get("/api/reports/collections?from=2026-09-01&to=2026-09-30&status=unpaid", target)).body as Report
     assert.deepEqual([report.invoices.count, report.invoices.overdueCount, report.invoices.items.length], [56, 1, 50])
     const { items, ...totals } = report.invoices as Situation & Readonly<Record<string, unknown>>
-    assert.deepEqual(totals, { count: 56, totalIncludingVat: "677.60", paidAmount: "0.00", remainingAmount: "677.60",
+    assert.deepEqual(totals, { count: 56, totalIncludingVat: "677.60", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "677.60",
       overdueCount: 1, overdueAmount: "12.10" })
     assert.deepEqual(items.map((item) => item.id), [late, ...[...ids].sort().slice(0, 49)])
+  })
+})
+
+void test("collections report: a fully credited invoice reads credited with nothing left, outside unpaid and overdue", async () => {
+  await withMigrated("collections_report_credit", async (fixture) => {
+    const api = reportsApi(fixture)
+    const target = api.runtime("org-4")
+    await api.setUp(target)
+    const credited = await api.issue(target, "2026-09-01", "100.00", "2026-09-05")
+    const overdue = await api.issue(target, "2026-09-02", "10.00", "2026-09-06")
+    const refunded = await api.issue(target, "2026-09-03", "10.00", "2026-09-07")
+    await api.correct(target, credited, "2026-09-04")
+    await api.pay(target, refunded, "12.10", "2026-09-04")
+    await api.correct(target, refunded, "2026-09-05")
+
+    const get = async (status: string) => (await api.get(`/api/reports/collections?from=2026-09-01&to=2026-09-30&status=${status}`, target)).body as Report
+    const all = (await get("all")).invoices
+    assert.deepEqual(all.items.map((item) => [item.status, item.paidAmount, item.creditedAmount, item.remainingAmount]), [
+      ["credited", "0.00", "121.00", "0.00"], ["overdue", "0.00", "0.00", "12.10"], ["overpaid", "12.10", "12.10", "0.00"],
+    ])
+    assert.deepEqual([all.creditedAmount, all.remainingAmount, all.overdueCount, all.overdueAmount], ["133.10", "12.10", 1, "12.10"])
+    assert.deepEqual((await get("unpaid")).invoices.items.map((item) => item.id), [overdue])
+    assert.deepEqual((await get("overdue")).invoices.items.map((item) => item.id), [overdue])
+    assert.deepEqual((await get("paid")).invoices.items.map((item) => item.status), ["credited", "overpaid"])
+    const summary = (await api.get(`/api/invoices/${credited}/payments`, target)).body as Record<string, unknown>
+    assert.deepEqual([summary.status, summary.creditedAmount, summary.remainingAmount], ["credited", "121.00", "0.00"])
+  })
+})
+
+void test("collections report: a payment recorded after a full storno turns the credited invoice overpaid, still with nothing left", async () => {
+  await withMigrated("collections_report_paid_after_credit", async (fixture) => {
+    const api = reportsApi(fixture)
+    const target = api.runtime("org-5")
+    await api.setUp(target)
+    const invoice = await api.issue(target, "2026-09-01", "100.00", "2026-09-05")
+    await api.correct(target, invoice, "2026-09-02")
+    await api.pay(target, invoice, "121.00", "2026-09-03")
+
+    const { invoices } = (await api.get("/api/reports/collections?from=2026-09-01&to=2026-09-30", target)).body as Report
+    assert.deepEqual(invoices.items.map((item) => [item.status, item.paidAmount, item.creditedAmount, item.remainingAmount]), [
+      ["overpaid", "121.00", "121.00", "0.00"],
+    ])
+    assert.deepEqual([invoices.remainingAmount, invoices.overdueCount], ["0.00", 0])
   })
 })

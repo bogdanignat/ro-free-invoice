@@ -1,14 +1,15 @@
 import { Effect } from "effect"
 
 import { checked, copyBuyer, copyIssuerSnapshot, copySource, missing } from "../../application/support.ts"
-import { DomainConflict, ValidationFailure } from "../../contracts/failures.ts"
+import { DomainConflict, validationFailure } from "../../contracts/failures.ts"
 import type { IdGenerator } from "../../contracts/host.ts"
 import type { DraftInvoice, IssuerSnapshot } from "../../domain/invoice.ts"
 import { validateFiscalDocument } from "../../domain/calculation.ts"
 import type { AuthoringDocumentInput } from "../../domain/inputs.ts"
-import { activeDocumentSeries, authorDocument, type AuthoringTransaction } from "../../drafts/index.ts"
+import { activeDocumentSeries, authorDocument, effectiveSupplyDate, validateSupplyDate, type AuthoringTransaction } from "../../drafts/index.ts"
 import { currentVatRegistration, validateVatForIssuance, type IssuerProfile } from "../../issuer/index.ts"
 import type { AuthoringProformaInput } from "../domain/proforma.ts"
+import { documentWithoutLines, linesRequired, vatRegistrationMissing } from "../../issues/index.ts"
 
 type SnapshotContent = Omit<DraftInvoice, "id" | "status" | "customerId" | "sourceProformaId">
 
@@ -20,11 +21,14 @@ export interface NumberedIdentity {
   readonly issuedAt: Date
 }
 
-const issuerAtIssuance = (issuer: IssuerProfile, document: SnapshotContent) => checked((): IssuerSnapshot => {
+// An invoice's VAT follows its supply date; a proforma is not a supply, so it keeps the issue date.
+const issuerAtIssuance = (issuer: IssuerProfile, document: SnapshotContent, kind: "invoice" | "proforma") => checked((): IssuerSnapshot => {
   validateFiscalDocument(document)
-  validateVatForIssuance(issuer, document.issueDate, document.lines)
-  const registration = currentVatRegistration(issuer.vatConfigurations, document.issueDate)
-  if (registration === undefined) throw new ValidationFailure({ issues: [`issuer VAT registration must be configured on ${document.issueDate}`] })
+  if (kind === "invoice" && document.supplyDate !== undefined) validateSupplyDate(document.supplyDate, document.issueDate)
+  const vatDate = kind === "invoice" ? effectiveSupplyDate(document) : document.issueDate
+  validateVatForIssuance(issuer, vatDate, document.lines)
+  const registration = currentVatRegistration(issuer.vatConfigurations, vatDate)
+  if (registration === undefined) throw validationFailure([vatRegistrationMissing(vatDate)])
   return copyIssuerSnapshot({ ...issuer, vatRegistered: registration.registered })
 })
 
@@ -46,8 +50,8 @@ export const issuanceSource = (
     const source = { ...(yield* authorDocument(payload, organizationId, transaction, ids, kind)), draft: undefined }
     // Drafts may be empty; a document being issued may not. The rule lives on
     // the issuance path only, so authoring stays shared with draft creation.
-    if (source.document.lines.length === 0) return yield* Effect.fail(new ValidationFailure({ issues: ["document must contain at least one line"] }))
-    return { ...source, issuer: yield* issuerAtIssuance(source.issuer, source.document) }
+    if (source.document.lines.length === 0) return yield* Effect.fail(validationFailure([documentWithoutLines()]))
+    return { ...source, issuer: yield* issuerAtIssuance(source.issuer, source.document, kind) }
   }
   const draft = yield* transaction.findDraft(organizationId, input.draftId)
   if (draft === undefined) return yield* Effect.fail(missing("draft", input.draftId))
@@ -60,8 +64,8 @@ export const issuanceSource = (
   // Read again in the issuing transaction: the series may have been archived since the draft was saved.
   // A proforma is numbered in the series of the request, which the proforma issuance checks.
   if (kind === "invoice") yield* activeDocumentSeries(transaction, organizationId, "invoice", draft.series)
-  if (draft.lines.length === 0) return yield* Effect.fail(new ValidationFailure({ issues: [`${kind} must contain at least one line`] }))
+  if (draft.lines.length === 0) return yield* Effect.fail(validationFailure([linesRequired(kind)]))
   const issuer = yield* transaction.findIssuer(organizationId)
   if (issuer === undefined) return yield* Effect.fail(missing("issuer", organizationId))
-  return { document: draft, issuer: yield* issuerAtIssuance(issuer, draft), draft }
+  return { document: draft, issuer: yield* issuerAtIssuance(issuer, draft, kind), draft }
 })

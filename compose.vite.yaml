@@ -2,9 +2,9 @@
 # (docs/LOCAL_DEVELOPMENT.md, "UI development with vite dev"):
 #
 #   docker compose -f compose.yaml -f compose.vite.yaml up -d
-#   pnpm --filter @qwbe/invoicing-frontend dev        # http://localhost:5173
+#   pnpm --filter @ro-free-invoice/frontend dev        # http://localhost:5173
 #
-# Vite proxies `/api` to the kernel at QWBE_KERNEL_URL (default http://127.0.0.1:3000)
+# Vite proxies `/api` to the kernel at RFI_KERNEL_URL (default http://127.0.0.1:3000)
 # and passes Host and Origin through untouched, so the kernel's PUBLIC_ORIGIN is the
 # dev server's origin. While this overlay is on, https://invoice.test answers 400: its
 # Host no longer matches. Drop the overlay (`docker compose up -d`) to get it back.

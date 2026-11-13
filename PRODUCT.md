@@ -1,22 +1,21 @@
-# QWBE Invoicing Product Scope
+# RO Free Invoice Product Scope
 
-Status: product baseline; T-1069 implemented
+Status: product baseline
 Jurisdiction: Romania  
 Last researched: 2026-08-30  
-Mother alignment reviewed: 2026-09-02 against QWBE `a98d9ef` (historical, `FOUNDATION.md` section 18); direction since T-1876 in `FOUNDATION.md` sections 1, 3 and 13
+Mother alignment reviewed: 2026-09-02 against QWBE `a98d9ef` (historical, `FOUNDATION.md` section 18); current direction in `FOUNDATION.md` sections 1, 3 and 13
 Architecture companion: [`FOUNDATION.md`](./FOUNDATION.md)
 
 ## 1. Product direction
 
-QWBE Invoicing is a self-hosted invoicing application that:
+RO Free Invoice is a self-hosted invoicing application that:
 
 - runs as a useful standalone product;
 - is shaped as one QWBE plugin pack, `invoicing` with `payments`, `efactura` and
-  `company-lookup` as optional plugins (`required: false`, active by default; `QWBE_PLUGINS` switches them off
+  `company-lookup` as optional plugins (`required: false`, active by default; `RFI_PLUGINS` switches them off
   at startup, and a plugin that is off keeps its data), while the QWBE mother installs nothing;
 - is distributed primarily as versioned Docker images and a Docker Compose bundle;
-- issues and preserves Romanian invoices without implementing direct ANAF transport in the first release;
-- keeps the data model compatible with a later RO e-Factura workflow;
+- issues and preserves Romanian invoices and submits them, and their stornos, to RO e-Factura (ANAF SPV) one by one through the `efactura` plugin;
 - treats issued invoices as immutable legal snapshots.
 
 The first release targets a single self-hosted installation. All business data is
@@ -33,16 +32,31 @@ model are extension seams, not first-release UI capabilities.
 
 The application can create, issue, render, preserve, correct, and track payment of
 invoices. It can also issue, render, preserve, list, and convert non-fiscal proformas.
-The first release does **not** submit invoices to RO e-Factura.
-
-This distinction must be visible in product documentation: taxpayers subject to
-RO e-Factura obligations need another compliant channel for XML submission until
-the ANAF integration is delivered. A generated PDF is a visual representation and
-is not a substitute for the structured XML required by RO e-Factura.
+With the `efactura` plugin on and the company connected to ANAF through OAuth, it also
+submits invoices and stornos to RO e-Factura (SPV), one document at a time, and keeps
+ANAF's status and receipt. With the plugin off, the application produces no XML (its
+routes answer 404). With the plugin on but no connection, the XML is available only
+through the API (`GET /api/invoices/{id}/efactura.xml`, `GET /api/corrections/{id}/efactura.xml`);
+the interface has no download button. A generated PDF is a visual
+representation and is not a substitute for the structured XML required by RO e-Factura.
 
 This document is a product and engineering baseline, not legal or tax advice.
 Special VAT regimes, cross-border transactions, cash-register rules, and sector
 specific obligations require validation with an accountant or tax specialist.
+
+### Who it is for and what it does not do
+
+- **Issuers outside the VAT-on-collection system.** The invoice has no "TVA la încasare"
+  mention. Whoever needs it can extend the application or pay for the development.
+- **One user.** One access token, one organization. Multi-user is not planned for now.
+- **Self-host, not SaaS.** Each installation keeps its data with whoever installs it.
+  Nothing is deleted automatically; the administrator deletes backup archives.
+- **One product, no free/paid split.** Customer-specific work (for example online payments
+  and invoices for a particular site) lives in separate private repositories, after the
+  first stable version.
+- **Outside the first version:** discounts, partial storno (a storno reverses the whole
+  invoice), the 0% rate, exemptions other than the Article 310 non-VAT case, reverse
+  charge, multi-user and VAT on collection.
 
 ## 3. MVP capabilities
 
@@ -152,7 +166,6 @@ Each line supports:
 - item name and description;
 - quantity and coded unit of measure;
 - unit price excluding VAT;
-- line-level allowance or charge;
 - taxable amount;
 - tax category and tax rate;
 - tax exemption or reverse-charge reason and legal basis where applicable;
@@ -305,7 +318,7 @@ propose them from the CUI:
 
 ### Proforma
 
-Implemented in T-1069. A proforma is an immutable, numbered non-fiscal commercial
+A proforma is an immutable, numbered non-fiscal commercial
 snapshot emitted directly from authored content or from an optional saved draft. It uses a separately configured
 proforma series and sequence scope; its number is never reused and never consumes an
 invoice number. It can be listed, opened in detail, and rendered/downloaded as a PDF
@@ -344,22 +357,21 @@ Deferred. Cash collection and fiscal cash-register obligations depend on activit
 payment channel, and applicable exceptions. An invoice does not universally replace
 a fiscal receipt.
 
-## 5. RO e-Factura readiness without ANAF integration
+## 5. RO e-Factura
 
 The invoice owns immutable fiscal facts exposed through its public document contract;
-the future e-Factura cube consumes those facts, not private tables or current profiles.
+the e-Factura cube consumes those facts, not private tables or current profiles.
 County/sector, canonical CUI and explicit party VAT registration now round-trip through
 registry, drafts, issued snapshots, proformas and full corrections. VAT treatment is
 explicit and frozen: S for positive standard/reduced rates, E/0.00 with legal reason
 text generated automatically for the supported non-VAT/Article 310 workflow, without
 asking for a second confirmation after the issuer registration setting. Other VAT
 categories/exemptions remain unsupported. This is not complete EN 16931/CIUS-RO
-readiness: no XML exporter or full XML/business-rule validation is included yet.
+readiness: the local checks cover the rules in [EFACTURA.md](docs/EFACTURA.md), and only ANAF decides validity.
 The scope and inspected rule evidence are recorded in [VAT_TREATMENT.md](docs/VAT_TREATMENT.md).
 
-The target commercial invoice model must eventually preserve the information needed
-by EN 16931 and the Romanian CIUS profile; this list is a target, not a claim that all
-fields are currently implemented:
+The commercial invoice model targets the information needed by EN 16931 and the Romanian
+CIUS profile; this list is a target, not a claim that all fields are implemented:
 
 - invoice identifier, issue date, and invoice type code;
 - seller and buyer names, addresses, tax identifiers, and electronic endpoints;
@@ -372,7 +384,7 @@ fields are currently implemented:
 - legal monetary totals;
 - attachments and supporting-document references.
 
-ANAF transport will be a separate durable workflow with its own records:
+ANAF transport is a durable workflow with its own records:
 
 ```text
 issued invoice
@@ -384,13 +396,11 @@ issued invoice
   -> accepted or rejected
 ```
 
-The future transmission record needs profile/version, XML hash, idempotency key,
-submission identifier, timestamps, status, validation errors, response hash, and
-retry metadata. `submitted` never means `accepted`. The in-memory QWBE event bus is
-not the source of truth for this workflow.
-
-The exact current RO CIUS version, ANAF schemas, supported codes, credentials, and
-submission obligations must be researched again immediately before that integration.
+A submission record keeps the XML and its hash, status, ANAF's messages and the
+response. `submitted` never means `accepted`. The in-memory QWBE event bus is not the
+source of truth for this workflow. Routes, states and the ANAF connection are in
+[EFACTURA.md](docs/EFACTURA.md) and [ANAF.md](docs/ANAF.md); the CIUS version, codes and
+obligations must be revalidated against ANAF before each release.
 
 ## 6. Initial lifecycle
 
@@ -414,7 +424,7 @@ The standalone product is installed through a versioned Docker Compose bundle:
 
 ```text
 Docker Compose
-├── app       versioned multi-architecture QWBE Invoicing image
+├── app       versioned multi-architecture RO Free Invoice image
 ├── db        PostgreSQL 16, pinned by digest, cluster initialised with the C locale
 ├── migrate   one-shot command from the same image, gated on `db` being healthy
 ├── data      persistent document (PDF) volume, plus a separate cluster volume
@@ -463,7 +473,7 @@ Deployment requirements:
 Recommended image location:
 
 ```text
-ghcr.io/<organization>/qwbe-invoicing:<version>
+ghcr.io/<organization>/ro-free-invoice:<version>
 ```
 
 Docker Hub may mirror the image for discoverability. GHCR is the canonical registry.
@@ -499,11 +509,11 @@ continues to run from immutable Docker images.
 The image itself should also expose operational commands so npm is never required:
 
 ```text
-qwbe-invoicing migrate
-qwbe-invoicing bootstrap-admin
-qwbe-invoicing doctor
-qwbe-invoicing backup
-qwbe-invoicing restore
+ro-free-invoice migrate
+ro-free-invoice bootstrap-admin
+ro-free-invoice doctor
+ro-free-invoice backup
+ro-free-invoice restore
 ```
 
 State-changing commands must be idempotent where possible, support explicit apply
@@ -537,8 +547,7 @@ Required tests precede implementation and cover:
 - boundary and size gates from `FOUNDATION.md`.
 
 PDF rendering, payment recording, correction documents, and the proforma workflow
-are implemented. Direct ANAF integration begins only after the invoice core and
-durable workflow seam are stable.
+are implemented. The e-Factura submission workflow is implemented.
 
 ## 10. Initial delivery phases
 
@@ -579,54 +588,45 @@ durable workflow seam are stable.
 - local package contract checks (`FOUNDATION.md` section 13); compatibility with the
   `qwbe-core/package` checker is not claimed.
 
-### Later — RO e-Factura
-
-- current ANAF/RO CIUS research;
-- deterministic XML mapping and validation;
-- credential and authorization adapter;
-- durable outbox/workflow journal;
-- idempotent submit, poll, download, retry, and reconciliation;
-- operational dashboard and failure recovery.
-
 ## 11. Open product decisions
 
 The following decisions must be explicit before their relevant implementation:
 
-1. Is the initial standalone product limited to one legal entity, or may one
-   installation manage several?
-2. Which VAT regimes are supported in the first public release beyond ordinary
-   domestic VAT and non-VAT-registered issuers?
+1. Resolved: one installation serves one legal entity (one organization) and one user
+   (section 2, "Who it is for and what it does not do").
+2. Resolved: ordinary domestic VAT and non-VAT-registered issuers (Article 310), for
+   issuers outside the VAT-on-collection system; the other regimes are outside the first
+   version (section 2, "Who it is for and what it does not do").
 3. Resolved for the first usable release: delivery is PDF download. Email remains a
    future capability; proforma delivery specifically means download, not email.
-4. Resolved (T-1910): React 19 + TypeScript + Tailwind CSS 4 in a single-page application
+4. Resolved: React 19 + TypeScript + Tailwind CSS 4 in a single-page application
    built with Vite and routed with TanStack Router (file routes in `frontend/src/routes/`);
    TanStack Query holds React server state. One image: the kernel serves the build
-   (`QWBE_UI_DIR`), the API under `/api/*` and the Swagger page (`GET /api`) on one origin,
+   (`RFI_UI_DIR`), the API under `/api/*` and the Swagger page (`GET /api`) on one origin,
    `PUBLIC_ORIGIN`, behind the operator's TLS proxy, and owns the whole public edge itself:
    `Host`/`Origin` pinning, CSRF, CSP and the request deadline. The kernel exchanges the
    local API token for a revocable, opaque session persisted server-side (12 hours of
    inactivity, 30 days after login at most) and referenced by an HttpOnly `SameSite=Strict`
    cookie scoped to `/api`, whose `Max-Age` is that 30-day limit. The browser keeps
    only the per-session CSRF token in memory. The Bearer API is off on the public listener
-   unless `QWBE_BEARER_API=on`; the CLI inside the container is the operator's interface.
+   unless `RFI_BEARER_API=on`; the CLI inside the container is the operator's interface.
 
-   Superseded decisions, kept as history: from T-1400 to T-1649 a Next.js App Router
-   application (`frontend/`) ran next to the first Vite UI and replaced it at the T-1649
-   cutover (2026-10-09). It was a second service and a second image, and reached the
-   kernel only through a backend-for-frontend under `/api/qwbe/*` that held the session
-   cookie, CSRF and `Origin` checks, while the kernel stayed internal. T-1910 removed it:
-   a server-rendering framework bought nothing for a UI behind a login, and the second
-   process doubled the edge that had to be secured, the images to pin and the self-host
-   steps. Its guards moved into the kernel (T-1911) and the UI became a static Vite build
-   the kernel serves (T-1912 to T-1914).
+   Superseded decision, kept as history: for a while a Next.js App Router application
+   (`frontend/`) ran next to the first Vite UI and replaced it (cutover 2026-10-09). It
+   was a second service and a second image, and reached the kernel only through a
+   backend-for-frontend under `/api/qwbe/*` that held the session cookie, CSRF and
+   `Origin` checks, while the kernel stayed internal. It was removed: a server-rendering
+   framework bought nothing for a UI behind a login, and the second process doubled the
+   edge that had to be secured, the images to pin and the self-host steps. Its guards
+   moved into the kernel and the UI became a static Vite build the kernel serves.
 5. What retention policy and backup targets are promised to operators?
 6. Resolved: no mandatory dependency on `qwbe-core`; shapes are copied and declared
    locally.
-7. Resolved: standalone owns its own database — PostgreSQL 16 since T-1480, SQLite
-   before it — and its own login. The mother installs and mounts nothing; invoicing
+7. Resolved: standalone owns its own database — PostgreSQL 16, SQLite before
+   it — and its own login. The mother installs and mounts nothing; invoicing
    data does not move into its database, and no shared topology is adopted. A future
    mother would call the API under `FOUNDATION.md` section 19, which is not implemented.
-8. Resolved (T-1876): package shape is one plugin pack, a root `qwbe-package.json` with
+8. Resolved: package shape is one plugin pack, a root `qwbe-package.json` with
    `kind: "plugin"` listing every unit, without claiming `qwbe-core/package` compatibility.
 
 ## 12. Primary references

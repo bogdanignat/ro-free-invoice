@@ -1,5 +1,5 @@
 {
-  "name": "@qwbe/invoicing-frontend",
+  "name": "@ro-free-invoice/frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",

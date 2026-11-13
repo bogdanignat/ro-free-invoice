@@ -3,7 +3,7 @@
 # The storage, API, HTTP, auth, e-Factura, documents and ops tests all talk to a
 # real server, so `node --test` means nothing on the host alone. No PostgreSQL of
 # its own: the suite reaches the project's `db` (compose.yaml) over its network
-# and works only in throwaway databases named `qwbe_t_<run>_…`, created from
+# and works only in throwaway databases named `rfi_t_<run>_…`, created from
 # `postgres` and dropped again; `qwbe_invoicing` is never used. No port is
 # published, no application volume is referenced and `down` is never given `-v`.
 # The dependency volumes are the verifier's, read-write because `install`
@@ -12,10 +12,10 @@
 # Run:   scripts/verify-docker.sh test
 #        scripts/verify-docker.sh test "node --test kernel/storage/pagination.test.ts"
 # Down:  scripts/verify-docker.sh down    (stops this rig, never the project's db)
-name: qwbe-invoicing-test
+name: ro-free-invoice-test
 
 x-test-image: &test-image
-  image: qwbe-invoicing-verify:${VERIFY_IMAGE_TAG:-local}
+  image: ro-free-invoice-verify:${VERIFY_IMAGE_TAG:-local}
   build:
     context: .
     dockerfile: Dockerfile.verify
@@ -47,7 +47,7 @@ services:
     user: "${HOST_UID}:${HOST_GID}"
     # The run id the script reclaims by (scripts/verify-docker.sh).
     labels:
-      qwbe.test-run: ${QWBE_TEST_RUN:?run through scripts/verify-docker.sh}
+      rfi.test-run: ${RFI_TEST_RUN:?run through scripts/verify-docker.sh}
     environment:
       # No PUBLIC_ORIGIN, as in compose.verify.yaml: the fixtures pin their own
       # ephemeral loopback address, and a CLI child inherits this environment.
@@ -66,11 +66,11 @@ services:
       PGUSER: postgres
       # The project's own secret, mounted read-only below; never an environment variable.
       PGPASSWORD_FILE: /run/secrets/pg_superuser_password
-      # Prefix of every test database this run creates (`qwbe_t_<run>_…`).
-      QWBE_TEST_RUN: ${QWBE_TEST_RUN:?run through scripts/verify-docker.sh}
+      # Prefix of every test database this run creates (`rfi_t_<run>_…`).
+      RFI_TEST_RUN: ${RFI_TEST_RUN:?run through scripts/verify-docker.sh}
       # Passed through only when set, for the CLI children the suite spawns; the
       # in-process fixtures choose their plugins themselves. Unset: every plugin.
-      QWBE_PLUGINS:
+      RFI_PLUGINS:
     secrets:
       - pg_superuser_password
     depends_on:
@@ -87,26 +87,26 @@ services:
 
 secrets:
   pg_superuser_password:
-    file: ${QWBE_PG_SUPERUSER_PASSWORD_FILE:?run through scripts/verify-docker.sh}
+    file: ${RFI_PG_SUPERUSER_PASSWORD_FILE:?run through scripts/verify-docker.sh}
 
 networks:
-  # The default network of the `qwbe-invoicing` project (compose.yaml), where `db` answers.
+  # The default network of the `ro-free-invoice` project (compose.yaml), where `db` answers.
   project:
     external: true
-    name: qwbe-invoicing_default
+    name: ro-free-invoice_default
 
 volumes:
-  # Produced by the `qwbe-invoicing-verify` compose project: one dependency tree
+  # Produced by the `ro-free-invoice-verify` compose project: one dependency tree
   # for both rigs, so a test run never installs a second copy.
   verify-node-modules:
     external: true
-    name: qwbe-invoicing-verify_verify-node-modules
+    name: ro-free-invoice-verify_verify-node-modules
   verify-frontend-node-modules:
     external: true
-    name: qwbe-invoicing-verify_verify-frontend-node-modules
+    name: ro-free-invoice-verify_verify-frontend-node-modules
   verify-pnpm-store:
     external: true
-    name: qwbe-invoicing-verify_verify-pnpm-store
+    name: ro-free-invoice-verify_verify-pnpm-store
   verify-home:
     external: true
-    name: qwbe-invoicing-verify_verify-home
+    name: ro-free-invoice-verify_verify-home

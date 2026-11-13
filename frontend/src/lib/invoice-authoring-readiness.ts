@@ -25,6 +25,7 @@ export const headerMatchesDraft = (form: InvoiceAuthoringForm, draft: DraftInvoi
     && draft.series === form.series
     && draft.issueDate === form.issueDate
     && (draft.dueDate ?? "") === form.dueDate
+    && (draft.supplyDate ?? "") === form.supplyDate
     && (draft.notes ?? "") === form.notes.trim()
 }
 

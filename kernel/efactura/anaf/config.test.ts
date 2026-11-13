@@ -15,7 +15,7 @@ import { ANAF_API_BASES, ANAF_OAUTH, anafApi } from "./endpoints.ts"
 const SECRET = "client-secret-value-1234"
 
 const files = (t: TestContext) => {
-  const directory = mkdtempSync(join(tmpdir(), "qwbe-anaf-"))
+  const directory = mkdtempSync(join(tmpdir(), "rfi-anaf-"))
   t.after(() => { rmSync(directory, { recursive: true, force: true }) })
   const file = (name: string, content: string) => {
     const path = join(directory, name)

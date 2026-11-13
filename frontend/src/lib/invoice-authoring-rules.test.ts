@@ -1,8 +1,10 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { authoringAccess } from "./invoice-authoring-readiness.ts"
-import { authoringPayloadMatchesDraft } from "./invoice-authoring-payload.ts"
+import { authoringAccess, authoringReadiness } from "./invoice-authoring-readiness.ts"
+import {
+  authoringDocumentPayload, authoringPayloadMatchesDraft, createDraftPayload, updateDraftPayload,
+} from "./invoice-authoring-payload.ts"
 import { draftDeletionState, invoiceDueDateIssue } from "./invoice-authoring-workflow.ts"
 import { DERIVED_DRAFT_DELETE_REFUSED } from "./draft-save-types.ts"
 import { authoringSeriesOptions } from "./document-authoring-options.ts"
@@ -60,6 +62,7 @@ const payloadLine = { description: "Consultanță", quantity: "1", unitPrice: "1
 const payloadOf = (patch: {
   readonly issueDate?: string
   readonly dueDate?: string | null
+  readonly supplyDate?: string
   readonly notes?: string | null
   readonly lines?: ReadonlyArray<DraftInvoice["lines"][number] extends never ? never : Parameters<typeof authoringPayloadMatchesDraft>[0]["lines"][number]>
 } = {}): Parameters<typeof authoringPayloadMatchesDraft>[0] => ({
@@ -117,6 +120,37 @@ void test("a form rebuilt from a draft matches that draft's header", async () =>
   const form: InvoiceAuthoringForm = formFromDraft(draft)
   assert.equal(headerMatchesDraft({ ...form, notes: "notă" }, draft), true)
   assert.equal(headerMatchesDraft({ ...form, notes: "alta" }, draft), false)
+})
+
+void test("an empty supply date is sent as null, a typed one as itself", () => {
+  const form = formFromDraft(draftOf())
+  assert.equal(form.supplyDate, "")
+  assert.equal(createDraftPayload(form).supplyDate, null)
+  assert.equal(updateDraftPayload(form).supplyDate, null)
+  assert.equal("supplyDate" in authoringDocumentPayload(form, []), false)
+  const dated = { ...form, supplyDate: "2025-12-20" }
+  assert.equal(createDraftPayload(dated).supplyDate, "2025-12-20")
+  assert.equal(updateDraftPayload(dated).supplyDate, "2025-12-20")
+  assert.equal(authoringDocumentPayload(dated, []).supplyDate, "2025-12-20")
+})
+
+void test("a saved supply date reloads into the form and takes part in the draft comparisons", async () => {
+  const { headerMatchesDraft } = await import("./invoice-authoring-readiness.ts")
+  const draft = draftOf({ supplyDate: "2025-12-20" })
+  const form = formFromDraft(draft)
+  assert.equal(form.supplyDate, "2025-12-20")
+  assert.equal(headerMatchesDraft(form, draft), true)
+  assert.equal(headerMatchesDraft({ ...form, supplyDate: "" }, draft), false)
+  assert.equal(authoringPayloadMatchesDraft(payloadOf({ supplyDate: "2025-12-20" }), draft), true)
+  assert.equal(authoringPayloadMatchesDraft(payloadOf(), draft), false)
+  assert.equal(authoringPayloadMatchesDraft(payloadOf({ supplyDate: "2025-12-20" }), draftOf()), false)
+})
+
+void test("a new document with a supply date is issued directly, the date in the payload", () => {
+  const form = { ...formFromDraft(draftOf()), supplyDate: "2025-12-20" }
+  const lines = [{ key: "line-1", ...payloadLine }]
+  assert.equal(authoringReadiness(form, lines, undefined, false).canIssue, true)
+  assert.equal(authoringDocumentPayload(form, lines).supplyDate, "2025-12-20")
 })
 
 void test("a locked draft points at the registry it belongs to, not always at the invoices one", () => {

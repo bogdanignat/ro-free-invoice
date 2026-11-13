@@ -63,6 +63,47 @@ void test("direct conversion rejects a proforma's 19% lines after the legal rate
   assert.deepEqual(state, before)
 })
 
+void test("direct conversion follows an earlier supply date and keeps it on the invoice", async () => {
+  const { service, proforma, conversion, setDate } = await setup(true, "2025-07-15")
+  setDate("2025-08-05")
+  const invoice = await Effect.runPromise(service.issueInvoiceFromProforma({ ...conversion, request: { ...conversion.request, supplyDate: "2025-07-20" } }))
+  assert.equal(invoice.issueDate, "2025-08-05")
+  assert.equal(invoice.supplyDate, "2025-07-20")
+  assert.deepEqual(invoice.lines, proforma.lines)
+})
+
+void test("both conversion routes refuse frozen 21% lines on a supply date before the rate change", async () => {
+  const { state, service, conversion } = await setup(true, "2025-08-05")
+  const early = { ...conversion, request: { ...conversion.request, supplyDate: "2025-07-20" } }
+  const before = structuredClone(state)
+  const attempts: ReadonlyArray<Effect.Effect<unknown, unknown>> = [service.issueInvoiceFromProforma(early), service.createDraftInvoiceFromProforma(early)]
+  for (const attempt of attempts) {
+    const failure = await Effect.runPromise(Effect.flip(attempt))
+    assert.ok(failure instanceof ValidationFailure)
+    assert.deepEqual(failure.details, [{ code: "vat_pair_unsupported", params: { code: "RO_STANDARD", rate: "21.00", date: "2025-07-20" } }])
+    assert.deepEqual(state, before)
+  }
+  const plain = await Effect.runPromise(service.createDraftInvoiceFromProforma({ ...conversion, request: { ...conversion.request, supplyDate: null } }))
+  assert.equal(plain.supplyDate, undefined)
+})
+
+void test("both conversion routes refuse a supply after the conversion day and the draft keeps an earlier one", async () => {
+  const { state, service, conversion, setDate } = await setup(true, "2025-07-15")
+  setDate("2025-08-05")
+  const late = { ...conversion, request: { ...conversion.request, supplyDate: "2025-08-06" } }
+  const before = structuredClone(state)
+  const attempts: ReadonlyArray<Effect.Effect<unknown, unknown>> = [service.issueInvoiceFromProforma(late), service.createDraftInvoiceFromProforma(late)]
+  for (const attempt of attempts) {
+    const failure = await Effect.runPromise(Effect.flip(attempt))
+    assert.ok(failure instanceof ValidationFailure)
+    assert.equal(failure.details?.[0]?.code, "supply_date_after_issue")
+    assert.deepEqual(state, before)
+  }
+  const draft = await Effect.runPromise(service.createDraftInvoiceFromProforma({ ...conversion, request: { ...conversion.request, supplyDate: "2025-07-20" } }))
+  assert.equal(draft.supplyDate, "2025-07-20")
+  assert.equal((await Effect.runPromise(service.issueInvoice(idempotent({ draftId: draft.id })))).supplyDate, "2025-07-20")
+})
+
 for (const missing of ["issuer", "registration"] as const) {
   void test(`direct conversion refuses missing ${missing} without writes`, async () => {
     const { state, service, conversion } = await setup()

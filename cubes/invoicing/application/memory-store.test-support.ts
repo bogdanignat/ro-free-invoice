@@ -10,12 +10,14 @@ import {
   type RequestContext,
   type RequestContextProvider,
 } from "../contracts/index.ts"
-import { formatDecimal, parseDecimal } from "../contracts/money.ts"
+import { formatDecimal, parseDecimal } from "../money/index.ts"
 import type { BrandingNormalizer, IssuerTransaction } from "../issuer/index.ts"
 import { codeTakenConflict, type CatalogTransaction, type ProductPreset } from "../catalog/index.ts"
 import type { Customer, CustomersTransaction } from "../customers/index.ts"
 import type { AuditEvent, IdempotencyRecord } from "../domain/invoice.ts"
-import type { CorrectionsTransaction, InvoiceRegisterCursor, InvoiceRegisterFilter, InvoiceRegisterRow } from "../corrections/index.ts"
+import {
+  SPV_UNRESOLVED_STATUSES, type CorrectionsTransaction, type InvoiceRegisterCursor, type InvoiceRegisterFilter, type InvoiceRegisterRow,
+} from "../corrections/index.ts"
 import type { ProformaConversion, ProformaTransaction } from "../issuance/index.ts"
 import type { DraftInvoice, InvoicingDependencies, InvoicingTransaction, IssuedInvoice, Proforma } from "./invoicing.ts"
 import type { DocumentCursor, DraftCursor, NameCursor, PageQuery } from "./ports.ts"
@@ -44,16 +46,21 @@ const afterDocument = (item: { readonly issueDate: string; readonly number: numb
   item.issueDate < after.issueDate || (item.issueDate === after.issueDate && item.number < after.number)
   || (item.issueDate === after.issueDate && item.number === after.number && item.id > after.id)
 // The same contract as the PostgreSQL adapter: inclusive dates, one kind, series + number with spaces
-// ignored or the customer name, case-insensitively.
+// ignored or the customer name, case-insensitively, and `spv: unresolved` on the stored e-Factura status.
 const inRegisterFilter = (row: InvoiceRegisterRow, filter: InvoiceRegisterFilter = {}): boolean => {
   if (filter.from !== undefined && row.issueDate < filter.from) return false
   if (filter.to !== undefined && row.issueDate > filter.to) return false
   if (filter.kind !== undefined && row.kind !== filter.kind) return false
+  if (filter.spv === "unresolved" && !(SPV_UNRESOLVED_STATUSES as ReadonlyArray<string>).includes(row.eFacturaStatus)) return false
   if (filter.search === undefined) return true
   const needle = filter.search.toLowerCase()
   return `${row.series}${String(row.number)}`.toLowerCase().replace(/\s+/gu, "").includes(needle.replace(/\s+/gu, ""))
     || row.customer.name.toLowerCase().includes(needle)
 }
+
+// The customers' and presets' search: any column contains it, ignoring case; an absent column never matches.
+const containsText = (search: string | undefined, ...columns: ReadonlyArray<string | undefined>): boolean =>
+  search === undefined || columns.some((column) => column?.toLowerCase().includes(search.toLowerCase()) === true)
 
 const afterRegister = (item: InvoiceRegisterRow, after: InvoiceRegisterCursor): boolean =>
   afterDocument(item, after) || (item.issueDate === after.issueDate && item.number === after.number
@@ -127,9 +134,10 @@ export const memoryStore = (state: MemoryState): InvoicingDependencies["store"] 
       findCustomer: (organizationId, id) => Effect.succeed(
         working.customers.get(id)?.organizationId === organizationId ? working.customers.get(id) : undefined,
       ),
-      listCustomers: (organizationId, page) => Effect.succeed(paged(
+      listCustomers: (organizationId, page, search) => Effect.succeed(paged(
         [...working.customers.values()]
-          .filter((customer) => customer.organizationId === organizationId && customer.deletedAt === undefined)
+          .filter((customer) => customer.organizationId === organizationId && customer.deletedAt === undefined
+            && containsText(search, customer.name, customer.fiscalIdentifier))
           .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
         page, (customer, after) => afterName(customer.name, customer.id, after),
       )),
@@ -152,8 +160,9 @@ export const memoryStore = (state: MemoryState): InvoicingDependencies["store"] 
       findProductPreset: (organizationId, id) => Effect.succeed(
         working.productPresets.get(id)?.organizationId === organizationId ? working.productPresets.get(id) : undefined,
       ),
-      listProductPresets: (organizationId, page) => Effect.succeed(paged([...working.productPresets.values()]
-        .filter((preset) => preset.organizationId === organizationId)
+      listProductPresets: (organizationId, page, search) => Effect.succeed(paged([...working.productPresets.values()]
+        .filter((preset) => preset.organizationId === organizationId
+          && containsText(search, preset.code, preset.description, preset.barcode))
         .sort((a, b) => a.description.localeCompare(b.description) || a.id.localeCompare(b.id)),
       page, (preset, after) => afterName(preset.description, preset.id, after))),
       deleteProductPreset: (organizationId, id) => Effect.sync(() => {
@@ -238,7 +247,8 @@ export const memoryStore = (state: MemoryState): InvoicingDependencies["store"] 
           .filter((invoice) => invoice.organizationId === organizationId && sameSource(invoice, source))
           .map((invoice) => ({ kind: "invoice", id: invoice.id, series: invoice.series, number: invoice.number,
             issueDate: invoice.issueDate, customer: { name: invoice.customer.name }, currency: invoice.currency,
-            totalIncludingVat: invoice.totalIncludingVat, dueDate: invoice.dueDate, eFacturaStatus: invoice.eFacturaStatus }))
+            totalIncludingVat: invoice.totalIncludingVat, dueDate: invoice.dueDate, supplyDate: invoice.supplyDate,
+            eFacturaStatus: invoice.eFacturaStatus }))
         const corrections: ReadonlyArray<InvoiceRegisterRow> = [...working.corrections.values()]
           .filter((correction) => correction.organizationId === organizationId && sameSource(correction, source))
           .flatMap((correction) => {

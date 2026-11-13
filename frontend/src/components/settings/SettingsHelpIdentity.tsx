@@ -33,7 +33,7 @@ export const SettingsHelpIdentity = () => <>
     <h3>Serii de documente</h3>
     <dl>
       <div><dt>Tip document</dt><dd>Seriile pentru Factură și Proformă sunt configurate separat. La crearea unei facturi poți alege numai o serie de tip Factură.</dd></div>
-      <div><dt>Serie</dt><dd>Prefixul numărului documentului, de exemplu „QWBE” în „QWBE 123”. O serie nu se redenumește și nu se șterge; una pe care nu o mai folosești o arhivezi, iar numerotarea ei continuă la reactivare.</dd></div>
+      <div><dt>Serie</dt><dd>Prefixul numărului documentului, de exemplu „FCT” în „FCT 123”. O serie nu se redenumește și nu se șterge; una pe care nu o mai folosești o arhivezi, iar numerotarea ei continuă la reactivare.</dd></div>
       <div><dt>Seria draftului</dt><dd>Seria se salvează în draft și se poate schimba cât draftul e deschis, doar către o serie activă de factură. La emitere se alocă următorul număr fiscal din seria salvată.</dd></div>
     </dl>
   </section>

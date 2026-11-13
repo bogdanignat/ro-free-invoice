@@ -14,6 +14,7 @@ const invoiceFrom = (row: Row): CollectionInvoiceRow => ({
   id: text(row, "id"), series: text(row, "series"), number: integer(row, "number"), issueDate: text(row, "issue_date"),
   dueDate: nullableText(row, "due_date"), customer: { name: text(row, "customer_legal_name") },
   totalIncludingVat: money(row, "total_including_tax"), paidAmount: money(row, "paid_amount"),
+  creditedAmount: money(row, "credited_amount"),
 })
 
 export const collectionsReportTransactionAdapter = (client: TransactionClient): CollectionsTransaction => ({
@@ -30,7 +31,9 @@ export const collectionsReportTransactionAdapter = (client: TransactionClient): 
   listCollectionInvoices: (organizationId, period) => paymentsRead("list collection invoices", async () => {
     const { rows } = await client.query(
       `SELECT i.id, i.series, i.number, i.issue_date, i.due_date, i.customer_legal_name, i.total_including_tax,
-        COALESCE(SUM(${signedAmount("p.")}), 0) AS paid_amount
+        COALESCE(SUM(${signedAmount("p.")}), 0) AS paid_amount,
+        (SELECT COALESCE(-SUM(c.total_including_tax), 0) FROM correction_documents c
+        WHERE c.organization_id = i.organization_id AND c.original_invoice_id = i.id) AS credited_amount
       FROM issued_invoices i
       LEFT JOIN invoice_payments p ON p.organization_id = i.organization_id AND p.invoice_id = i.id
       WHERE i.organization_id = $1 AND i.issue_date BETWEEN $2 AND $3

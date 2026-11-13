@@ -1,10 +1,10 @@
 import { HttpApiSchema } from "@effect/platform"
 import { Schema } from "effect"
 
-import { optionalString } from "./schema-primitives.ts"
+import { bounded, optional, optionalString } from "./schema-primitives.ts"
 
 export const Deleted = Schema.Struct({ deleted: Schema.Literal(true) })
-export const LoginInput = Schema.Struct({ token: Schema.String })
+export const LoginInput = Schema.Struct({ token: bounded(4096) })
 /** `plugins`: the optional plugins this installation runs, so the browser asks nothing of one that is off. */
 export const AuthenticatedSession = Schema.Struct({
   authenticated: Schema.Literal(true), csrfToken: Schema.String, plugins: Schema.Array(Schema.Literal("payments", "efactura", "company-lookup")),
@@ -15,8 +15,14 @@ const withStatus = <A, I, R>(status: number, schema: Schema.Schema<A, I, R>) =>
   schema.annotations(HttpApiSchema.annotations({ status }))
 const tagged = <const Tag extends string>(status: number, tag: Tag) =>
   withStatus(status, Schema.Struct({ error: Schema.Literal(tag) }))
+// `details` is aligned 1:1 with `issues`; `unclassified` marks a refusal not yet coded. Optional here only
+// because the request-decoding answers (api-routing.ts) still send `issues` alone.
+const IssueDetailError = Schema.Struct({
+  code: Schema.String, field: optionalString,
+  params: optional(Schema.Record({ key: Schema.String, value: Schema.Union(Schema.String, Schema.Number) })),
+})
 export const ValidationError = withStatus(400,
-  Schema.Struct({ error: Schema.Literal("ValidationFailure"), issues: Schema.Array(Schema.String) }))
+  Schema.Struct({ error: Schema.Literal("ValidationFailure"), issues: Schema.Array(Schema.String), details: optional(Schema.Array(IssueDetailError)) }))
 export const InvalidJsonError = tagged(400, "invalid_json")
 export const InvalidCredentialsRequestError = tagged(400, "invalid_credentials")
 export const AuthenticationRequiredError = tagged(401, "AuthenticationRequired")

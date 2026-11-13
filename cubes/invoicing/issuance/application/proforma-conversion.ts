@@ -2,7 +2,7 @@ import { Effect } from "effect"
 
 import { findIdempotencyReplay, idempotencyRecord, missingIdempotencyResult } from "../../application/idempotency.ts"
 import { checked, missing, recordAuditEvent, type Authorize, type OperationDependencies } from "../../application/support.ts"
-import { ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { validationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
 import type { DraftInvoice, Idempotent, IssuedInvoice } from "../../domain/invoice.ts"
 import { validateFiscalDocument } from "../../domain/calculation.ts"
@@ -12,9 +12,10 @@ import type { ConvertProformaInput } from "../domain/proforma.ts"
 import { numberedSnapshot } from "./snapshot.ts"
 import { ensureChronology } from "./chronology.ts"
 import { validateInvoiceDueDate } from "./invoices.ts"
-import { conversionDates, conversionSource } from "./proforma-conversion-context.ts"
+import { conversionDates, conversionSource, conversionSupplyDate } from "./proforma-conversion-context.ts"
 import { createProformaDraftOperation } from "./proforma-draft.ts"
 import type { ProformaTransaction } from "./ports.ts"
+import { vatRegistrationChanged } from "../../issues/index.ts"
 
 export interface ProformaConversionOperations {
   readonly issueInvoiceFromProforma: (input: Idempotent<ConvertProformaInput>) => Effect.Effect<IssuedInvoice, InvoicingFailure>
@@ -44,19 +45,21 @@ export const createProformaConversionOperations = (
       })
       const convertedAt = yield* dependencies.clock.now
       const { issueDate, dueDate } = conversionDates(proforma, convertedAt)
+      const supplyDate = yield* conversionSupplyDate(input, issueDate)
       const issuer = yield* transaction.findIssuer(context.organization.id)
       if (issuer === undefined) return yield* Effect.fail(missing("issuer", context.organization.id))
+      // The proforma's frozen lines must hold on the supply date, the date the invoice's VAT follows.
       yield* checked(() => {
-        validateVatForIssuance(issuer, issueDate, proforma.lines)
-        if (currentVatRegistration(issuer.vatConfigurations, issueDate)?.registered !== proforma.issuer.vatRegistered) {
-          throw new ValidationFailure({ issues: ["issuer VAT registration changed since the proforma was issued"] })
+        validateVatForIssuance(issuer, supplyDate, proforma.lines)
+        if (currentVatRegistration(issuer.vatConfigurations, supplyDate)?.registered !== proforma.issuer.vatRegistered) {
+          throw validationFailure([vatRegistrationChanged()])
         }
         validateInvoiceDueDate({ dueDate, totalIncludingVat: proforma.totalIncludingVat })
       })
       yield* ensureChronology(transaction, context.organization.id, "invoice", input.invoiceSeries, issueDate, issueDate)
       const id = yield* dependencies.ids.next
       const invoice: IssuedInvoice = {
-        draftId: null, sourceProformaId: proforma.id, eFacturaStatus: "not_sent",
+        draftId: null, sourceProformaId: proforma.id, supplyDate, eFacturaStatus: "not_sent",
         ...numberedSnapshot({ ...proforma, issueDate, dueDate }, proforma.issuer, { id, series: input.invoiceSeries,
           number: yield* transaction.allocateDocumentNumber(context.organization.id, "invoice", input.invoiceSeries),
           issuedAt: convertedAt, actorId: context.identity.id }),

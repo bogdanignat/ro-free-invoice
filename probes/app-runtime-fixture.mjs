@@ -11,10 +11,10 @@ import { fileURLToPath } from "node:url"
 import { emptyFixture } from "../kernel/storage/postgres-rig.test-support.ts"
 
 /**
- * The shipped kernel, started the way the image starts it: `bin/qwbe-invoicing.ts`
+ * The shipped kernel, started the way the image starts it: `bin/ro-free-invoice.ts`
  * as a child process, `migrate --apply` first and then `serve`, on a fresh
  * database of the verifier's PostgreSQL 16 rig and with the real Vite build as
- * `QWBE_UI_DIR`. Nothing is called in process: what this sees is what a
+ * `RFI_UI_DIR`. Nothing is called in process: what this sees is what a
  * browser behind the TLS proxy would see.
  *
  * Every database, directory and process here is created by this file and given
@@ -93,14 +93,14 @@ export const startKernel = async (label, environment = {}) => {
   writeFileSync(tokenFile, token, { mode: 0o600 })
   let child
   try {
-    const migrate = spawnSync("node", ["bin/qwbe-invoicing.ts", "migrate", "--apply", "--json"],
+    const migrate = spawnSync("node", ["bin/ro-free-invoice.ts", "migrate", "--apply", "--json"],
       { cwd: root, env: fixture.childEnv(), encoding: "utf8", timeout: 60_000 })
     if (migrate.status !== 0) throw new Error(`migrate exited with ${String(migrate.status)}: ${migrate.stderr}`)
     const port = await freePort()
-    child = spawn("node", ["bin/qwbe-invoicing.ts", "serve"], {
+    child = spawn("node", ["bin/ro-free-invoice.ts", "serve"], {
       cwd: root,
       env: fixture.childEnv({ HOST: "127.0.0.1", PORT: String(port), AUTH_TOKEN_FILE: tokenFile,
-        ORGANIZATION_ID: "org-runtime", QWBE_UI_DIR: uiDirectory, QWBE_BEARER_API: "off", ...environment }),
+        ORGANIZATION_ID: "org-runtime", RFI_UI_DIR: uiDirectory, RFI_BEARER_API: "off", ...environment }),
       stdio: ["ignore", "pipe", "pipe"],
     })
     const exited = new Promise((resolve) => { child.once("exit", resolve) })

@@ -1,4 +1,4 @@
-import { formatDecimal, parseDecimal } from "../../cubes/invoicing/contracts/money.ts"
+import { formatDecimal, parseDecimal } from "../../cubes/invoicing/money/index.ts"
 import { addressCountyName } from "../../cubes/invoicing/index.ts"
 import type {
   RenderableCorrection, RenderableInvoice, RenderableParty, RenderableProforma,

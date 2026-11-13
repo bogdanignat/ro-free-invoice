@@ -15,14 +15,14 @@ const revenue = {
 }
 const item = {
   id: "inv-4", series: "REP", number: 5, issueDate: "2026-09-01", dueDate: null, customer: { name: "Client SRL" },
-  totalIncludingVat: "0.00", paidAmount: "0.00", remainingAmount: "0.00", status: "unpaid",
+  totalIncludingVat: "0.00", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "0.00", status: "unpaid",
 }
 const collections = {
   from: "2026-07-01", to: "2026-09-30", currency: "RON", status: "all",
   months: [{ month: "2026-07", collected: "50.00" }, { month: "2026-09", collected: "-172.00" }],
   collected: "-122.00",
   invoices: {
-    count: 1, totalIncludingVat: "0.00", paidAmount: "0.00", remainingAmount: "0.00", overdueCount: 0, overdueAmount: "0.00",
+    count: 1, totalIncludingVat: "0.00", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "0.00", overdueCount: 0, overdueAmount: "0.00",
     items: [item],
   },
 }
@@ -39,7 +39,7 @@ void test("a collections report keeps a negative month and an invoice without a 
   assert.equal(decoded.collected, "-122.00")
   assert.deepEqual(decoded.invoices.items[0], {
     id: "inv-4", series: "REP", number: 5, issueDate: "2026-09-01", dueDate: null, customerName: "Client SRL",
-    totalIncludingVat: "0.00", paidAmount: "0.00", remainingAmount: "0.00", status: "unpaid",
+    totalIncludingVat: "0.00", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "0.00", status: "unpaid",
   })
 })
 

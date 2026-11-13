@@ -8,12 +8,12 @@ import { defineConfig, type ProxyOptions } from "vite"
 const here = (path: string): string => fileURLToPath(new URL(path, import.meta.url))
 
 /**
- * Where the dev server sends `/api`: the kernel, `QWBE_KERNEL_URL`, by default
+ * Where the dev server sends `/api`: the kernel, `RFI_KERNEL_URL`, by default
  * the one a local `serve` listens on. Only an `http(s)` origin is taken.
  */
-const kernelOrigin = (value = process.env.QWBE_KERNEL_URL ?? "http://127.0.0.1:3000"): string => {
+const kernelOrigin = (value = process.env.RFI_KERNEL_URL ?? "http://127.0.0.1:3000"): string => {
   const url = new URL(value)
-  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error(`QWBE_KERNEL_URL must be http(s): ${value}`)
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error(`RFI_KERNEL_URL must be http(s): ${value}`)
   return url.origin
 }
 

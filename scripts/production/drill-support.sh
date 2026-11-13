@@ -2,14 +2,14 @@
 # The isolated stack of scripts/production/drill.sh: its names, cleanup, the isolation
 # check, the helpers that run a production script and read the result, the HTTP API
 # calls that make the data, and the setup (upstream, checkout, .env, secrets).
-# The drill runs without the company-lookup plugin (QWBE_PLUGINS in setup): the issuer's
+# The drill runs without the company-lookup plugin (RFI_PLUGINS in setup): the issuer's
 # VAT guard would ask ANAF live about a made-up CIF, and a drill must not need the network.
 
 drill_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-project=qwbe-drill
+project=rfi-drill
 port="${DRILL_PORT:-3198}"
 origin=https://invoice.drill.test
-work="$(mktemp -d "${TMPDIR:-/tmp}/qwbe-drill.XXXXXX")"
+work="$(mktemp -d "${TMPDIR:-/tmp}/rfi-drill.XXXXXX")"
 author="$work/author" upstream="$work/upstream.git" checkout="$work/checkout" backups="$work/backups"
 # shellcheck disable=SC2034  # read by drill.sh
 scripts="$checkout/scripts/production"
@@ -33,7 +33,7 @@ trap cleanup EXIT
 fail() { echo "drill: FAIL $*" >&2; exit 1; }
 pass() { echo "drill: ok   $*"; }
 
-# The project's volumes, by the names Docker will use: all of them `qwbe-drill-*`.
+# The project's volumes, by the names Docker will use: all of them `rfi-drill-*`.
 isolated() {
   local foreign
   foreign="$("${compose[@]}" config | awk -v prefix="$project-" '
@@ -61,12 +61,12 @@ set_env() { sed -i "s|^$1=.*|$1=$2|" "$checkout/.env"; }
 app_image() { docker inspect -f '{{.Image}}' "$("${compose[@]}" ps -q --status running app)"; }
 runs_image() { [[ "$(app_image)" == "$(docker image inspect -f '{{.Id}}' "$project:$1")" ]]; }
 # doctor in the running app: ready, plus an optional jq condition.
-doctor_ok() { "${compose[@]}" exec -T app node bin/qwbe-invoicing.ts doctor --json | jq -e ".ready == true and (${1:-true})" >/dev/null; }
+doctor_ok() { "${compose[@]}" exec -T app node bin/ro-free-invoice.ts doctor --json | jq -e ".ready == true and (${1:-true})" >/dev/null; }
 wait_ready() {
   for _ in $(seq 1 90); do [[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/health/ready")" == 200 ]] && return; sleep 2; done
   fail "app not ready on port $port"
 }
-archives() { find "$backups" -maxdepth 1 -type f -name 'qwbe-invoicing-*.tar.gz' | sort; }
+archives() { find "$backups" -maxdepth 1 -type f -name 'ro-free-invoice-*.tar.gz' | sort; }
 drill_psql() { "${compose[@]}" exec -T db psql -U postgres -d "$1" -tAc "$2"; }
 databases() { drill_psql postgres "SELECT string_agg(datname, ',' ORDER BY datname) FROM pg_database"; }
 volumes() { docker volume ls -q --filter "name=^$project-" | sort; }
@@ -87,7 +87,7 @@ login() {
   reply="$(printf '{"token":"%s"}' "$(cat "$work/secrets/api-token")" | curl -s --max-time 10 -D - -o "$work/reply" \
     -H "Host: ${origin#https://}" -H "X-Forwarded-Proto: https" -H "Origin: $origin" -H 'Content-Type: application/json' \
     --data-binary @- "http://127.0.0.1:$port/api/session")"
-  cookie="$(grep -i '^set-cookie: qwbe_session=' <<<"$reply" | cut -d' ' -f2 | cut -d';' -f1)"
+  cookie="$(grep -i '^set-cookie: rfi_session=' <<<"$reply" | cut -d' ' -f2 | cut -d';' -f1)"
   csrf="$(jq -r .csrfToken "$work/reply")"
   [[ -n "$cookie" && "$csrf" != null ]] || fail "login: $(head -n 1 <<<"$reply")"
 }
@@ -112,9 +112,9 @@ setup() {
   git clone -q --bare "$author" "$upstream"
   "${git[@]}" -C "$author" remote add origin "$upstream"
   git clone -q "$upstream" "$checkout"
-  sed -e "s|^PUBLIC_ORIGIN=.*|PUBLIC_ORIGIN=$origin|" -e "s|^QWBE_IMAGE=.*|QWBE_IMAGE=$project|" \
+  sed -e "s|^PUBLIC_ORIGIN=.*|PUBLIC_ORIGIN=$origin|" -e "s|^RFI_IMAGE=.*|RFI_IMAGE=$project|" \
     -e "s|^IMAGE_TAG=.*|IMAGE_TAG=install|" -e "s|^ORGANIZATION_ID=.*|ORGANIZATION_ID=drill-org|" \
-    -e "s|^QWBE_DATA_VOLUME=.*|QWBE_DATA_VOLUME=$project-data|" -e "s|^BACKUP_DIR=.*|BACKUP_DIR=$backups|" \
+    -e "s|^RFI_DATA_VOLUME=.*|RFI_DATA_VOLUME=$project-data|" -e "s|^BACKUP_DIR=.*|BACKUP_DIR=$backups|" \
     -e "s|^AUTH_TOKEN_PATH=.*|AUTH_TOKEN_PATH=$work/secrets/api-token|" \
     -e "s|^PG_SUPERUSER_PASSWORD_PATH=.*|PG_SUPERUSER_PASSWORD_PATH=$work/secrets/pg-superuser-password|" \
     -e "s|^PG_OWNER_PASSWORD_PATH=.*|PG_OWNER_PASSWORD_PATH=$work/secrets/pg-owner-password|" \
@@ -123,10 +123,10 @@ setup() {
     -e "s|^ANAF_TOKEN_KEY_PATH=.*|ANAF_TOKEN_KEY_PATH=$work/secrets/anaf-token-key|" \
     "$checkout/.env.example" > "$checkout/.env"
   printf '%s\n' "COMPOSE_PROJECT_NAME=$project" "COMPOSE_FILE=compose.prod.yaml:compose.loopback.yaml:$work/volumes.yaml" \
-    "APP_LOOPBACK_PORT=$port" QWBE_PLUGINS=payments,efactura QWBE_NETWORK_SUBNET=10.93.2.0/24 \
-    QWBE_NETWORK_SUBNET_IPV6=fd93:1c5e:a7b2::/64 >> "$checkout/.env"
+    "APP_LOOPBACK_PORT=$port" RFI_PLUGINS=payments,efactura RFI_NETWORK_SUBNET=10.93.2.0/24 \
+    RFI_NETWORK_SUBNET_IPV6=fd93:1c5e:a7b2::/64 >> "$checkout/.env"
   "$checkout/scripts/init-secrets.sh" "$checkout/.env" >/dev/null
-  # Every fixed volume name, renamed; the data volume follows QWBE_DATA_VOLUME in .env.
+  # Every fixed volume name, renamed; the data volume follows RFI_DATA_VOLUME in .env.
   printf '%s\n' volumes: "  invoicing-postgres: { name: $project-postgres }" \
     "  invoicing-backup-staging: { name: $project-backup-staging }" \
     "  caddy-data: { name: $project-caddy-data }" "  caddy-config: { name: $project-caddy-config }" > "$work/volumes.yaml"

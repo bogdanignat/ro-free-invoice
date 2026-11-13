@@ -11,7 +11,7 @@ const payment = (id: string, extra: Partial<Payment> = {}): Payment => ({
   id, kind: "payment", amount: "121.00", currency: "RON", paymentDate: "2026-08-31", method: "transfer", actorId: "user-1", ...extra,
 })
 const summary = (status: PaymentSummary["status"], remainingAmount: string, payments: ReadonlyArray<Payment> = []): PaymentSummary => ({
-  invoiceId: "invoice-1", status, paidAmount: payments.length === 0 ? "0.00" : "121.00", remainingAmount, payments,
+  invoiceId: "invoice-1", status, paidAmount: payments.length === 0 ? "0.00" : "121.00", creditedAmount: "0.00", remainingAmount, payments,
 })
 
 void test("allows payments only while an invoice has a remaining balance", () => {
@@ -46,6 +46,8 @@ void test("every status has a label and a badge tone", () => {
   assert.equal(paymentStatusTone("paid"), "positive")
   assert.equal(paymentStatusTone("overpaid"), "storno")
   assert.equal(paymentStatusTone("overdue"), paymentStatusTone("unpaid"))
+  assert.equal(paymentStatusLabel("credited"), "Stornată")
+  assert.equal(paymentStatusTone("credited"), "muted")
 })
 
 void test("a known method reads as its label, an unknown one as stored", () => {

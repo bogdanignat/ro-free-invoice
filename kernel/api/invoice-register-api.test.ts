@@ -52,9 +52,11 @@ void test("invoice register exposes invoices and corrections without changing /a
     assert.equal(items.length, 2)
     assert.deepEqual(items[0], { kind: "correction", id: (correction.body as { id: string }).id, series: "REG", number: 2,
       issueDate: "2026-09-05", customer: { name: "Client SRL" }, currency: "RON", totalIncludingVat: "-121.00",
-      dueDate: null, eFacturaStatus: "not_sent", originalReference: { id: invoiceId, series: "REG", number: 1 } })
+      dueDate: null, eFacturaStatus: "not_sent",
+      spv: { state: "not_sent", deadline: "2026-09-11", urgency: "ok" }, originalReference: { id: invoiceId, series: "REG", number: 1 } })
     assert.deepEqual(items[1], { kind: "invoice", id: invoiceId, series: "REG", number: 1, issueDate: "2026-09-04",
-      customer: { name: "Client SRL" }, currency: "RON", totalIncludingVat: "121.00", dueDate: "2026-09-20", eFacturaStatus: "not_sent" })
+      customer: { name: "Client SRL" }, currency: "RON", totalIncludingVat: "121.00", dueDate: "2026-09-20", eFacturaStatus: "not_sent",
+      spv: { state: "not_sent", deadline: "2026-09-11", urgency: "ok" } })
     assert.equal(Object.hasOwn(items[1] as object, "originalReference"), false)
     const oldInvoices = (await call("GET", "/api/invoices")).body as { items: ReadonlyArray<{ id: string }> }
     assert.deepEqual(oldInvoices.items.map((item) => item.id), [invoiceId])
@@ -85,18 +87,30 @@ void test("invoice register exposes invoices and corrections without changing /a
     assert.deepEqual(await listed("q=CLIENT&kind=invoice&from=2026-09-05"), ["invoice:3"])
     assert.deepEqual(await listed("q=%20%20"), ["invoice:3", "correction:2", "invoice:1"])
     assert.deepEqual(await listed("q=%25"), [])
-    const refusals: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
-      ["from=2026-09-05&to=2026-09-04", ["from must not be after to"]],
-      ["from=2026-02-30", ["from must be a calendar date in YYYY-MM-DD format"]],
-      ["to=04.09.2026", ["to must be a calendar date in YYYY-MM-DD format"]],
-      ["kind=draft", ["kind: kind must be invoice or correction"]],
-      [`q=${"x".repeat(101)}`, ["q must be at most 100 characters"]],
-      ["q=a%00b", ["q must not contain control characters"]],
-      ["limit=0", ["limit must be an integer between 1 and 200"]],
-      ["limit=201", ["limit must be an integer between 1 and 200"]],
+    // The column the submission transaction projects; set as it would be, one resolved and one failed document.
+    await fixture.pool.query("UPDATE issued_invoices SET e_factura_status='accepted' WHERE id=$1", [invoiceId])
+    await fixture.pool.query("UPDATE correction_documents SET e_factura_status='rejected' WHERE id=$1", [(correction.body as { id: string }).id])
+    assert.deepEqual(await listed("spv=unresolved"), ["invoice:3", "correction:2"])
+    assert.deepEqual(await listed("spv=unresolved&kind=invoice"), ["invoice:3"])
+    const pluginOff = { ...runtime, plugins: { ...allPlugins, efactura: false } }
+    assert.deepEqual(await call("GET", "/api/invoice-register?spv=unresolved", undefined, undefined, pluginOff),
+      { status: 400, body: { error: "ValidationFailure", issues: ["spv filter requires the e-Factura plugin"], details: [{ code: "unclassified" }] } })
+    assert.equal((await call("GET", "/api/invoice-register", undefined, undefined, pluginOff)).status, 200)
+    const refusals: ReadonlyArray<readonly [string, ReadonlyArray<string>, ReadonlyArray<object>]> = [
+      ["from=2026-09-05&to=2026-09-04", ["from must not be after to"], [{ code: "range_inverted", field: "from" }]],
+      ["from=2026-02-30", ["from must be a calendar date in YYYY-MM-DD format"], [{ code: "date_format", field: "from" }]],
+      ["to=04.09.2026", ["to must be a calendar date in YYYY-MM-DD format"], [{ code: "date_format", field: "to" }]],
+      ["kind=draft", ["kind: kind must be invoice or correction"], []],
+      ["spv=sent", ["spv: spv must be unresolved"], []],
+      [`q=${"x".repeat(101)}`, ["q must be at most 100 characters"], [{ code: "too_long", field: "q", params: { maximum: 100 } }]],
+      ["q=a%00b", ["q must not contain control characters"], [{ code: "control_characters", field: "q" }]],
+      ["limit=0", ["limit must be an integer between 1 and 200"], [{ code: "limit_out_of_range", field: "limit", params: { maximum: 200 } }]],
+      ["limit=201", ["limit must be an integer between 1 and 200"], [{ code: "limit_out_of_range", field: "limit", params: { maximum: 200 } }]],
     ]
-    for (const [query, issues] of refusals) {
-      assert.deepEqual(await call("GET", `/api/invoice-register?${query}`), { status: 400, body: { error: "ValidationFailure", issues } }, query)
+    for (const [query, issues, coded] of refusals) {
+      // The request decoder (api-routing.ts) answers kind and spv with `issues` alone until T-2692.
+      const details = coded.length === 0 ? {} : { details: coded }
+      assert.deepEqual(await call("GET", `/api/invoice-register?${query}`), { status: 400, body: { error: "ValidationFailure", issues, ...details } }, query)
     }
 
     const oldCursor = Buffer.from(JSON.stringify({ issueDate: "2026-09-05", number: 2, id: "x" })).toString("base64url")
@@ -106,7 +120,7 @@ void test("invoice register exposes invoices and corrections without changing /a
       assert.equal((await call("GET", url)).status, 400, url)
     }
     assert.deepEqual(await call("GET", `/api/invoice-register?cursor=${badKind}`),
-      { status: 400, body: { error: "ValidationFailure", issues: ["cursor is invalid"] } })
+      { status: 400, body: { error: "ValidationFailure", issues: ["cursor is invalid"], details: [{ code: "cursor_invalid", field: "cursor" }] } })
     assert.equal((await handleApiRequest({ method: "GET", url: "/api/invoice-register", authorization: undefined, body: undefined }, runtime)).status, 401)
     const perms = invoicingPermissions("invoicing")
     const deniedRuntime = { ...runtime, authenticate: () => ({ current: Effect.succeed({ identity: { id: "u", username: "u", roles: [],

@@ -107,6 +107,8 @@ export interface DocumentBody {
 export interface IssuedInvoice extends DocumentBody {
   readonly id: string
   readonly dueDate: string | null
+  /** The date the VAT followed; the issue date when no earlier supply was given. */
+  readonly supplyDate: string
   readonly notes: string | null
   /** `null` when the installation runs no e-Factura plugin. */
   readonly eFacturaStatus: EFacturaStatus | null

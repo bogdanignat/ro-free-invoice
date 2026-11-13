@@ -1,27 +1,24 @@
 import { issuerSaveFailureMessages } from "./issuer-save-failures.ts"
+import { localizedIssue } from "./issue-messages.ts"
+import { localizedIssueField } from "./issue-field.ts"
 
 export class ApiFailure extends Error {
   readonly status: number | undefined
   readonly code: string | undefined
   readonly issues: ReadonlyArray<string>
+  /** The field the message names, when it was read from a coded detail. */
+  readonly field: string | undefined
 
-  constructor(input: { readonly message: string; readonly status?: number; readonly code?: string; readonly issues?: ReadonlyArray<string> }) {
+  constructor(input: {
+    readonly message: string; readonly status?: number; readonly code?: string
+    readonly issues?: ReadonlyArray<string>; readonly field?: string | undefined
+  }) {
     super(input.message)
     this.name = "ApiFailure"
     this.status = input.status
     this.code = input.code
     this.issues = input.issues ?? []
-  }
-}
-
-/**
- * A logout the server never confirmed, which is not the same as a session ended.
- */
-export class LogoutUnconfirmedError extends Error {
-  constructor(cause: unknown) {
-    const detail = cause instanceof Error ? ` ${cause.message}` : ""
-    super(`Serverul nu a confirmat ieșirea; sesiunea poate rămâne activă.${detail}`)
-    this.name = "LogoutUnconfirmedError"
+    this.field = input.field
   }
 }
 
@@ -119,8 +116,9 @@ export const parseApiFailure = (input: unknown, status: number): ApiFailure => {
   const localizedCode = code === undefined ? undefined : failureMessages[code]
   const message = localizedCode ?? (typeof value.message === "string"
     ? value.message
-    : issues[0] ?? (code === undefined
+    : localizedIssue(value.details) ?? issues[0] ?? (code === undefined
       ? (error === undefined ? `Cererea a eșuat (${String(status)}).` : failureMessages[error] ?? error)
       : error ?? code))
-  return new ApiFailure({ message, status, issues, ...(code === undefined ? {} : { code }) })
+  const field = localizedIssueField(value.details, message)
+  return new ApiFailure({ message, status, issues, field, ...(code === undefined ? {} : { code }) })
 }

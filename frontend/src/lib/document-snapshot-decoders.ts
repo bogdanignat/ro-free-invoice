@@ -150,6 +150,7 @@ export const decodeIssuedInvoice: Decoder<IssuedInvoice> = (input) => {
     ...decodeDocumentBody(value),
     id: text(value.id, "id"),
     dueDate: nullableText(value.dueDate, "dueDate"),
+    supplyDate: text(value.supplyDate, "supplyDate"),
     notes: nullableText(value.notes, "notes"),
     // The same closed enum the register decodes, not free text: the detail and
     // the list name one invoice's status, so they must read one contract.

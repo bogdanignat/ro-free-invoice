@@ -14,7 +14,7 @@ import { URL } from "node:url"
 import pg from "pg"
 
 
-import { translatedMessage, translatedPredicate, triggerDifferences } from "./pg-schema-trigger-parity-lib.mjs"
+import { footprint, translatedMessage, translatedPredicate, triggerDifferences } from "./pg-schema-trigger-parity-lib.mjs"
 import { migrationScopes } from "../kernel/storage/postgres-migration-plans.ts"
 import {
   applyMigrations, applyMigrationsOnClient, assertCollationC, databaseReady, planMigrations,
@@ -207,6 +207,10 @@ const main = async () => {
       "correction_lines_barcode_gtin", "product_presets_code_shape", "product_presets_barcode_gtin", "product_presets_kind_valid",
       // T-2129: the bounded payment texts.
       "invoice_payments_method_length", "invoice_payments_external_reference_length", "invoice_payments_note_length",
+      // T-2678: the seal flag of issued invoices and corrections.
+      "issued_invoices_sealed_valid", "correction_documents_sealed_valid",
+      // T-2679: the supply date is never after the issue date, on a draft and on an issued invoice.
+      "invoice_drafts_supply_date_not_after_issue", "issued_invoices_supply_date_not_after_issue",
     ]
     const goldenTables = [...golden.plans.flatMap((plan) => plan.tables.map(({ name }) => name)), ...postCaptureTables].sort()
     const goldenIndexes = [...golden.plans.flatMap((plan) => plan.explicitIndexes.map(({ name }) => name)), ...postCaptureIndexes].sort()
@@ -227,12 +231,13 @@ const main = async () => {
     // 33 of its received invoices, the e-Factura status of a correction and the
     // archived flag of a series (T-2082), whose draft trigger gained a function, plus
     // the 11 item-code, EAN and product-kind checks of T-2074 and the 3 payment-text
-    // checks of T-2129, each present by name.
-    check("70 triggers, 221 named checks, 8 functions", () => {
-      assert.equal(countOf(inventoryA, "trigger"), 70)
+    // checks of T-2129, each present by name; T-2678 added the 4 late-insert guards
+    // of issued invoices and corrections, T-2679 the 2 supply-date checks.
+    check("76 triggers, 225 named checks, 12 functions", () => {
+      assert.equal(countOf(inventoryA, "trigger"), 76)
       for (const name of postCaptureChecks) assert.ok(inventoryA.some((entry) => entry.startsWith(`check ${name} `)), name)
       assert.equal(countOf(inventoryA, "check"), 207 + postCaptureChecks.length)
-      assert.equal(countOf(inventoryA, "function"), 8)
+      assert.equal(countOf(inventoryA, "function"), 12)
     })
     check("every check constraint is named and within 63 characters", () => {
       const names = inventoryA.filter((entry) => entry.startsWith("check "))
@@ -291,6 +296,20 @@ const main = async () => {
           "customer_street", "customer_county", "customer_sector", "customer_postal_code", "customer_vat_registered",
           "total_excluding_tax", "tax_total", "total_including_tax", "notes", "customer_id"],
       },
+      // T-2678: the parent is read through the trigger's own schema, so the subquery became a
+      // dynamic SELECT and the refusal an `IS DISTINCT FROM 0` on its result (an invisible parent too).
+      proforma_lines_no_late_insert: { when: "parent_sealed IS DISTINCT FROM 0" },
+      proforma_tax_no_late_insert: { when: "parent_sealed IS DISTINCT FROM 0" },
+      // T-2679: the supply date is as immutable as the issue date it follows.
+      issued_invoices_no_update: {
+        updateOf: ["id", "draft_id", "source_proforma_id", "organization_id", "fiscal_year", "document_type", "series", "number",
+          "issue_date", "due_date", "supply_date", "issued_at", "currency", "issuer_legal_name", "issuer_tax_identifier",
+          "issuer_country_code", "issuer_city", "issuer_street", "issuer_county", "issuer_sector", "issuer_postal_code",
+          "issuer_legal_form", "issuer_trade_registry_number", "issuer_iban", "issuer_bank_name", "issuer_social_capital",
+          "issuer_vat_registered", "issuer_branding", "customer_party_type", "customer_legal_name", "customer_tax_identifier",
+          "customer_country_code", "customer_city", "customer_street", "customer_county", "customer_sector", "customer_postal_code",
+          "customer_vat_registered", "total_excluding_tax", "tax_total", "total_including_tax", "notes"],
+      },
     }
     const changedWith = (property) => Object.entries(changedAfterCapture)
       .filter(([, change]) => change[property] !== undefined && change[property] !== false).map(([name]) => name)
@@ -307,6 +326,12 @@ const main = async () => {
     // The e-Factura triggers came after the capture: each is declared here with
     // its table, event, column list and message, and held to exactly that.
     const postCaptureTriggers = {
+      issued_lines_no_late_insert: ["issued_lines", "INSERT", "issued invoice lines are sealed", []],
+      issued_tax_breakdown_no_late_insert: ["issued_tax_breakdown", "INSERT", "issued invoice tax breakdown is sealed", []],
+      correction_lines_no_late_insert: ["correction_lines", "INSERT", "correction lines are sealed", []],
+      correction_tax_breakdown_no_late_insert: ["correction_tax_breakdown", "INSERT", "correction tax breakdown is sealed", []],
+      issued_invoices_seal_only: ["issued_invoices", "UPDATE", "issued invoices are immutable", ["sealed"]],
+      correction_documents_seal_only: ["correction_documents", "UPDATE", "correction documents are immutable", ["sealed"]],
       efactura_submissions_content_no_update: ["efactura_submissions", "UPDATE", "e-Factura submission content is immutable",
         ["organization_id", "environment", "document_kind", "document_id", "standard", "cif", "buyer_is_individual", "xml", "xml_sha256", "xml_size", "created_by", "created_at"]],
       efactura_submissions_no_delete: ["efactura_submissions", "DELETE", "e-Factura submissions are kept", []],
@@ -319,6 +344,11 @@ const main = async () => {
       efactura_received_archives_no_update: ["efactura_received_archives", "UPDATE", "received e-Factura archives are immutable", []],
       efactura_received_archives_no_delete: ["efactura_received_archives", "DELETE", "received e-Factura archives are immutable", []],
     }
+    // The post-capture triggers with a WHEN, and its predicate: the rest fire unconditionally.
+    const postCaptureWhen = {
+      issued_invoices_seal_only: "OLD.sealed=1 OR NEW.sealed!=1",
+      correction_documents_seal_only: "OLD.sealed=1 OR NEW.sealed!=1",
+    }
     const allTriggers = (await first.query(TRIGGER_ROWS)).rows
     const liveTriggers = allTriggers.filter(({ name }) => !(name in postCaptureTriggers))
     check("every post-capture trigger is exactly the declared one", () => {
@@ -326,7 +356,11 @@ const main = async () => {
         row.on_update ? "UPDATE" : row.on_delete ? "DELETE" : "INSERT", translatedMessage(row), row.update_of]])
       assert.deepEqual(Object.fromEntries(live), postCaptureTriggers)
       assert.ok(allTriggers.filter(({ name }) => name in postCaptureTriggers)
-        .every((row) => row.before && row.for_each_row && !row.has_when), "BEFORE, FOR EACH ROW, unconditional")
+        .every((row) => row.before && row.for_each_row && row.has_when === (row.name in postCaptureWhen)), "BEFORE, FOR EACH ROW, WHEN as declared")
+      for (const [name, when] of Object.entries(postCaptureWhen)) {
+        const row = allTriggers.find((trigger) => trigger.name === name)
+        assert.deepEqual(footprint(translatedPredicate(row).expression), footprint(when), name)
+      }
     })
     check("every trigger matches the frozen SQLite capture", () => {
       assert.deepEqual(triggerDifferences(goldenTriggers, liveTriggers), [])
@@ -514,7 +548,7 @@ const main = async () => {
         const covered = new Set(triggerRejections.map(([name]) => name))
         assert.deepEqual([...triggerNames].filter((name) => !covered.has(name)), [], "uncovered triggers")
         assert.deepEqual([...covered].filter((name) => !triggerNames.has(name)), [], "cases without a trigger")
-        assert.equal(covered.size, 70)
+        assert.equal(covered.size, 76)
       })
 
       for (const [trigger, sql, message] of triggerRejections) {
@@ -671,13 +705,13 @@ const main = async () => {
       let deferredCode
       try {
         await behaviourClient.query(`INSERT INTO issued_invoices(id,draft_id,organization_id,fiscal_year,
-          document_type,series,number,issue_date,issued_at,currency,issuer_legal_name,issuer_tax_identifier,
+          document_type,series,number,issue_date,supply_date,issued_at,currency,issuer_legal_name,issuer_tax_identifier,
           issuer_country_code,issuer_city,issuer_street,issuer_county,customer_legal_name,
           customer_tax_identifier,customer_country_code,customer_city,customer_street,customer_county,
           total_excluding_tax,tax_total,total_including_tax,customer_party_type,customer_vat_registered,
           source_proforma_id,issuer_legal_form,issuer_trade_registry_number,issuer_iban,issuer_bank_name,
           issuer_social_capital,actor_id,issuer_vat_registered)
-          VALUES('inv-deferred',NULL,'org-1',2026,'invoice','INV',7,'2026-09-01','t','RON','F','1','RO','X',
+          VALUES('inv-deferred',NULL,'org-1',2026,'invoice','INV',7,'2026-09-01','2026-09-01','t','RON','F','1','RO','X',
           'Y','RO-IS','C','2','RO','X','Y','RO-IS',100,0,100,'company',1,'pf-1','srl','J','I','B',
           100,'operator',1)`)
       } catch (error) {

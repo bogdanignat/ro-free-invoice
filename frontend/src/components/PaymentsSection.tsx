@@ -6,7 +6,7 @@ import { Select } from "./ui/Select.tsx"
 import { Textarea } from "./ui/Textarea.tsx"
 import type { InvoicePaymentsModel } from "../hooks/invoice-payments-query.ts"
 import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
-import { PAYMENT_METHODS } from "../lib/payment-state.ts"
+import { OVERPAID_NOTE, PAYMENT_METHODS } from "../lib/payment-state.ts"
 
 /**
  * The payments of an issued invoice, rendered from the model: which rows may
@@ -34,6 +34,7 @@ export const PaymentsSection = ({ payments }: { readonly payments: InvoicePaymen
       : <>
         <dl className="payment-totals">
           <div><dt>Încasat</dt><dd>{view.paid}</dd></div>
+          <div><dt>Stornat</dt><dd>{view.credited}</dd></div>
           <div><dt>Rămas</dt><dd>{view.remaining}</dd></div>
         </dl>
         {payments.notice === undefined ? null : <p className="status-note" role="status">{payments.notice}</p>}
@@ -60,7 +61,7 @@ export const PaymentsSection = ({ payments }: { readonly payments: InvoicePaymen
             </div>)}
           </div>}
         {view.isOverpaid
-          ? <p className="status-note warning">Încasările înregistrate depășesc totalul facturii. Nu mai pot fi adăugate plăți.</p>
+          ? <p className="status-note warning">{OVERPAID_NOTE}</p>
           : null}
         {view.closedNote === undefined ? null : <p className="status-note">{view.closedNote}</p>}
         {view.canRecordPayment

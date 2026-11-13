@@ -28,6 +28,7 @@ export const decodePaymentSummary: Decoder<PaymentSummary> = (input) => {
     invoiceId: text(value.invoiceId, "invoiceId"),
     status: literal(PAYMENT_STATUSES, value.status, "status"),
     paidAmount: text(value.paidAmount, "paidAmount"),
+    creditedAmount: text(value.creditedAmount, "creditedAmount"),
     remainingAmount: text(value.remainingAmount, "remainingAmount"),
     payments: array(value.payments, decodePayment, "payments"),
   }

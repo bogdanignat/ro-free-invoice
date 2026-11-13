@@ -2,7 +2,7 @@ import type { Effect } from "effect"
 
 import type { DomainConflict, PersistenceFailure } from "../contracts/failures.ts"
 import type { ReportPeriod } from "../../corrections/index.ts"
-import type { CollectionInvoiceRow, MonthlyCollections } from "../domain/settlement.ts"
+import type { CollectionInvoiceRow, MonthlyCollections } from "../domain/collections-report.ts"
 import type { Payment, PaymentIdempotencyRecord } from "../domain/payments.ts"
 
 type Read<Value> = Effect.Effect<Value, PersistenceFailure>
@@ -13,6 +13,8 @@ export interface InvoiceSnapshot {
   readonly currency: string
   readonly dueDate: string | null
   readonly totalIncludingVat: string
+  /** Sum of the stornos issued on the invoice, positive, "0.00" with none. */
+  readonly creditedAmount: string
 }
 export interface AuditEvent {
   readonly id: string

@@ -46,7 +46,7 @@ export const companyLookupRig = (pool: Pool, dataDirectory: string, options: { r
     process.stdout.write = capture(out)
     process.stderr.write = capture(err)
     try {
-      const response = await handler.handle(new Request(`http://qwbe.local/api${path}`, { method,
+      const response = await handler.handle(new Request(`http://rfi.local/api${path}`, { method,
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }) }))
       const text = await response.text()

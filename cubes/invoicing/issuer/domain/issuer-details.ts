@@ -1,5 +1,5 @@
 import { ValidationFailure } from "../../contracts/failures.ts"
-import { formatDecimal, parseUnsignedDecimal } from "../../contracts/money.ts"
+import { formatDecimal, parseUnsignedDecimal } from "../../money/index.ts"
 import type { IssuerCompanySnapshot } from "../../domain/invoice.ts"
 
 type CompanyDetails = Pick<IssuerCompanySnapshot, "legalForm" | "tradeRegistryNumber" | "iban" | "bankName" | "socialCapital">

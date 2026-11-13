@@ -11,7 +11,7 @@
 #
 # Run: docker compose --file compose.pg-driver-probe.yaml run --rm driver-probe
 # Down: docker compose --file compose.pg-driver-probe.yaml down   (no volume, no -v)
-name: qwbe-invoicing-pg-driver-probe
+name: ro-free-invoice-pg-driver-probe
 
 services:
   db:
@@ -62,7 +62,7 @@ services:
     restart: "no"
 
 volumes:
-  # Produced by the `qwbe-invoicing-verify` compose project; read-only here.
+  # Produced by the `ro-free-invoice-verify` compose project; read-only here.
   verify-node-modules:
     external: true
-    name: qwbe-invoicing-verify_verify-node-modules
+    name: ro-free-invoice-verify_verify-node-modules

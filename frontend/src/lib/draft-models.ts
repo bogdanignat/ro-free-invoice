@@ -33,6 +33,8 @@ export interface DraftInvoice {
   readonly series: string
   readonly issueDate: string
   readonly dueDate: string | null
+  /** Absent (`null` on the wire) while the supply is the issue date, so the VAT follows the issue date. */
+  readonly supplyDate?: string
   readonly currency: string
   readonly notes: string | null
   readonly status: DraftStatus
@@ -165,6 +167,7 @@ export type CreateDraftInput = BuyerSource & {
   readonly issueDate: string
   readonly currency?: "RON"
   readonly dueDate?: string | null
+  readonly supplyDate?: string | null
   readonly notes?: string | null
   /**
    * A draft is created whole: header and every line commit in one transaction
@@ -180,6 +183,8 @@ export type UpdateDraftInput = BuyerSource & {
   readonly series?: string
   readonly issueDate: string
   readonly dueDate?: string | null
+  /** Like `dueDate`: absent clears it, so the VAT follows the issue date again. */
+  readonly supplyDate?: string | null
   readonly notes?: string | null
 }
 

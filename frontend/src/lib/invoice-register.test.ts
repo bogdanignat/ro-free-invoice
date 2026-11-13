@@ -14,6 +14,7 @@ const invoice = {
   totalIncludingVat: "1190.00",
   dueDate: "2026-03-05",
   eFacturaStatus: "accepted",
+  spv: { state: "accepted", deadline: "2026-02-10", urgency: null },
 }
 
 const correction = {
@@ -27,6 +28,7 @@ const correction = {
   totalIncludingVat: "-1190.00",
   dueDate: null,
   eFacturaStatus: null,
+  spv: null,
   originalReference: { id: "inv-1", series: "FCT", number: 12 },
 }
 
@@ -124,4 +126,14 @@ void test("one unreadable row fails the page instead of being dropped from it", 
 void test("a response that is not a page is refused", () => {
   assert.throws(() => decodeInvoiceRegisterPage([invoice]), /expected object/u)
   assert.throws(() => decodeInvoiceRegisterPage({ items: invoice, nextCursor: null }), /invalid items/u)
+})
+
+void test("the SPV group is decoded as a closed enum, null with the plugin off, and a missing one is refused", () => {
+  assert.deepEqual(decodeInvoiceRegisterRow(invoice).spv, { state: "accepted", deadline: "2026-02-10", urgency: null })
+  assert.equal(decodeInvoiceRegisterRow(correction).spv, null)
+  const spv = { state: "failed", deadline: "2026-02-10", urgency: "overdue" }
+  assert.equal(decodeInvoiceRegisterRow({ ...invoice, spv }).spv?.urgency, "overdue")
+  assert.throws(() => decodeInvoiceRegisterRow({ ...invoice, spv: { ...spv, state: "sent" } }))
+  assert.throws(() => decodeInvoiceRegisterRow({ ...invoice, spv: { ...spv, urgency: "late" } }))
+  assert.throws(() => decodeInvoiceRegisterRow({ ...invoice, spv: undefined }))
 })

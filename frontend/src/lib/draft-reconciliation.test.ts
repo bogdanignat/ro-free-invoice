@@ -31,7 +31,7 @@ const form = (patch: Partial<InvoiceAuthoringForm> = {}): InvoiceAuthoringForm =
   buyerMode: "one-time", customerId: "", partyType: "company", name: "Alfa",
   companyTaxIdentifier: "123", individualTaxIdentifier: "", vatRegistered: false,
   countryCode: "RO", city: "B", street: "s", county: "RO-B", sector: 1, postalCode: "",
-  series: "FCT", issueDate: "2026-01-01", dueDate: "", dueDateEdited: false, notes: "",
+  series: "FCT", issueDate: "2026-01-01", dueDate: "", dueDateEdited: false, supplyDate: "", notes: "",
   ...patch,
 })
 

@@ -129,7 +129,7 @@ if (command?.name === "backup-inspect") {
       }
       // Set when the e-Factura environment guard refuses: the shutdown then ends with 1 whatever its steps answer.
       let refused = false
-      // Once the database is ready: `ANAF_ENVIRONMENT` is checked against the stored submissions whatever `QWBE_PLUGINS`
+      // Once the database is ready: `ANAF_ENVIRONMENT` is checked against the stored submissions whatever `RFI_PLUGINS`
       // says, before any traffic; the dispatcher runs only with e-Factura on.
       const efactura = startEFacturaRuntime({
         pool: runtime.pool, settings, anaf: config.anaf ?? ANAF_NOT_CONFIGURED, pluginOn: config.plugins.efactura,

@@ -1,9 +1,10 @@
 import { Effect } from "effect"
 
-import { ResourceNotFound, ValidationFailure, type InvoicingFailure } from "../contracts/failures.ts"
+import { ResourceNotFound, ValidationFailure, validationFailure, type InvoicingFailure } from "../contracts/failures.ts"
 import type { Clock, IdGenerator, RequestContext, TransactionalStore } from "../contracts/host.ts"
 import type { AuditEvent, BuyerSnapshot, DocumentSource, IssuerCompanySnapshot, IssuerSnapshot, PartySnapshot } from "../domain/invoice.ts"
 import type { DocumentCursor, DraftCursor, InvoicingTransaction, NameCursor, PageQuery, TransactionFailure } from "./ports.ts"
+import { cursorInvalid, limitOutOfRange } from "../issues/index.ts"
 
 export type { DocumentCursor, DraftCursor, NameCursor, PageQuery } from "./ports.ts"
 
@@ -56,7 +57,7 @@ export interface Page<Item> { readonly items: ReadonlyArray<Item>; readonly next
 export const defaultPageSize = 100
 export const maximumPageSize = 200
 
-export const invalidCursor = () => new ValidationFailure({ issues: ["cursor is invalid"] })
+export const invalidCursor = () => validationFailure([cursorInvalid()])
 
 const decodeCursor = (cursor: string): Readonly<Record<string, unknown>> => {
   let parsed: unknown
@@ -78,9 +79,7 @@ export const cursorInteger = (value: unknown): number => {
 
 const pageLimit = (request: PageRequest | undefined): number => {
   const limit = request?.limit ?? defaultPageSize
-  if (!Number.isInteger(limit) || limit < 1 || limit > maximumPageSize) throw new ValidationFailure({
-    issues: [`limit must be an integer between 1 and ${String(maximumPageSize)}`],
-  })
+  if (!Number.isInteger(limit) || limit < 1 || limit > maximumPageSize) throw validationFailure([limitOutOfRange(maximumPageSize)])
   return limit
 }
 

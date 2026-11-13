@@ -65,7 +65,7 @@ export interface BackupSession {
   readonly organizationId: string | undefined
 }
 
-const dumpTimeoutMillis = 10 * 60_000
+const dumpTimeoutMillis = 30 * 60_000
 
 /**
  * What a backup would contain, read without the lock and without writing.

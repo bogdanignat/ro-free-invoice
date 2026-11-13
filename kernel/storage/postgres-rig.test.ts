@@ -117,20 +117,20 @@ void test("every rig pool runs with bounded statement, lock and idle-transaction
 })
 
 // The prefix is what scripts/verify-docker.sh reclaims by, and the only name the rig will drop.
-void test("a test database is named qwbe_t_<run>_ and an invalid run id is refused", async () => {
+void test("a test database is named rfi_t_<run>_ and an invalid run id is refused", async () => {
   const fixture = await emptyFixture("rig_name")
   try {
-    assert.ok(fixture.database.startsWith(`qwbe_t_${process.env.QWBE_TEST_RUN ?? "rig"}_`), fixture.database)
+    assert.ok(fixture.database.startsWith(`rfi_t_${process.env.RFI_TEST_RUN ?? "rig"}_`), fixture.database)
   } finally {
     await fixture.close()
   }
-  const run = process.env.QWBE_TEST_RUN
-  process.env.QWBE_TEST_RUN = "Not-Valid"
+  const run = process.env.RFI_TEST_RUN
+  process.env.RFI_TEST_RUN = "Not-Valid"
   try {
-    await assert.rejects(() => emptyFixture("rig_bad_run"), /invalid QWBE_TEST_RUN/u)
+    await assert.rejects(() => emptyFixture("rig_bad_run"), /invalid RFI_TEST_RUN/u)
   } finally {
-    if (run === undefined) delete process.env.QWBE_TEST_RUN
-    else process.env.QWBE_TEST_RUN = run
+    if (run === undefined) delete process.env.RFI_TEST_RUN
+    else process.env.RFI_TEST_RUN = run
   }
 })
 

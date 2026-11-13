@@ -20,7 +20,7 @@ void describe("production kernel: session lifecycle and downloads", { timeout: 1
 
   before(async () => {
     // Without company-lookup: the issuer this session seeds would otherwise be checked against the live ANAF registry.
-    kernel = await startKernel("app_runtime_session", { ...productionEnvironment, QWBE_PLUGINS: "payments,efactura" })
+    kernel = await startKernel("app_runtime_session", { ...productionEnvironment, RFI_PLUGINS: "payments,efactura" })
     opened = await send({ path: "/api/session", method: "POST", body: { token: kernel.token }, headers: { ...json, origin: publicOrigin } })
     assert.equal(opened.status, 200, JSON.stringify(opened.body))
     cookie = sessionCookie(opened).split(";", 1)[0]
@@ -31,7 +31,7 @@ void describe("production kernel: session lifecycle and downloads", { timeout: 1
 
   void test("login answers a Secure, HttpOnly, Strict cookie on /api, and the session resumes", async () => {
     const setCookie = sessionCookie(opened)
-    assert.match(setCookie, /^qwbe_session=[A-Za-z0-9_-]{43}; /u)
+    assert.match(setCookie, /^rfi_session=[A-Za-z0-9_-]{43}; /u)
     for (const attribute of ["Path=/api", "HttpOnly", "SameSite=Strict", "Secure"]) {
       assert.ok(setCookie.split("; ").includes(attribute), `${attribute} in ${setCookie}`)
     }
@@ -84,7 +84,7 @@ void describe("production kernel: session lifecycle and downloads", { timeout: 1
   void test("after logout the old cookie is worth nothing", async () => {
     const closed = await send({ path: "/api/session", method: "DELETE", headers: { cookie, origin: publicOrigin, "x-csrf-token": csrfToken } })
     assert.equal(closed.status, 200)
-    assert.match(sessionCookie(closed), /^qwbe_session=; .*Max-Age=0/u)
+    assert.match(sessionCookie(closed), /^rfi_session=; .*Max-Age=0/u)
     const replay = await send({ path: "/api/session", headers: { cookie } })
     assert.equal(replay.status, 401)
     assertEdgeHeaders(replay, "replay")

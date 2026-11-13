@@ -1,0 +1,35 @@
+[Unit]
+Description=ro-free-invoice backup (scripts/production/backup.sh), run by ro-free-invoice-backup.timer
+# Install, check and logs: docs/RELEASE.md, "Backup".
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# The installation directory, where .env and compose.prod.yaml are: adjust both paths
+# (and User) to the server before installing.
+WorkingDirectory=/opt/ro-free-invoice
+ExecStart=/opt/ro-free-invoice/scripts/production/backup.sh
+# A user with access to Docker (group `docker`), owner of the installation; not root.
+User=ro-free-invoice
+# The CLI bounds the dump at 30 minutes and each read pass over the archive at 60
+# (kernel/ops/postgres-backup-tar.ts); copy, hashing, compression, the read-back
+# verification and the restart of app fit in the rest (~2h05 at worst, see below).
+# No internal bound exceeds this.
+TimeoutStartSec=3h
+# On that timeout (or a `systemctl stop`) systemd sends SIGTERM to the script only
+# (KillMode=mixed). Bash runs its trap once the current command ends, which can be the
+# whole `backup` run, then starts app again. So the stop timeout covers that command
+# plus the trap: the 30-minute dump, the copy, hashing and gzip of ~33 GB (unbounded,
+# ~30 min at pessimistic disk and gzip speeds), the 60-minute verification pass and
+# the 5-minute wait for app healthy (wait_app_healthy 300), ~2h05 in all, with margin.
+# Only after it does SIGKILL hit the whole group. If that ever happens, the trap does
+# not run, app stays stopped, and .local/production/app-stopped makes the next backup
+# or deploy refuse with the steps.
+TimeoutStopSec=2h30min
+KillMode=mixed
+NoNewPrivileges=true
+UMask=0077
+# stdout/stderr go to the journal: journalctl -u ro-free-invoice-backup.service
+# A failure leaves the unit failed (systemctl --failed). To be alerted, add an
+# OnFailure= unit of your own.

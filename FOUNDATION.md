@@ -1,11 +1,11 @@
-# QWBE Invoicing Foundation
+# RO Free Invoice Foundation
 
-Status: architecture baseline; T-1876 direction (standalone plugin pack), with plugin selection through `QWBE_PLUGINS` and conditional plugin composition in the kernel
+Status: architecture baseline; T-1876 direction (standalone plugin pack), with plugin selection through `RFI_PLUGINS` and conditional plugin composition in the kernel
 Source snapshot: QWBE mother repository at `a98d9ef` (main, 31 August 2026; previous baseline `987e11b`); structural reference: `qwbe-plugins/crm-pack`
 Conformance review against that snapshot: 2 September 2026, section 18 (historical)
 Package manager: pnpm
 Runtime: Node.js + TypeScript + **Effect 3.x as primary runtime** (`effect`, `@effect/platform`) — all cube application logic, host capabilities (Clock, Store, IdGenerator, Auth), and HTTP handling are modelled as `Effect`
-UI: React 19 + TypeScript styled with Tailwind CSS 4, a single-page application in `frontend/` built with Vite and routed with TanStack Router (file routes in `frontend/src/routes/`); the kernel serves the build (`QWBE_UI_DIR`) and the API (`/api/*`) on one origin, `PUBLIC_ORIGIN`, so the browser calls `/api` directly with its session cookie; TanStack Query integrates server state with React. The boundary remains API-first: every cube use-case has a corresponding authenticated HTTP endpoint, and the UI contains no fiscal business logic
+UI: React 19 + TypeScript styled with Tailwind CSS 4, a single-page application in `frontend/` built with Vite and routed with TanStack Router (file routes in `frontend/src/routes/`); the kernel serves the build (`RFI_UI_DIR`) and the API (`/api/*`) on one origin, `PUBLIC_ORIGIN`, so the browser calls `/api` directly with its session cookie; TanStack Query integrates server state with React. The boundary remains API-first: every cube use-case has a corresponding authenticated HTTP endpoint, and the UI contains no fiscal business logic
 
 ## 1. Purpose
 
@@ -63,7 +63,7 @@ Standalone is the only runtime mode:
 kernel                      composition root, own PostgreSQL, own login
 ├── authentication adapter  API token, browser session
 ├── organization adapter    ORGANIZATION_ID
-├── plugin selection        QWBE_PLUGINS, read once at start
+├── plugin selection        RFI_PLUGINS, read once at start
 └── invoicing (required)
     ├── parties, customers, catalog, issuer, drafts, issuance, corrections, documents (required)
     ├── payments (plugin, required: false)
@@ -446,7 +446,7 @@ Minimum verification layers:
    login, readiness, issuance, proforma, storno, and PDF work; a disabled plugin's routes,
    OpenAPI entries are absent (company lookup included, `kernel/api/company-lookup-api.test.ts`)
    and `eFacturaStatus` is `null` with e-Factura off; re-enabling
-   keeps its data and idempotency; an unknown name in `QWBE_PLUGINS` refuses start
+   keeps its data and idempotency; an unknown name in `RFI_PLUGINS` refuses start
    (`kernel/plugins.test.ts`, `kernel/http/plugins-http.test.ts`). The UI sends no request
    to a disabled plugin and hides its actions (`frontend/src/hooks/plugins-off.test.ts`);
 7. package manifest tests: every declared unit exists, no unit is undeclared or duplicated,
@@ -507,7 +507,7 @@ The package copies the `crm-pack` structure: one plugin pack, a parent with chil
   `efactura` and `company-lookup`; `efactura`'s own children (`connection`, `submissions`)
   are `true`: required inside the plugin, so they are on exactly when it is. The field has the `qwbe-core` manifest shape; the semantics are this
   kernel's own.
-- `QWBE_PLUGINS` selects the plugins at start (`kernel/config.ts`, `kernel/plugins.ts`):
+- `RFI_PLUGINS` selects the plugins at start (`kernel/config.ts`, `kernel/plugins.ts`):
   absent means every plugin, empty means none, any name that is not a plugin refuses start,
   spaces are ignored and duplicates tolerated, and any change needs a restart. The known
   names are the units whose manifest says `required: false`. Required units are always active.
@@ -539,7 +539,7 @@ References (not imported): `crm-pack/qwbe-package.json`, QWBE `core/src/kernel/m
 This is the shape the repository has; a new directory appears only when a file needs it:
 
 ```text
-qwbe-invoicing/
+ro-free-invoice/
 ├── FOUNDATION.md
 ├── qwbe-package.json           invoicing-pack, kind "plugin", all 14 units
 ├── qwbe.config.json            gate roots and caps
@@ -704,6 +704,6 @@ Current limits that block it today:
 
 - `kernel/auth/auth.ts` yields one principal, `kernel-owner`, with fixed permissions and the
   configured organization; there is no multi-user authorization yet;
-- the kernel refuses the `Authorization` header unless `QWBE_BEARER_API=on`
+- the kernel refuses the `Authorization` header unless `RFI_BEARER_API=on`
   (`kernel/http/edge-guard.ts`), the only Bearer credential is the owner's API token, and
   the session endpoint is cookie-only. None of these is a route for a mother caller.

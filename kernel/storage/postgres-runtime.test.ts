@@ -239,7 +239,7 @@ void test("an unmapped SQLSTATE stays a persistence failure, and secrets are red
     "connect failed password=[redacted] host=db",
   )
   assert.equal(
-    redactSecrets("postgres://qwbe:s3cret@db:5432/qwbe"),
-    "postgres://qwbe:[redacted]@db:5432/qwbe",
+    redactSecrets("postgres://rfi:s3cret@db:5432/rfi"),
+    "postgres://rfi:[redacted]@db:5432/rfi",
   )
 })

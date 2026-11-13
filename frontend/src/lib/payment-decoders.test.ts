@@ -16,7 +16,7 @@ const reversal = {
   actorId: "user-1", createdAt: "2026-10-02T08:00:00.000Z",
 }
 const summary = {
-  invoiceId: "inv-1", status: "partially_paid", paidAmount: "100.00", remainingAmount: "21.00", payments: [payment, reversal],
+  invoiceId: "inv-1", status: "partially_paid", paidAmount: "100.00", creditedAmount: "0.00", remainingAmount: "21.00", payments: [payment, reversal],
 }
 
 void test("a summary decodes with its payments and reversals", () => {

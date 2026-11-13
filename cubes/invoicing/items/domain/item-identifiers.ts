@@ -1,5 +1,10 @@
 import { ValidationFailure } from "../../contracts/failures.ts"
-import type { ItemIdentifiers } from "../../domain/invoice.ts"
+
+/** BT-155 and BT-157: copied from the product when one is chosen, absent on a line typed by hand. */
+export interface ItemIdentifiers {
+  readonly itemCode?: string
+  readonly barcode?: string
+}
 
 /** An article code: once trimmed, 1-50 printable ASCII characters (0x20-0x7E) — letters without
  * diacritics, digits, common signs and inner spaces. Being ASCII only, lower() folds it completely under

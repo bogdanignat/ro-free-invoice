@@ -12,7 +12,7 @@ type DraftsTransaction = Pick<InvoicingTransaction, "saveDraft" | "findDraft" | 
 const draftColumns = [
   "id", "organization_id", ...sourceColumns(), "customer_id", "customer_party_type",
   "customer_legal_name", "customer_tax_identifier", ...addressColumns("customer_"),
-  "customer_vat_registered", "series", "issue_date", "due_date", "currency", "status", "notes",
+  "customer_vat_registered", "series", "issue_date", "due_date", "supply_date", "currency", "status", "notes",
 ]
 
 /**
@@ -32,7 +32,7 @@ export const draftsTransactionAdapter = (client: TransactionClient): DraftsTrans
       draft.id, draft.organizationId, ...sourceValues(draft.source), draft.customerId ?? null,
       draft.customer.partyType, draft.customer.name, draft.customer.fiscalIdentifier,
       ...addressValues(draft.customer.address), booleanValue(draft.customer.vatRegistered),
-      draft.series, draft.issueDate, draft.dueDate, draft.currency, draft.status, draft.notes,
+      draft.series, draft.issueDate, draft.dueDate, draft.supplyDate ?? null, draft.currency, draft.status, draft.notes,
     ]))
     const { rowCount } = await client.query(
       `${statement.sql} ON CONFLICT (id) DO UPDATE SET ${assignExcluded(draftUpdatedColumns)}

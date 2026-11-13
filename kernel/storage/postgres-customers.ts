@@ -4,6 +4,7 @@ import { read, write } from "./postgres-errors.ts"
 import {
   addressColumns, addressValues, booleanValue, buyerFrom, firstRow, optionalInteger, optionalText, text, type Row,
 } from "./postgres-rows.ts"
+import { containsAny } from "./postgres-search.ts"
 import { assignExcluded, foldedOrder, insertStatement, nameKeyset, pairs, rowsWanted } from "./postgres-sql.ts"
 import type { TransactionClient } from "./postgres-transaction.ts"
 
@@ -52,14 +53,15 @@ export const customersTransactionAdapter = (client: TransactionClient): Customer
     const value = firstRow(rows)
     return value === undefined ? undefined : customerFrom(value)
   }),
-  listCustomers: (organizationId, page) => read("list customers", async () => {
+  listCustomers: (organizationId, page, search) => read("list customers", async () => {
     // The fold is applied to the column AND to the cursor value, because SQLite
     // compared the bound name case-insensitively too.
     const keyset = nameKeyset(page, "legal_name", 2)
+    const matching = containsAny(["legal_name", "tax_identifier"], search, 2 + keyset.values.length)
     const { rows } = await client.query(
-      `SELECT * FROM customers WHERE organization_id = $1 AND deleted_at IS NULL${keyset.sql}
-        ORDER BY ${foldedOrder("legal_name")} LIMIT $${String(2 + keyset.values.length)}`,
-      [organizationId, ...keyset.values, rowsWanted(page)],
+      `SELECT * FROM customers WHERE organization_id = $1 AND deleted_at IS NULL${keyset.sql}${matching.sql}
+        ORDER BY ${foldedOrder("legal_name")} LIMIT $${String(2 + keyset.values.length + matching.values.length)}`,
+      [organizationId, ...keyset.values, ...matching.values, rowsWanted(page)],
     )
     return rows.map(customerFrom)
   }),

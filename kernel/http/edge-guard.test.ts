@@ -63,7 +63,7 @@ void test("the Docker healthcheck reaches liveness and readiness on the internal
 
 void test("duplicate identity headers are refused on the raw transport, whichever copy is valid", async () => {
   await withServer(async (server) => {
-    const cookie = `qwbe_session=${"a".repeat(43)}`
+    const cookie = `rfi_session=${"a".repeat(43)}`
     for (const duplicate of [
       [`Host: ${publicHost}`, "Host: evil.test"],
       [`Host: ${publicHost}`, `Host: ${publicHost}`],
@@ -92,13 +92,13 @@ void test("Authorization is refused on the public listener unless the Bearer API
   })
 })
 
-void test("with QWBE_BEARER_API=on, Bearer works, mixed credentials are refused and mutations still need Origin", async () => {
+void test("with RFI_BEARER_API=on, Bearer works, mixed credentials are refused and mutations still need Origin", async () => {
   await withServer(async (server) => {
     const authorization = `Bearer ${edgeToken}`
     assert.equal((await call(server, { path: "/api/customers", headers: { authorization } })).status, 200)
-    refused(await call(server, { path: "/api/customers", headers: { authorization, cookie: `qwbe_session=${"a".repeat(43)}` } }),
+    refused(await call(server, { path: "/api/customers", headers: { authorization, cookie: `rfi_session=${"a".repeat(43)}` } }),
       400, "mixed_credentials")
-    refused(await call(server, { path: "/api/customers", headers: { authorization, cookie: "qwbe_session=" } }),
+    refused(await call(server, { path: "/api/customers", headers: { authorization, cookie: "rfi_session=" } }),
       400, "mixed_credentials")
     refused(await call(server, { method: "POST", path: "/api/customers", headers: { authorization }, body: "{}" }),
       403, "origin_not_allowed")
@@ -110,9 +110,9 @@ void test("with QWBE_BEARER_API=on, Bearer works, mixed credentials are refused 
 
 void test("an empty or repeated session cookie is refused before any session is looked up", async () => {
   await withServer(async (server) => {
-    const valid = `qwbe_session=${"a".repeat(43)}`
-    for (const cookie of ["qwbe_session=", "qwbe_session", `qwbe_session=; ${valid}`, `${valid}; qwbe_session=${"b".repeat(43)}`,
-      `${valid}, qwbe_session=`]) {
+    const valid = `rfi_session=${"a".repeat(43)}`
+    for (const cookie of ["rfi_session=", "rfi_session", `rfi_session=; ${valid}`, `${valid}; rfi_session=${"b".repeat(43)}`,
+      `${valid}, rfi_session=`]) {
       refused(await call(server, { path: "/api/session", headers: { cookie } }), 400, "invalid_session_cookie")
     }
     assert.equal(server.seen.length, 0)

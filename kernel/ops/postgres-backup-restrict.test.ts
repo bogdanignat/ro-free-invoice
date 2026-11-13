@@ -77,7 +77,7 @@ void test("the pg_dump frame is accepted, with escaped backslashes in COPY data"
 })
 
 void test("a dump written by pg_dump is in restricted mode, COPY data with \\unrestrict included", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-restrict-dump-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-restrict-dump-"))
   const source = await freshRuntime("rstdump")
   try {
     await source.pool.query("CREATE TABLE restrict_probe (body text)")
@@ -101,7 +101,7 @@ const contextFor = (runtime: TestRuntime, dataDirectory: string): BackupContext 
 
 /** A real backup with its dump edited to run a shell command, re-signed so only the edit is wrong. */
 const hostileArchive = async (archive: string, output: string, edit: (sql: string) => string): Promise<string> => {
-  const staging = mkdtempSync(join(tmpdir(), "qwbe-restrict-edit-"))
+  const staging = mkdtempSync(join(tmpdir(), "rfi-restrict-edit-"))
   try {
     const members = (await stageSource(archive, staging)).map((member) => member.path)
     const dump = join(staging, "database.sql")
@@ -128,7 +128,7 @@ const rejectsArchive = async (run: () => Promise<unknown>, expected: RegExp): Pr
 }
 
 void test("a backup whose dump the restore would refuse fails when it is made, and writes no archive", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-restrict-backup-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-restrict-backup-"))
   const source = await freshRuntime("rstbkp")
   try {
     const dataDirectory = join(root, "data")
@@ -144,7 +144,7 @@ void test("a backup whose dump the restore would refuse fails when it is made, a
 })
 
 void test("a hostile dump is refused by backup-inspect, the dry run and --apply, before the target", async () => {
-  const root = mkdtempSync(join(tmpdir(), "qwbe-restrict-hostile-"))
+  const root = mkdtempSync(join(tmpdir(), "rfi-restrict-hostile-"))
   const source = await freshRuntime("rsthost")
   const target = await emptyRuntime("rsthost2")
   try {

@@ -7,7 +7,7 @@ import type { CorrectionDocument, IssuedInvoice } from "./document-snapshot.ts"
 const address = { countryCode: "RO", city: "B", street: "s", county: "RO-B" }
 
 const invoice: IssuedInvoice = {
-  id: "inv-1", series: "FCT", number: 12, issueDate: "2026-10-01", dueDate: null, notes: null,
+  id: "inv-1", series: "FCT", number: 12, issueDate: "2026-10-01", dueDate: null, supplyDate: "2026-10-01", notes: null,
   currency: "RON", eFacturaStatus: "not_sent",
   issuer: {
     name: "Beta", fiscalIdentifier: "321", vatRegistered: true, legalForm: "srl",

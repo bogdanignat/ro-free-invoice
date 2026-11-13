@@ -147,7 +147,7 @@ export const startServer = async (
     await dispose()
     throw error
   }
-  console.log(`QWBE Invoicing listening on http://${config.host}:${String(config.port)}`)
-  if (ui === undefined) console.log("UI not served: QWBE_UI_DIR is unset or has no index.html; UI routes answer 503")
+  console.log(`RO Free Invoice listening on http://${config.host}:${String(config.port)}`)
+  if (ui === undefined) console.log("UI not served: RFI_UI_DIR is unset or has no index.html; UI routes answer 503")
   return { server, close }
 }

@@ -22,7 +22,7 @@ export const EFacturaConnectionStart = Schema.Struct({
 })
 
 const callbackDescription = [
-  "ANAF's OAuth redirect. Public with respect to the login: its only credential is the `qwbe_anaf_oauth` attempt cookie.",
+  "ANAF's OAuth redirect. Public with respect to the login: its only credential is the `rfi_anaf_oauth` attempt cookie.",
   `Always answers 303 to \`${CALLBACK_TARGET_PATH}?anaf=<code>\`, one of: ${CALLBACK_OUTCOMES.join(", ")}.`,
 ].join(" ")
 

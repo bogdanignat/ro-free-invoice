@@ -29,6 +29,18 @@ void test("renders an invoice with its header in UBL sequence order", () => {
   assert.deepEqual(element(xml, "cbc:InvoiceTypeCode"), ["380"])
 })
 
+void test("places the delivery date after the customer and before the VAT total (BT-72)", () => {
+  const xml = renderEFacturaXml({ ...standardB2B, actualDeliveryDate: "2026-09-10" })
+  assert.deepEqual(rootChildren(xml), [
+    "cbc:CustomizationID", "cbc:ProfileID", "cbc:ID", "cbc:IssueDate", "cbc:DueDate",
+    "cbc:InvoiceTypeCode", "cbc:DocumentCurrencyCode",
+    "cac:AccountingSupplierParty", "cac:AccountingCustomerParty", "cac:Delivery",
+    "cac:TaxTotal", "cac:LegalMonetaryTotal", "cac:InvoiceLine", "cac:InvoiceLine",
+  ])
+  assert.ok(xml.includes("  <cac:Delivery>\n    <cbc:ActualDeliveryDate>2026-09-10</cbc:ActualDeliveryDate>\n  </cac:Delivery>\n"), xml)
+  assert.equal(renderEFacturaXml(standardB2B).includes("Delivery"), false)
+})
+
 void test("renders a credit note as a credit note, not as a negated invoice", () => {
   const xml = renderEFacturaXml(fullCreditNote)
   assert.ok(xml.includes("<CreditNote xmlns=\"urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2\""))

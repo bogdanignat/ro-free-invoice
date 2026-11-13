@@ -4,8 +4,7 @@ import { checked } from "../../application/support.ts"
 import { DomainConflict, type PaymentsFailure } from "../contracts/failures.ts"
 import { legacyPaymentsPermissions, paymentsPermissions } from "../contracts/permissions.ts"
 import { calendarDate, validateReversePaymentInput, type Idempotent, type Payment, type ReversePaymentInput } from "../domain/payments.ts"
-import { findReplay, idempotencyRecord, validateAttempt } from "./idempotency.ts"
-import { missingInvoice, missingPayment, recordAuditEvent, replayed, summarize, type Authorize, type PaymentsDependencies, type RecordPaymentResult } from "./support.ts"
+import { findReplay, idempotencyRecord, missingInvoice, missingPayment, recordAuditEvent, replayed, summarize, validateAttempt, type Authorize, type PaymentsDependencies, type RecordPaymentResult } from "./support.ts"
 
 // A reversal is a second, immutable ledger entry that mirrors the original payment; the original is never edited.
 export const createReversePayment = (dependencies: PaymentsDependencies, authorized: Authorize) => {

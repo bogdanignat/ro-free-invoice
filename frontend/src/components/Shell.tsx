@@ -27,7 +27,7 @@ export const Shell = ({ unlocked, logoutPending = false, onLogout, children }: S
   return <div className={unlocked ? "shell" : "shell locked"}>
     <a className="skip-link" href="#main-content">Sari la conținut</a>
     <aside className="sidebar">
-      <AppLink className="brand" aria-label="QWBE Invoicing" href={unlocked ? "/" : "/unlock"}><span className="brand-mark">Q</span><span><strong>QWBE</strong><small>Invoicing</small></span></AppLink>
+      <AppLink className="brand" aria-label="RO Free Invoice" href={unlocked ? "/" : "/unlock"}><span className="brand-mark">R</span><span><strong>RO Free</strong><small>Invoice</small></span></AppLink>
       <nav aria-label="Navigare principală">
         {links.map((link) => <AppLink key={link.section} href={link.href} aria-current={link.current ? "page" : undefined}>
           <span aria-hidden="true">{link.icon}</span>{link.label}

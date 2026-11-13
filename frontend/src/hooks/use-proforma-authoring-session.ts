@@ -7,7 +7,7 @@ import type {
   ProformaAuthoringSession, ProformaAuthoringSessionInput,
 } from "./proforma-authoring-session-types.ts"
 import { newAuthoringForm } from "../lib/document-authoring-transitions.ts"
-import { today } from "../lib/format.ts"
+import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
 import {
   newEditableInvoiceLine, preferredUnitOfMeasure, type EditableInvoiceLine,
 } from "../lib/invoice-authoring-model.ts"
@@ -32,12 +32,13 @@ import { issuerForIssueDate } from "../lib/vat-snapshots.ts"
  * than offering a second attempt under a new key.
  */
 export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput): ProformaAuthoringSession => {
+  const [openedOn] = useState(() => todayIn(ORGANIZATION_TIME_ZONE))
   const [form, setForm] = useState(() => newAuthoringForm(
-    input.issuer, input.proformaSeries[0] ?? "", input.customers.length > 0, today(),
+    input.issuer, input.proformaSeries[0] ?? "", input.customers.length > 0, openedOn,
   ))
   const [lines, setLines] = useState<ReadonlyArray<EditableInvoiceLine>>(() => [newEditableInvoiceLine(
     crypto.randomUUID(),
-    defaultVatCode(input.vatCatalogue, input.issuer, today()),
+    defaultVatCode(input.vatCatalogue, input.issuer, openedOn),
     preferredUnitOfMeasure(input.unitOfMeasures),
   )])
   const recovery = useAuthoringRecovery()
@@ -57,7 +58,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   const editorActions = createInvoiceAuthoringEditorActions({
     issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
     productPresets: input.productPresets, customers: input.customers,
-    issueDate: form.issueDate, deriveDueDate: true, setForm, setLines,
+    vatDate: form.issueDate, deriveDueDate: true, setForm, setLines,
   })
   const pending = save.pending || recovery.pending
   return {

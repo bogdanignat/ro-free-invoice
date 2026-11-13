@@ -38,6 +38,7 @@ const row = {
   totalIncludingVat: "1190.00",
   dueDate: null,
   eFacturaStatus: "processing",
+  spv: null,
 }
 
 void test("a page request with no cursor asks for the register's first page", () => {
@@ -53,7 +54,7 @@ void test("limit and cursor travel as query parameters, url-encoded", () => {
   )
 })
 
-const everything: RegisterQuery = { range: { from: "", to: "" }, kind: "all", search: "", limit: 2 }
+const everything: RegisterQuery = { range: { from: "", to: "" }, kind: "all", search: "", spv: "all", limit: 2 }
 
 void test("the register client decodes the page it fetched", async () => {
   const { calls, transport } = recorder({ json: { items: [row], nextCursor: "next" } })
@@ -80,11 +81,12 @@ void test("the second page is requested with the cursor the first returned", asy
 void test("the register filters travel as query parameters, open ends and blanks left out", () => {
   assert.equal(registerPath(everything, undefined), "/api/invoice-register?limit=2")
   assert.equal(
-    registerPath({ range: { from: "2026-09-01", to: "2026-09-30" }, kind: "correction", search: "  FCT 12 & 100% ", limit: 50 }, "a b/c"),
+    registerPath({ range: { from: "2026-09-01", to: "2026-09-30" }, kind: "correction", search: "  FCT 12 & 100% ", spv: "all", limit: 50 }, "a b/c"),
     "/api/invoice-register?from=2026-09-01&to=2026-09-30&kind=correction&q=FCT+12+%26+100%25&limit=50&cursor=a+b%2Fc",
   )
   assert.equal(registerPath({ ...everything, range: { from: "", to: "2026-09-30" }, search: "   " }, undefined),
     "/api/invoice-register?to=2026-09-30&limit=2")
+  assert.equal(registerPath({ ...everything, spv: "unresolved" }, undefined), "/api/invoice-register?spv=unresolved&limit=2")
 })
 
 void test("the abort signal of the query reaches the transport", async () => {

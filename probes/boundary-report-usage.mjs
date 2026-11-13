@@ -61,7 +61,7 @@ export const parseArguments = (argv) => {
   }
 }
 
-export const helpText = ({ schemaVersion, nonCubeAreas }) => `qwbe boundary-report — read-only dependency graph of the boundary gate
+export const helpText = ({ schemaVersion, nonCubeAreas }) => `ro-free-invoice boundary-report — read-only dependency graph of the boundary gate
 
 Usage: node probes/boundary-report.mjs [--json] [--root <path>] [--timeout <ms>] [--max-buffer <bytes>]
 

@@ -53,6 +53,7 @@ export const newAuthoringForm = (
   issueDate,
   dueDate: addCalendarDays(issueDate, issuer.defaultPaymentTermDays),
   dueDateEdited: false,
+  supplyDate: "",
   notes: "",
 })
 
@@ -164,6 +165,7 @@ export const formFromDraft = (draft: DraftInvoice): DocumentAuthoringForm => ({
   issueDate: draft.issueDate,
   dueDate: draft.dueDate ?? "",
   dueDateEdited: true,
+  supplyDate: draft.supplyDate ?? "",
   notes: draft.notes ?? "",
 })
 

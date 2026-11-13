@@ -51,8 +51,9 @@ export const saveProforma = (client: TransactionClient, proforma: Proforma) =>
     }
     // Sealing last: the late-write triggers refuse lines and breakdown rows once
     // `sealed` is 1, so the document becomes immutable only when it is complete.
-    await client.query(
+    const { rowCount } = await client.query(
       "UPDATE proformas SET sealed=1 WHERE id=$1 AND organization_id=$2 AND sealed=0",
       [proforma.id, proforma.organizationId],
     )
+    if (rowCount !== 1) throw new Error("proforma was not sealed")
   })

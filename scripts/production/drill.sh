@@ -10,13 +10,13 @@
 #
 # Everything is its own: a temporary directory with a snapshot of this working tree as
 # the `main` of a local upstream and a checkout of it (with .env, secrets and
-# BACKUP_DIR), the Compose project `qwbe-drill`, the image repository `qwbe-drill` (so
-# tagging and pruning never reach qwbe-invoicing:*), and volumes renamed `qwbe-drill-*`
-# by an override. compose.prod.yaml names its volumes `qwbe-invoicing-*`, the
-# development stack's on this host, so before every step the drill refuses to go on
-# unless every volume of the project is `qwbe-drill-*`. At exit, success or not, it
-# removes that project with its volumes, the `qwbe-drill-*` volumes made by restores,
-# the `qwbe-drill` tags and the temporary directory. The checkout's own `.env` and
+# BACKUP_DIR), the Compose project `rfi-drill`, the image repository `rfi-drill` (so
+# tagging and pruning never reach ro-free-invoice:*), and volumes renamed `rfi-drill-*`
+# by an override. compose.prod.yaml names its volumes `ro-free-invoice-*`, an
+# installation's on this host, so before every step the drill refuses to go on
+# unless every volume of the project is `rfi-drill-*`. At exit, success or not, it
+# removes that project with its volumes, the `rfi-drill-*` volumes made by restores,
+# the `rfi-drill` tags and the temporary directory. The checkout's own `.env` and
 # `.local/` are never read or written.
 #
 # Exit: 0 every check passed, 1 a check failed, 2 refused to start.
@@ -39,7 +39,7 @@ bash -c 'exec 9>>"$1" && flock 9 && exec sleep 300' _ "$checkout/.local/producti
 holder=$!
 sleep 1
 for script in deploy.sh backup.sh; do refused 'holds .*/lock' "$scripts/$script"; done
-refused 'holds .*/lock' "$scripts/restore.sh" "$backups/qwbe-invoicing-20260101T000000Z.tar.gz"
+refused 'holds .*/lock' "$scripts/restore.sh" "$backups/ro-free-invoice-20260101T000000Z.tar.gz"
 kill "$holder"; wait "$holder" 2>/dev/null || true; holder=""
 pass "lock held elsewhere: deploy, backup and restore refuse"
 
@@ -55,8 +55,8 @@ git -C "$checkout" switch -q main
 pass "dirty checkout (tracked or untracked) and a branch other than main: deploy refuses"
 
 # shellcheck disable=SC2016  # a literal interpolation is the point
-set_env QWBE_IMAGE '$(id)'
-refused 'QWBE_IMAGE .* plain value' "$scripts/backup.sh"
+set_env RFI_IMAGE '$(id)'
+refused 'RFI_IMAGE .* plain value' "$scripts/backup.sh"
 cp "$work/env.good" "$checkout/.env"
 sed -i '/^BACKUP_DIR=/d' "$checkout/.env"
 refused 'BACKUP_DIR is not set' "$scripts/backup.sh"
@@ -64,13 +64,17 @@ cp "$work/env.good" "$checkout/.env"
 set_env COMPOSE_FILE compose.loopback.yaml
 refused 'must include compose.prod.yaml' "$scripts/backup.sh"
 cp "$work/env.good" "$checkout/.env"
-set_env QWBE_IMAGE 'Qwbe-Drill'
-refused 'QWBE_IMAGE in .* is not valid' "$scripts/backup.sh"
-set_env QWBE_IMAGE "$project"
+set_env RFI_IMAGE 'Rfi-Drill'
+refused 'RFI_IMAGE in .* is not valid' "$scripts/backup.sh"
+set_env RFI_IMAGE "$project"
 set_env BACKUP_DIR "$backups:/elsewhere"
 refused 'BACKUP_DIR in .* is not valid' "$scripts/backup.sh"
 cp "$work/env.good" "$checkout/.env"
-pass ".env: an interpolation, a missing key, compose files without compose.prod.yaml, an invalid QWBE_IMAGE, BACKUP_DIR with ':': refused"
+printf 'export QWBE_PLUGINS=payments\n' >> "$checkout/.env"
+refused 'QWBE_PLUGINS in .*renamed to RFI_' "$scripts/backup.sh"
+! grep -q payments "$log" || fail "the refusal of a stale QWBE_PLUGINS printed its value"
+cp "$work/env.good" "$checkout/.env"
+pass ".env: an interpolation, a missing key, compose files without compose.prod.yaml, an invalid RFI_IMAGE, BACKUP_DIR with ':', a stale QWBE_* key: refused"
 
 docker tag "$(docker inspect -f '{{.Image}}' "$("${compose[@]}" ps -q db)")" "$project:mismatch"
 set_env IMAGE_TAG mismatch
@@ -93,12 +97,12 @@ rm "$checkout/.local/production/recovery-required"
 pass "a pending recovery: deploy and backup refuse"
 
 # ---- Backup: no archive is ever deleted ----------------------------------------
-ln -s /etc/hostname "$backups/qwbe-invoicing-20000101T000000Z.tar.gz"
-touch "$backups/qwbe-invoicing-notes.txt"
+ln -s /etc/hostname "$backups/ro-free-invoice-20000101T000000Z.tar.gz"
+touch "$backups/ro-free-invoice-notes.txt"
 before="$(archives | wc -l)"
 for _ in 1 2 3 4; do succeeds "$scripts/backup.sh"; sleep 1; done
 [[ "$(archives | wc -l)" == $((before + 4)) ]] || fail "$(archives | wc -l) archives after 4 backups, $before before"
-[[ -L "$backups/qwbe-invoicing-20000101T000000Z.tar.gz" && -f "$backups/qwbe-invoicing-notes.txt" ]] || fail "a backup touched foreign files"
+[[ -L "$backups/ro-free-invoice-20000101T000000Z.tar.gz" && -f "$backups/ro-free-invoice-notes.txt" ]] || fail "a backup touched foreign files"
 for archive in $(archives); do [[ -f "${archive%.tar.gz}.meta" ]] || fail "no metadata for $archive"; done
 meta="$(archives | tail -n 1)" meta="${meta%.tar.gz}.meta"
 { grep -q '^image_tag=install$' "$meta" && grep -q '^organization_id=drill-org$' "$meta"; } || fail "metadata: $(cat "$meta")"
@@ -126,10 +130,10 @@ runs_image install || fail "the previous app is not running again"
 pass "deploy with a failing backup: refused, IMAGE_TAG unchanged, previous app running, no archive"
 
 # ---- A network on other subnets than the Compose files fix: refused before app stops ---
-subnet="$(env_value QWBE_NETWORK_SUBNET)"
-set_env QWBE_NETWORK_SUBNET 10.93.3.0/24
+subnet="$(env_value RFI_NETWORK_SUBNET)"
+set_env RFI_NETWORK_SUBNET 10.93.3.0/24
 refused 'has the subnets' "$scripts/deploy.sh"
-set_env QWBE_NETWORK_SUBNET "$subnet"
+set_env RFI_NETWORK_SUBNET "$subnet"
 [[ "$(env_value IMAGE_TAG)" == install ]] || fail "IMAGE_TAG changed by a deploy refused for its network"
 runs_image install || fail "app stopped by a deploy refused for its network"
 [[ "$(archives | wc -l)" == "$before" ]] || fail "a deploy refused for its network made a backup"
@@ -175,11 +179,11 @@ dry_run_interrupted "$deploy_backup"
 succeeds sh -c "basename '$deploy_backup' | '$scripts/restore.sh' '$deploy_backup' --apply"
 { grep -q 'Everything after' "$log" && grep -q 'ANAF OAuth connection are not' "$log"; } || fail "the plan does not warn: $(head -n 20 "$log")"
 grep -q "migrated the target to $project:$v2 (0 applied)" "$log" || fail "migrate on the target: $(tail -n 10 "$log")"
-target_db="$(env_value QWBE_PGDATABASE)"
-[[ "$target_db" == qwbe_invoicing_r* && "$(env_value QWBE_DATA_VOLUME)" == "$project-data-r"* && "$(env_value IMAGE_TAG)" == "$v2" ]] \
-  || fail "the switch: $(grep -E '^(QWBE_PGDATABASE|QWBE_DATA_VOLUME|IMAGE_TAG)=' "$checkout/.env")"
+target_db="$(env_value RFI_PGDATABASE)"
+[[ "$target_db" == ro_free_invoice_r* && "$(env_value RFI_DATA_VOLUME)" == "$project-data-r"* && "$(env_value IMAGE_TAG)" == "$v2" ]] \
+  || fail "the switch: $(grep -E '^(RFI_PGDATABASE|RFI_DATA_VOLUME|IMAGE_TAG)=' "$checkout/.env")"
 doctor_ok ".schemaDrift == [] and .database.database == \"$target_db\"" || fail "doctor after the switch"
-{ docker volume inspect "$project-data" >/dev/null && [[ "$(databases)" == *qwbe_invoicing,* ]]; } || fail "the source was not kept"
+{ docker volume inspect "$project-data" >/dev/null && [[ "$(databases)" == *ro_free_invoice,* ]]; } || fail "the source was not kept"
 login
 [[ "$(pdf_status "$first_invoice")" == 200 ]] || fail "the restored invoice PDF"
 [[ "$(api GET "/api/invoices/$second_invoice")" == 404 ]] || fail "an invoice made after the backup is present"
@@ -187,7 +191,7 @@ pass "restore --apply with the installed image: new database + volume, IMAGE_TAG
 restore_switch_interrupted "$deploy_backup"
 
 # ---- A deploy whose app does not start: rollback --------------------------------------
-sed -i 's|^CMD \["node", "bin/qwbe-invoicing.ts", "serve"\]|CMD ["node", "-e", "process.exit(3)"]|' "$author/Dockerfile"
+sed -i 's|^CMD \["node", "bin/ro-free-invoice.ts", "serve"\]|CMD ["node", "-e", "process.exit(3)"]|' "$author/Dockerfile"
 commit_upstream "drill: v3, app exits"
 v3="$(git -C "$author" rev-parse HEAD | cut -c1-12)"
 refused 'rolled back to '"$v2"' and ready; the deploy of [0-9a-f]{12} FAILED' "$scripts/deploy.sh"

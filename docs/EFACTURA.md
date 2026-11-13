@@ -1,25 +1,26 @@
-# e-Factura XML generation (T-1345)
+# e-Factura: XML and submission to ANAF
 
-Scope of this step: a pure generator that turns a frozen fiscal snapshot into
-UBL 2.1 / CIUS-RO XML, plus the host mapping from the invoicing model and
-synthetic fixtures for the official validator.
+The `efactura` plugin turns a frozen fiscal snapshot into UBL 2.1 / CIUS-RO XML (a pure
+generator, a host mapping from the invoicing model, and synthetic fixtures for the
+official validator) and submits invoices and stornos to the ANAF SPV, one document at a
+time and only when the user asks. It was accepted on the ANAF TEST environment. See
+[Submitting to ANAF](#submitting-to-anaf).
 
-**Nothing is transmitted.** The only thing exposed is a download: `GET
-/api/invoices/{id}/efactura.xml` and `GET /api/corrections/{id}/efactura.xml`.
-Both routes read a frozen snapshot and render it on the spot — no migration, no
-write to `eFacturaStatus`, nothing stored and nothing sent. They stay for tests
-and debugging; the interface no longer calls them (its button now submits, and
-the exact XML of a submission is downloaded from its history). Transport to the SPV is
-T-1346: see [Submitting to ANAF](#submitting-to-anaf-t-1346).
+Two download routes remain: `GET /api/invoices/{id}/efactura.xml` and `GET
+/api/corrections/{id}/efactura.xml`. They read a frozen snapshot and render it on the
+spot: nothing is stored, sent or written to `eFacturaStatus`. They serve tests and
+debugging; the interface submits instead, and downloads the exact XML of a submission
+from its history.
 
-Both routes belong to the `efactura` plugin. With it off (`QWBE_PLUGINS` without
+Both routes belong to the `efactura` plugin. With it off (`RFI_PLUGINS` without
 `efactura`) they answer 404, are absent from OpenAPI, and every invoice response
 says `eFacturaStatus: null`; issuance, PDF and the fiscal validations do not change.
 
-A refusal is reachable today: the invoicing domain does not cap line
-descriptions or party names at input, while CIUS-RO does at export (T-1390), so
-an invoice can be issued — and, being immutable, stays issued — that the export
-answers with `400` and the list of limits it breaks.
+The invoicing domain applies the CIUS-RO text limits at input, so an issued document
+does not break them at export: party name 200 characters, street 150, city 50 and
+postal code 20 (issuer, customer and one-time buyer), line description 100, document
+notes 300 and storno reason 300. The export still checks the limits and answers `400`
+with the list of those a document breaks.
 
 ## Layout
 
@@ -36,6 +37,12 @@ answers with `400` and the list of limits it breaks.
 | `kernel/api/handlers-efactura.ts` (routes), `kernel/api/api-responses.ts` — `efacturaXml` | renders the download, mounted only with the e-Factura plugin enabled; a mapping refusal travels as the list of reasons, not as a 500 |
 | `cubes/invoicing/efactura/fixtures.test-support.ts` | the synthetic documents, all invented |
 
+An invoice whose delivery precedes its issue date carries that date as BT-72
+(`cac:Delivery/cbc:ActualDeliveryDate`, after the customer party and before
+`cac:TaxTotal`). Art. 319 alin. (20) lit. c) Cod fiscal asks for it only when it is
+earlier, so a same-day delivery writes nothing and leaves the XML unchanged. A storno
+never carries it; BT-7 and BG-14 are not emitted.
+
 The generator never imports the invoicing cube, and the mapper is the only code
 that knows both models. The cube re-states its own decimal arithmetic instead of
 sharing invoicing's, because cubes may not import each other.
@@ -46,7 +53,8 @@ Passing it does not mean a document is valid — only ANAF decides that. Failing
 it means we would knowingly emit a broken document, so we refuse and name every
 offending field at once.
 
-- Identity and dates: BT-1, BT-2, BT-5 (RON only), BT-9, BT-25/26, BG-3.
+- Identity and dates: BT-1, BT-2, BT-5 (RON only), BT-9, BT-25/26, BG-3, BT-72 (a real
+  day before BT-2, never on a credit note).
 - BR-RO-120: the buyer carries BT-47 and/or BT-48. Added after the validator
   returned it verbatim; see "What the validator said" below.
 - BR-CO-26: the seller is identified by BT-29, BT-30 or BT-31 — and **not** by
@@ -71,10 +79,11 @@ offending field at once.
   only the four XML space characters, so a field holding nothing but U+00A0
   is an empty field to a reader and a code no list contains to ANAF.
   Membership in UN/ECE Recommendation 20 is not: 2162 codes do not fit the
-  cube's size budget. The invoicing host picks the unit from a closed catalogue
-  of eight, each verified against the official list, but that is a guarantee of
-  the host — a caller that builds an `EFacturaDocument` itself can still name a
-  unit that does not exist.
+  cube's size budget. The invoicing host picks the unit from a closed, curated
+  catalogue (`cubes/invoicing/items/domain/unit-of-measures.ts`), each code checked
+  against UN/ECE Rec 20/21, but that is a guarantee of the host — a caller
+  that builds an `EFacturaDocument` itself can still name a unit that does not
+  exist.
 - BR-O-02: a document that is not subject to VAT states no VAT registration at
   all — neither BT-31 nor BT-48. Also returned verbatim by the validator.
 - BR-CO-25: an invoice with a positive amount due needs a due date. This mirrors
@@ -193,7 +202,7 @@ valid**, no assertion of any kind. That settles several things at once.
 | Can a buyer company without a VAT registration be named by BT-47 alone? | Yes. |
 | Is Article 310 `E` or `O`? | **Both are accepted**, so the validator did not decide it. The product issues `O`; see below. |
 
-## VAT category for Article 310 issuers: `O`, as ANAF recommends (T-1383)
+## VAT category for Article 310 issuers: `O`, as ANAF recommends
 
 `docs/VAT_TREATMENT.md` and migration 020 originally chose category **E** with
 the Article 310 text in BT-120, recording that "no specific VATEX mapping for
@@ -285,7 +294,7 @@ corrections domain rather than in the HTTP schema, because the storno reason is
 a fiscal element of the document, and the rule holds for every caller, not only
 for the one that arrives over HTTP.
 
-## Connecting to ANAF (OAuth, T-1346)
+## Connecting to ANAF (OAuth)
 
 The SPV is reached with an OAuth token issued to one organization's certificate.
 The connection lives in `cubes/invoicing/efactura/connection` (states, attempt,
@@ -303,7 +312,7 @@ All four belong to the `efactura` plugin: off, they answer 404 and are absent fr
 
 **The attempt.** `start` draws a 32-byte nonce, stores only its SHA-256 with the
 connection's generation, and replaces the organization's previous attempt, which
-can then never complete. The nonce travels only in `qwbe_anaf_oauth` (HttpOnly,
+can then never complete. The nonce travels only in `rfi_anaf_oauth` (HttpOnly,
 Secure, SameSite=Lax, `Path=/api/anaf`, Max-Age 600). The attempt lives ten minutes
 and is consumed by the first callback that presents it with a `code` (see the
 callback below; an `error=` or code-less answer leaves it untouched). The
@@ -387,7 +396,7 @@ yet: it needs a new connection with the certificate on ANAF TEST, followed separ
 Until that test the risk stays, accepted by Bogdan on 2026-10-19. If ANAF accepts PKCE
 without closing the session it is added; otherwise the acceptance stands.
 
-## Submitting to ANAF (T-1346)
+## Submitting to ANAF
 
 A user submits one issued document at a time; nothing is ever submitted on its
 own. The states and the reading of ANAF's answers are pure functions in
@@ -431,7 +440,17 @@ so does every later upload of it (a retry after a 401/403, a resubmit). `validar
 as for B2B, and reconciliation still searches ANAF's list by the issuer's CIF, never
 by the buyer's. BT-47 carries the buyer's CNP only when the customer has one
 (their choice to be identified, art. 10^1 alin. (3)), otherwise `0000000000000`.
-The 5-day deadline is not tracked by the application.
+The invoice register shows each issued document's SPV standing (not sent, in progress,
+accepted, failed, unclear) and an **operational** deadline: the issue date plus 5 working
+days from 2026-01-01 (5 calendar days until 2025-12-31), but on an invoice no later than
+5 such days after the 15th of the month following its delivery (the latest issue date,
+art. 319 alin. (16) Cod fiscal); the day each term counts from (the issue date, or that
+15th) picks working or calendar days, and a
+storno counts from its issue date only. It is not the exact legal deadline: it counts
+Monday to Friday only, so public holidays (which push the legal term later) are not
+taken into account, and it is never later than the legal one. `GET /api/invoice-register?spv=unresolved` keeps the documents
+still to resolve (not sent, rejected/refused, unknown), each marked overdue or expiring
+within one working day against today's date in Europe/Bucharest.
 
 **The CNP is personal data.** It lives only in the frozen snapshot, in the
 submitted XML and in ANAF's ZIP (which holds that XML), and those bytes are read
@@ -620,7 +639,7 @@ document then answers the new submission.
 
 **`ANAF_ENVIRONMENT`** is checked by `serve` against the environment of the stored
 submissions once the schema is ready, before any traffic and before the dispatcher,
-whatever `QWBE_PLUGINS` says: `/health/ready` and `/api*` answer 503 until it
+whatever `RFI_PLUGINS` says: `/health/ready` and `/api*` answer 503 until it
 passed, so no submit can write in the startup window. Polling a `test` index
 against `prod`, or the reverse, would read another system's answer, so `serve`
 stops with exit 1 and says why.
@@ -628,7 +647,7 @@ stops with exit 1 and says why.
 **Restore.** A backup is a picture of the past: a submission it shows `queued`,
 `validating` or `uploading` may have reached ANAF since. `restore` therefore runs a
 fixed SQL step after the dump, inside the same `psql --single-transaction`
-(`kernel/ops/efactura-restore.ts`), whatever `QWBE_PLUGINS` says: those submissions
+(`kernel/ops/efactura-restore.ts`), whatever `RFI_PLUGINS` says: those submissions
 become `unknown` ("restaurat din backup"), their documents show `unknown`, each one
 gets an `efactura_submission.restored_unknown` audit row, and the OAuth attempts are
 deleted. If that step fails, the whole restore rolls back with it and the database
@@ -709,7 +728,7 @@ recompressed in exactly ANAF's layout (rebuilt unchanged, the writer gives back
 ANAF's bytes). The signature entry is ANAF's, untouched, so its `DigestValue` no
 longer matches the anonymised XML.
 
-### The received-invoice routes (T-2027)
+### The received-invoice routes
 
 Mounted only with the `efactura` plugin (404 when it is off). Every read is of the
 request's organization in the current ANAF environment: another organization's id, or
@@ -801,7 +820,7 @@ docker compose exec app sh -c "wget -qO- --header 'Host: invoice.test' \
 ```
 
 The backend has no published port: the call runs inside its container, with the
-Host of `PUBLIC_ORIGIN` (any other Host answers 400) and with `QWBE_BEARER_API=on`
+Host of `PUBLIC_ORIGIN` (any other Host answers 400) and with `RFI_BEARER_API=on`
 exported before `docker compose up -d` (off, `Authorization` answers 400).
 
 That file is uploaded at the same address and under the same rule as the

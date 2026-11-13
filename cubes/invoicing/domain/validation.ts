@@ -1,6 +1,9 @@
-import { ValidationFailure } from "../contracts/failures.ts"
-import { parseDecimal } from "../contracts/money.ts"
+import { validationFailure } from "../contracts/failures.ts"
+import { parseDecimal } from "../money/index.ts"
+import * as issue from "../issues/index.ts"
 import type { DocumentSeries, DocumentSource } from "./invoice.ts"
+
+type Issues = Array<issue.IssueDetail>
 
 export const maximumPaymentTermDays = 3650
 export const article310VatExemptionReason = "Regim special de scutire conform art. 310 din Codul fiscal"
@@ -17,7 +20,7 @@ export const validateVatTreatment = (code: string, rate: string, category: strin
   const valid = code === "RO_NON_VAT"
     ? percent === 0n && category === "O" && reason === article310VatExemptionReason
     : knownTaxable && percent !== undefined && percent > 0n && percent <= 10_000n && category === "S" && reason === null
-  if (!valid) throw new ValidationFailure({ issues: ["Invalid VAT tuple"] })
+  if (!valid) throw validationFailure([issue.invalidVatTuple()])
 }
 
 export const organizationTimeZone = "Europe/Bucharest"
@@ -26,22 +29,22 @@ export const calendarDate = (instant: Date, timeZone: string = organizationTimeZ
 
 export const validateDate = (value: string, field: string): void => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (match === null) throw new ValidationFailure({ issues: [`${field} must be a calendar date in YYYY-MM-DD format`] })
+  if (match === null) throw validationFailure([issue.dateFormat(field)])
   const year = Number(match[1])
   const month = Number(match[2])
   const day = Number(match[3])
   const date = new Date(Date.UTC(year, month - 1, day))
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-    throw new ValidationFailure({ issues: [`${field} must be a valid calendar date`] })
+    throw validationFailure([issue.dateInvalid(field)])
   }
 }
 
 export const validateDocumentSeries = (documentSeries: Pick<DocumentSeries, "documentType" | "series">): void => {
-  const issues: Array<string> = []
+  const issues: Issues = []
   const documentType: unknown = documentSeries.documentType
-  if (documentType !== "invoice" && documentType !== "proforma") issues.push("documentType must be invoice or proforma")
-  if (!/^[A-Z0-9][A-Z0-9_-]{0,19}$/.test(documentSeries.series)) issues.push("series is invalid")
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  if (documentType !== "invoice" && documentType !== "proforma") issues.push(issue.documentTypeInvalid())
+  if (!/^[A-Z0-9][A-Z0-9_-]{0,19}$/.test(documentSeries.series)) issues.push(issue.seriesInvalid())
+  if (issues.length > 0) throw validationFailure(issues)
 }
 
 /** e-Factura counts a text the way the CIUS-RO Schematron does: XPath normalize-space
@@ -61,42 +64,42 @@ export const CIUS_TEXT_LIMITS = { partyName: 200, street: 150, city: 50, postalC
 export const hasControlCharacters = (value: string, newlines = false): boolean =>
   (newlines ? /(?!\n)[\p{Cc}\p{Cs}\p{Zl}\p{Zp}\uFFFE\uFFFF]/u : /[\p{Cc}\p{Cs}\p{Zl}\p{Zp}\uFFFE\uFFFF]/u).test(value)
 
-export const controlCharacters = (field: string, value: string | undefined, issues: Array<string>, newlines = false): void => {
-  if (value !== undefined && hasControlCharacters(value, newlines)) issues.push(`${field} must not contain control characters`)
+export const controlCharacterIssues = (field: string, value: string | undefined, issues: Issues, newlines = false): void => {
+  if (value !== undefined && hasControlCharacters(value, newlines)) issues.push(issue.containsControlCharacters(field))
 }
 
 /** A text that reaches e-Factura: the CIUS-RO length and the control-character rule. */
-export const ciusText = (field: string, value: string | undefined, maximum: number, issues: Array<string>): void => {
-  if (value !== undefined && ciusTextLength(value) > maximum) issues.push(`${field} must be at most ${String(maximum)} characters`)
-  controlCharacters(field, value, issues)
+export const ciusTextIssues = (field: string, value: string | undefined, maximum: number, issues: Issues): void => {
+  if (value !== undefined && ciusTextLength(value) > maximum) issues.push(issue.tooLong(field, maximum))
+  controlCharacterIssues(field, value, issues)
 }
 
 /** Only where a line description is entered: totals are recomputed on read and on storno,
  * and a description stored before the limit must stay readable and correctable. */
 export const validateLineDescription = (description: string): void => {
-  const issues: Array<string> = []
-  ciusText("description", description.trim(), CIUS_TEXT_LIMITS.lineDescription, issues)
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  const issues: Issues = []
+  ciusTextIssues("description", description.trim(), CIUS_TEXT_LIMITS.lineDescription, issues)
+  if (issues.length > 0) throw validationFailure(issues)
 }
 
-const freeText = (field: string, value: string, maximum: number, issues: Array<string>, newlines = false): void => {
-  if (value.trim().length === 0) issues.push(`${field} is required`)
-  if (value !== value.trim()) issues.push(`${field} must not have surrounding whitespace`)
-  if (value.length > maximum) issues.push(`${field} must be at most ${String(maximum)} characters`)
-  controlCharacters(field, value, issues, newlines)
+const freeText = (field: string, value: string, maximum: number, issues: Issues, newlines = false): void => {
+  if (value.trim().length === 0) issues.push(issue.required(field))
+  if (value !== value.trim()) issues.push(issue.surroundingWhitespace(field))
+  if (value.length > maximum) issues.push(issue.tooLong(field, maximum))
+  controlCharacterIssues(field, value, issues, newlines)
 }
 
 export const validateDocumentSource = (source: DocumentSource): void => {
-  const issues: Array<string> = []
+  const issues: Issues = []
   freeText("source.app", source.app, 100, issues)
   freeText("source.kind", source.kind, 100, issues)
   freeText("source.id", source.id, 255, issues)
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  if (issues.length > 0) throw validationFailure(issues)
 }
 
 export const validateDocumentNotes = (notes: string | null | undefined): void => {
   if (notes === null || notes === undefined) return
-  const issues: Array<string> = []
+  const issues: Issues = []
   freeText("notes", notes, 300, issues, true)
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  if (issues.length > 0) throw validationFailure(issues)
 }

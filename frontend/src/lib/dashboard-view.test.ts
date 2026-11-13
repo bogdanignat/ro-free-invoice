@@ -18,14 +18,14 @@ const revenue: RevenueReport = {
 }
 const item = {
   id: "inv/2", series: "REP", number: 2, issueDate: "2026-07-10", dueDate: null, customerName: "Client SRL",
-  totalIncludingVat: "242.00", paidAmount: "0.00", remainingAmount: "242.00", status: "overdue" as const,
+  totalIncludingVat: "242.00", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "242.00", status: "overdue" as const,
 }
 const collections: CollectionsReport = {
   from: "2026-07-01", to: "2026-09-30", currency: "RON", status: "all",
   months: [{ month: "2026-07", collected: "50.00" }, { month: "2026-09", collected: "-172.00" }],
   collected: "-122.00",
   invoices: {
-    count: 56, totalIncludingVat: "677.60", paidAmount: "0.00", remainingAmount: "677.60", overdueCount: 1, overdueAmount: "12.10",
+    count: 56, totalIncludingVat: "677.60", paidAmount: "0.00", creditedAmount: "0.00", remainingAmount: "677.60", overdueCount: 1, overdueAmount: "12.10",
     items: Array.from({ length: 50 }, () => item),
   },
 }
@@ -77,12 +77,12 @@ void test("collections for another period, still loading or failed, never reach 
 
 void test("the invoices block: totals of the whole set, the list cut at 50 and said so", () => {
   const view = situationView(collections)
-  assert.deepEqual(view.cards.map((card) => card.value), ["56", "677.60 RON", "0.00 RON", "677.60 RON", "12.10 RON"])
-  assert.equal(view.cards[4]?.hint, "1 factură scadentă")
+  assert.deepEqual(view.cards.map((card) => card.value), ["56", "677.60 RON", "0.00 RON", "0.00 RON", "677.60 RON", "12.10 RON"])
+  assert.equal(view.cards[5]?.hint, "1 factură scadentă")
   assert.equal(view.count, "primele 50 din 56")
   assert.deepEqual(view.rows[0], {
     id: "inv/2", href: "/invoices/inv%2F2", number: "REP 2", customerName: "Client SRL", issueDate: "2026-07-10", dueDate: "—",
-    total: "242.00 RON", paid: "0.00 RON", remaining: "242.00 RON", statusLabel: "Scadentă", statusTone: "muted",
+    total: "242.00 RON", paid: "0.00 RON", credited: "0.00 RON", remaining: "242.00 RON", statusLabel: "Scadentă", statusTone: "muted",
   })
   assert.equal(listCount({ ...collections.invoices, count: 2, items: [item, item] }), "2 facturi")
 })

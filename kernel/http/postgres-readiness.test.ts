@@ -76,3 +76,8 @@ void test("the PG secret is fail-closed outside development", () => {
   assert.equal(runtimeConfig({ ...base, NODE_ENV: "development" }).pgSettings.password, "")
   assert.equal(runtimeConfig({ ...base, NODE_ENV: "test" }).pgSettings.password, "")
 })
+
+void test("an unset NODE_ENV is production, not development", () => {
+  const base = { PGHOST: "db", PGPORT: "5432", PGDATABASE: "d", PGUSER: "u" }
+  assert.throws(() => runtimeConfig(base), /PGPASSWORD_FILE is required outside development/u)
+})

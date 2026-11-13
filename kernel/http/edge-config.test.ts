@@ -9,7 +9,7 @@ import { assertServableOrigin, edgePolicyFor } from "./edge-server.ts"
 import { edgeConfig, startEdgeServer } from "./edge-server.test-support.ts"
 
 const productionEnvironment = (): NodeJS.ProcessEnv => {
-  const secret = join(mkdtempSync(join(tmpdir(), "qwbe-config-")), "pg-password")
+  const secret = join(mkdtempSync(join(tmpdir(), "rfi-config-")), "pg-password")
   writeFileSync(secret, "not-a-real-password", { mode: 0o600 })
   return { NODE_ENV: "production", PGPASSWORD_FILE: secret }
 }
@@ -28,13 +28,13 @@ void test("PUBLIC_ORIGIN is optional for every command and validated canonically
   }
 })
 
-void test("QWBE_BEARER_API is off unless it says on, and anything else refuses to start", () => {
+void test("RFI_BEARER_API is off unless it says on, and anything else refuses to start", () => {
   for (const value of [undefined, "", "off"]) {
-    assert.equal(runtimeConfig({ NODE_ENV: "test", ...(value === undefined ? {} : { QWBE_BEARER_API: value }) }).bearerApi, false)
+    assert.equal(runtimeConfig({ NODE_ENV: "test", ...(value === undefined ? {} : { RFI_BEARER_API: value }) }).bearerApi, false)
   }
-  assert.equal(runtimeConfig({ NODE_ENV: "test", QWBE_BEARER_API: "on" }).bearerApi, true)
+  assert.equal(runtimeConfig({ NODE_ENV: "test", RFI_BEARER_API: "on" }).bearerApi, true)
   for (const value of ["ON", "true", "1", "yes", " on"]) {
-    assert.throws(() => runtimeConfig({ NODE_ENV: "test", QWBE_BEARER_API: value }), /QWBE_BEARER_API must be on or off/u, value)
+    assert.throws(() => runtimeConfig({ NODE_ENV: "test", RFI_BEARER_API: value }), /RFI_BEARER_API must be on or off/u, value)
   }
 })
 

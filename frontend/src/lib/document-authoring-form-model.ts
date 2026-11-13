@@ -28,6 +28,8 @@ export interface DocumentAuthoringForm {
   readonly issueDate: string
   readonly dueDate: string
   readonly dueDateEdited: boolean
+  /** An invoice's supply date, empty when it is the issue date; a proforma leaves it empty. */
+  readonly supplyDate: string
   readonly notes: string
 }
 

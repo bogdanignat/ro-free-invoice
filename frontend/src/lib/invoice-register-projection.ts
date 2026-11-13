@@ -1,5 +1,6 @@
 import { money } from "./money.ts"
 import type { EFacturaStatus, InvoiceRegisterRow } from "./invoice-register.ts"
+import { spvDeadlineNote, spvLabel, type SpvDeadlineNote, type SpvStatus } from "./spv-status.ts"
 
 /**
  * The register row as a table renders it: every field already a string.
@@ -19,6 +20,8 @@ export interface InvoiceRegisterPresentationRow {
   readonly total: string
   readonly status: string
   readonly statusClass: string
+  /** The SPV deadline of a document still to resolve, with its tone; `null` when nothing is left to do. */
+  readonly deadline: SpvDeadlineNote | null
   readonly originalInvoice: { readonly label: string; readonly href: string } | null
 }
 
@@ -50,6 +53,13 @@ export const eFacturaStatusTone = (status: EFacturaStatus): BadgeTone => {
   return status === "not_sent" ? "muted" : "danger"
 }
 
+/** The register's SPV group in the same tones: failed and unknown need a person. */
+const spvTone = (spv: SpvStatus | null): BadgeTone => {
+  if (spv === null || spv.state === "not_sent") return "muted"
+  if (spv.state === "in_progress") return "info"
+  return spv.state === "accepted" ? "positive" : "danger"
+}
+
 /** `.badge` paints its own background, so the danger tone only colours the text. */
 export const badgeClass = (tone: BadgeTone): string => tone === "danger" ? "badge text-invoice-danger-text" : `badge ${tone}`
 
@@ -65,8 +75,9 @@ export const projectInvoiceRegisterRow = (row: InvoiceRegisterRow): InvoiceRegis
   issueDate: row.issueDate,
   dueDate: row.dueDate ?? "—",
   total: money(row.totalIncludingVat, row.currency),
-  status: row.eFacturaStatus === null ? "—" : statusLabels[row.eFacturaStatus],
-  statusClass: badgeClass(row.eFacturaStatus === null ? "muted" : eFacturaStatusTone(row.eFacturaStatus)),
+  status: spvLabel(row.spv),
+  statusClass: badgeClass(spvTone(row.spv)),
+  deadline: spvDeadlineNote(row.spv),
   originalInvoice: row.kind === "correction"
     ? {
       label: `Factura inițială ${row.originalReference.series} ${String(row.originalReference.number)}`,

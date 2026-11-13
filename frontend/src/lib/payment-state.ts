@@ -27,17 +27,19 @@ const STATUS_LABELS: Readonly<Record<PaymentStatus, string>> = {
   paid: "Plătită",
   overpaid: "Plătită în exces",
   overdue: "Scadentă",
+  credited: "Stornată",
 }
 
 export type PaymentStatusTone = "muted" | "info" | "positive" | "storno"
 
-/** `overdue` reads like `unpaid`: only the label differs. */
+/** `overdue` reads like `unpaid` and `credited` is neutral too: only the label differs. */
 const STATUS_TONES: Readonly<Record<PaymentStatus, PaymentStatusTone>> = {
   unpaid: "muted",
   partially_paid: "info",
   paid: "positive",
   overpaid: "storno",
   overdue: "muted",
+  credited: "muted",
 }
 
 export const paymentStatusLabel = (status: PaymentStatus): string => STATUS_LABELS[status]
@@ -114,6 +116,7 @@ export interface PaymentsView extends PaymentActionState {
   readonly statusLabel: string
   readonly statusTone: PaymentStatusTone
   readonly paid: string
+  readonly credited: string
   readonly remaining: string
   /** The form's default amount: the balance still open, as the server wrote it. */
   readonly remainingAmount: string
@@ -125,9 +128,9 @@ export interface PaymentsView extends PaymentActionState {
 }
 
 /**
- * A reversed invoice takes no new payments. The ledger is not told about the
- * storno — refunds are outside this application — so what was already collected
- * stays recorded and the note says so rather than pretending it was returned.
+ * A reversed invoice takes no new payments. The storno lowers what is owed, but
+ * refunding money already collected is outside this application, so the payments
+ * stay recorded and the note says so rather than pretending they were returned.
  */
 const stornoNote = (correctedBy: CorrectionRef, summary: PaymentSummary, currency: string): string => {
   const head = `Factura a fost stornată prin ${correctedBy.series} ${String(correctedBy.number)} din ${correctedBy.issueDate}.`
@@ -142,6 +145,7 @@ export const paymentsView = (summary: PaymentSummary, currency: string, correcte
   statusLabel: paymentStatusLabel(summary.status),
   statusTone: paymentStatusTone(summary.status),
   paid: money(summary.paidAmount, currency),
+  credited: money(summary.creditedAmount, currency),
   remaining: money(summary.remainingAmount, currency),
   remainingAmount: summary.remainingAmount,
   formKey: summary.paidAmount,
@@ -149,6 +153,8 @@ export const paymentsView = (summary: PaymentSummary, currency: string, correcte
   closedNote: correctedBy === undefined ? undefined : stornoNote(correctedBy, summary, currency),
 })
 
+/** Read against the sum still owed: after a full storno, payments equal to the total already exceed it. */
+export const OVERPAID_NOTE = "Încasările înregistrate depășesc suma de încasat. Nu mai pot fi adăugate plăți."
 export const REVERSAL_CONFIRM = "Anulezi această plată? Se înregistrează o stornare a plății; înregistrarea inițială rămâne în istoric."
 export const PAYMENT_RECORDED = "Plata a fost înregistrată."
 export const PAYMENT_REVERSED = "Plata a fost anulată."

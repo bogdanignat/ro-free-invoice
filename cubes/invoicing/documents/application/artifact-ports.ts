@@ -84,7 +84,10 @@ interface RenderableNumberedDocument {
   readonly totalIncludingVat: string
 }
 
-export type RenderableInvoice = RenderableNumberedDocument
+export interface RenderableInvoice extends RenderableNumberedDocument {
+  // Always set on an issued invoice: the issue date itself when no earlier supply was given.
+  readonly supplyDate: string
+}
 
 export interface RenderableProforma extends RenderableNumberedDocument {
   readonly sourceDraftId: string | null

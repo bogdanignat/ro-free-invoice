@@ -7,7 +7,7 @@ import { applicationHttpApi } from "./http-api.ts"
 
 export const customerHandlers = (use: UseServices) => ({
   listCustomers: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "listCustomers", ({ urlParams }) =>
-    use((s) => s.invoicing.listCustomers(urlParams)).pipe(Effect.mapError(errors("ValidationFailure")))),
+    use((s) => s.invoicing.listCustomers(urlParams, urlParams.q)).pipe(Effect.mapError(errors("ValidationFailure")))),
   getCustomer: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "getCustomer", ({ path }) =>
     use((s) => s.invoicing.getCustomer(path.id)).pipe(Effect.mapError(errors("ResourceNotFound")))),
   createCustomer: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "createCustomer", ({ payload }) =>

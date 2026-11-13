@@ -3,13 +3,13 @@ import {
 } from "@effect/platform"
 import { Cause, Chunk, Effect, Option } from "effect"
 
-import { logInternalFailure } from "../failure-log.ts"
+import { failureReason, logInternalFailure } from "../failure-log.ts"
 
 const issuePath = (issue: { readonly path: ReadonlyArray<PropertyKey>, readonly message: string }): string => issue.path.length === 0
   ? issue.message : `${issue.path.map(String).join(".")}: ${issue.message}`
 const decodeFailure = (failure: HttpApiError.HttpApiDecodeError) => Effect.gen(function*() {
   const request = yield* HttpServerRequest.HttpServerRequest
-  const params = new URL(request.url, "http://qwbe.local").searchParams
+  const params = new URL(request.url, "http://rfi.local").searchParams
   if (params.getAll("limit").length > 1 || params.getAll("cursor").length > 1) {
     return HttpServerResponse.unsafeJson({ error: "ValidationFailure",
       issues: ["limit and cursor must be supplied at most once"] }, { status: 400 })
@@ -65,6 +65,6 @@ export const finalMiddleware = (app: HttpApp.Default): HttpApp.Default => Effect
       && "reason" in defectValue && defectValue.reason === "Decode")) {
     return Effect.succeed(HttpServerResponse.unsafeJson({ error: "invalid_json" }, { status: 400 }))
   }
-  logInternalFailure({ kind: "defect", reason: Cause.pretty(cause) })
+  logInternalFailure({ kind: "defect", reason: failureReason(Cause.squash(cause)) })
   return Effect.succeed(HttpServerResponse.unsafeJson({ error: "internal_failure" }, { status: 500 }))
 })

@@ -107,7 +107,7 @@ const storedState = async (pool: Pool, sql: RawSql): Promise<ReadonlyArray<strin
 
 const cli = (fixture: TestFixture, command: ReadonlyArray<string>) => spawnSync(
   process.execPath,
-  [join(process.cwd(), "bin", "qwbe-invoicing.ts"), ...command],
+  [join(process.cwd(), "bin", "ro-free-invoice.ts"), ...command],
   { encoding: "utf8", env: fixture.childEnv() },
 )
 

@@ -54,12 +54,17 @@ workflow, not an external verification of a company's fiscal status. Other
 non-registration grounds and E/Z/AE/other categories are unsupported. Client entry
 and prefix handling are unchanged; external CUI verification is deferred to T-1371.
 
-Issuer configuration is dated. Authoring displays the registration at issueDate;
-issued invoices/proformas/corrections use frozen facts. Invoice issuance validates
+Issuer configuration is dated. An invoice's VAT regime and rates are read at its
+supply date (`supplyDate`, the issue date when none is given), in authoring and at
+issuance alike; a proforma is no supply and reads them at its issue date. The
+issuer's own details (name, address, identifiers) stay those of the issue date.
+Revenue reports group documents by `issue_date`, never by supply date.
+Issued invoices/proformas/corrections use frozen facts. Invoice issuance validates
 line calculations, VAT groups and document totals before numbering. O has exactly
 one breakdown — the zero beside it is a placeholder, not a rate to group by. S is
 grouped by category/rate, using the existing cent-rounding rule.
-Proforma-to-invoice checks compatibility at the conversion date. Proforma-to-draft
+Proforma-to-invoice checks compatibility at the invoice's supply date (the conversion
+date unless an earlier supply is given). Proforma-to-draft
 preserves a valid offered snapshot even if it must be edited before later issuance.
 Full correction preserves the original treatment and negates amounts, normalizing
 zero to `0.00`; it does not reinterpret the source using the current issuer profile.
@@ -186,17 +191,13 @@ older schema is upgraded by new migrations and their backfills (README, "Schema 
 A real/local data reset is a separate operational action; running the tests does
 not reset the existing app.
 
-## Remaining work
+## What is built on top
 
-- **T-1345 — XML export:** deterministic UBL generation from public snapshots,
-  official XSD/Schematron CIUS-RO validation and fixtures for supported S/O,
-  SRL/PFA and B2B/B2C cases. The inspected SCH materials are the package above.
-- **T-1346 — ANAF transport:** authentication, submission, status/response handling,
-  safe retries, idempotency and audit. Separate from producing the XML file.
-- **T-1371 — company lookup API:** verify/autocomplete company details from CUI.
-  The requested provider is recalled as offering 100 free requests per month;
-  its identity and current terms still need verification.
-- **T-1374 — local activation:** integrate and run the new version locally.
-  The existing local app/database was not updated by this implementation.
-  The schema moves forward only by migrations; any database recreation requires a separately
-  confirmed operational action, never an implicit reset during deployment.
+- **XML export:** deterministic UBL/CIUS-RO generation from frozen snapshots, with local
+  rule checks and fixtures for the supported S/O cases ([EFACTURA.md](EFACTURA.md)).
+- **ANAF transport:** OAuth connection, one-by-one submission of invoices and stornos,
+  status, receipt and reconciliation ([EFACTURA.md](EFACTURA.md), [ANAF.md](ANAF.md)).
+- **Company lookup from a CUI:** the optional `company-lookup` plugin (ANAF and openapi.ro
+  providers).
+
+Other VAT categories and exemptions stay unsupported.

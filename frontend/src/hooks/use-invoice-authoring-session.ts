@@ -4,17 +4,18 @@ import { useInvoiceAuthoringDraft } from "./use-invoice-authoring-draft.ts"
 import { useInvoiceIssuance } from "./use-invoice-issuance.ts"
 import { createInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
 import { useAuthoringRecovery } from "./use-authoring-recovery.ts"
+import { useSupplyDateRefusal } from "./use-supply-date-refusal.ts"
 import type { InvoiceAuthoringSession, InvoiceAuthoringSessionInput } from "./invoice-authoring-session-types.ts"
-import { today } from "../lib/format.ts"
-import { authoringDerived, authoringRecoveryDerived } from "../lib/invoice-authoring-derived.ts"
+import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
+import { authoringDerived, authoringRecoveryDerived, savedDraftStaleLineIds } from "../lib/invoice-authoring-derived.ts"
 import { openingAuthoringForm, openingAuthoringLines } from "../lib/invoice-authoring-opening.ts"
 import { documentLinesStarted } from "../lib/document-authoring-readiness.ts"
 import {
-  draftDeletionState, invoiceDueDateIssue, issueBlockReasons, issuerIssuanceWarning,
+  draftDeletionState, issueBlockReasons, issuerIssuanceWarning,
 } from "../lib/invoice-authoring-workflow.ts"
 import { documentNotesIssue, documentNotesMaxLength } from "../lib/invoice-notes-validation.ts"
 import { countyRequiresSector } from "../lib/romanian-counties.ts"
-import { issuerForIssueDate, staleDraftLineIds } from "../lib/vat-snapshots.ts"
+import { issuerForIssueDate } from "../lib/vat-snapshots.ts"
 import type { DraftInvoice } from "../lib/draft-models.ts"
 
 /**
@@ -24,10 +25,11 @@ import type { DraftInvoice } from "../lib/draft-models.ts"
  * computed here so the components underneath only render.
  */
 export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput): InvoiceAuthoringSession => {
-  const [form, setForm] = useState(() => openingAuthoringForm(input, today()))
-  const [lines, setLines] = useState(() => openingAuthoringLines(input, today(), crypto.randomUUID()))
-  const forcedUpdateLineIds = (currentDraft: DraftInvoice): ReadonlyArray<string> =>
-    staleDraftLineIds(currentDraft.issueDate, currentDraft.lines, input.vatCatalogue, input.issuer)
+  // One reading of the day, on mount, so the form and the lines open on the same date.
+  const [openedOn] = useState(() => todayIn(ORGANIZATION_TIME_ZONE))
+  const [form, setForm] = useState(() => openingAuthoringForm(input, openedOn))
+  const [lines, setLines] = useState(() => openingAuthoringLines(input, openedOn, crypto.randomUUID()))
+  const forcedUpdateLineIds = (currentDraft: DraftInvoice) => savedDraftStaleLineIds(currentDraft, input.vatCatalogue, input.issuer)
   // An unresolved write from this tab blocks both saving and issuing until it
   // is replayed or the user states they checked the registry.
   const recovery = useAuthoringRecovery()
@@ -41,15 +43,14 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
     form, lines, draft, workflowPending,
     issuer: input.issuer, vatCatalogue: input.vatCatalogue, staleLineIds: forcedUpdateLineIds, invoiceSeries: input.invoiceSeries,
   })
-  const { payload, taxReadiness, dueDateRequired, vatRates, series } = derived
+  const { payload, taxReadiness, dueDateRequired, vatRates, series, vatDate, dueDateIssue, supplyDateIssue } = derived
   // A save whose create outcome is unknown blocks every other write — most
   // importantly issuance, which could seal an unidentified document and later
   // orphan the draft into a second fiscal invoice.
   const issuanceBlock = draftWorkflow.unconfirmedMessage
-  // An archived series takes no new number (`series.warning`); the server refuses it too.
   const invoiceIssuance = useInvoiceIssuance({
     draftId: draft?.id, payload,
-    canIssue: taxReadiness.canIssue && !dueDateRequired && issuanceBlock === undefined && !recovery.blocked && series.warning === undefined,
+    canIssue: derived.issuable && issuanceBlock === undefined && !recovery.blocked,
     workflowPending, blockedMessage: issuanceBlock, recovery: recovery.port,
   })
   // An issuance whose outcome is unknown freezes the document instead: only
@@ -66,13 +67,17 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
   const editorActions = createInvoiceAuthoringEditorActions({
     issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
     productPresets: input.productPresets, customers: input.customers,
-    issueDate: form.issueDate, deriveDueDate: draft === undefined || draft.dueDate === null, setForm, setLines,
+    vatDate, deriveDueDate: draft === undefined || draft.dueDate === null, setForm, setLines,
   })
   const pending = workflowPending || invoiceIssuance.pending || issueUnconfirmed !== undefined || recovery.pending
-  const dueDateIssue = invoiceDueDateIssue(dueDateRequired)
+  // The known-result notice already says what happened; the same effects
+  // failure as a second, bare error message only adds noise.
+  const shown = useSupplyDateRefusal(draftWorkflow.error
+    ?? (recoveryState.suppressIssuanceError ? null : invoiceIssuance.error)
+    ?? recovery.error, supplyDateIssue, form)
   return {
     document: {
-      draft, issuer: issuerForIssueDate(input.issuer, form.issueDate),
+      draft, issuer: issuerForIssueDate(input.issuer, vatDate),
       customers: input.customers, customersHasMore: input.customersHasMore,
       customersLoadingMore: input.customersLoadingMore, customersLoadMore: input.customersLoadMore,
       seriesChoices: series.choices, unitOfMeasures: input.unitOfMeasures, form, lines,
@@ -85,27 +90,23 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
     },
     feedback: {
       backgroundErrors: input.backgroundErrors,
-      // The known-result notice already says what happened; the same effects
-      // failure as a second, bare error message only adds noise.
-      mutationError: draftWorkflow.error
-        ?? (recoveryState.suppressIssuanceError ? null : invoiceIssuance.error)
-        ?? recovery.error,
+      mutationError: shown.error,
       resumableSave: draftWorkflow.resumableSave,
       unconfirmedMessage: draftWorkflow.unconfirmedMessage,
       issueUnconfirmedMessage: issueUnconfirmed,
       issuerWarning: issuerIssuanceWarning(input.issuer), staleTaxWarning: taxReadiness.warning, seriesWarning: series.warning,
       notesIssue: documentNotesIssue(form.notes), notesMaxLength: documentNotesMaxLength,
-      dueDateIssue, notice: draftWorkflow.notice,
+      dueDateIssue, supplyDateIssue: shown.supplyDateIssue, supplyDateWarning: derived.supplyDateWarning, notice: draftWorkflow.notice,
       issueBlockReasons: issueBlockReasons({
         readiness: derived.readiness, hasDraft: draft !== undefined, linesStarted: documentLinesStarted(lines), pending,
-        staleTaxWarning: taxReadiness.warning, dueDateIssue, seriesWarning: series.warning,
+        staleTaxWarning: taxReadiness.warning, dueDateIssue, supplyDateIssue, seriesWarning: series.warning,
       }),
       // The issuance controller's own confirmed-but-unfollowed result reaches
       // the same card: one place on the screen says what is known to exist.
       recoveryNotice: recoveryState.notice,
     },
     status: {
-      pending, savePending: draftWorkflow.savePending, invoicePending: invoiceIssuance.pending,
+      pending, savePending: draftWorkflow.savePending, canSave: derived.canSave, invoicePending: invoiceIssuance.pending,
       canIssueInvoice: invoiceIssuance.canIssue, dueDateRequired,
       recoveryBlocked: recoveryState.blocked, recoveryPending: recovery.pending,
     },
@@ -113,7 +114,7 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
     actions: {
       ...editorActions,
       deleteLine: draftWorkflow.deleteLine,
-      save: draftWorkflow.save,
+      save: () => { if (derived.canSave) draftWorkflow.save() },
       issueInvoice: invoiceIssuance.issue,
       deleteDraft: draftWorkflow.deleteDraft,
       replayRecovery: recovery.replay,

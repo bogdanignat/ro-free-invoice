@@ -21,7 +21,7 @@ export const handleApiRequest = async (request: ApiRequest, runtime: ApiRuntime)
     if (request.authorization !== undefined) headers.set("authorization", request.authorization)
     if (request.idempotencyKey !== undefined) headers.set("idempotency-key", request.idempotencyKey)
     const withBody = request.method !== "GET" && request.method !== "HEAD"
-    const response = await handler.handle(new Request(`http://qwbe.local${request.url}`, {
+    const response = await handler.handle(new Request(`http://rfi.local${request.url}`, {
       method: request.method,
       headers,
       ...(withBody ? { body: JSON.stringify(request.body ?? {}) } : {}),

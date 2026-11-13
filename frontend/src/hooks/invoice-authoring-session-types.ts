@@ -71,6 +71,10 @@ export interface InvoiceAuthoringSession {
     readonly notesIssue: string | null
     readonly notesMaxLength: number
     readonly dueDateIssue: string | null
+    /** A supply date after the issue date: the server refuses it, so the field says so first. */
+    readonly supplyDateIssue: string | null
+    /** The legal issue term (15th of the next month) has passed; issuing is still allowed. */
+    readonly supplyDateWarning: string | null
     /** Why issuing is closed right now, shown next to the button. */
     readonly issueBlockReasons: ReadonlyArray<string>
     readonly notice: string | null
@@ -80,6 +84,8 @@ export interface InvoiceAuthoringSession {
   readonly status: {
     readonly pending: boolean
     readonly savePending: boolean
+    /** False while the supply date field shows an error. */
+    readonly canSave: boolean
     readonly invoicePending: boolean
     readonly canIssueInvoice: boolean
     readonly dueDateRequired: boolean

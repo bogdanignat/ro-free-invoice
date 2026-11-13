@@ -42,7 +42,7 @@ void test("a changed byte anywhere is refused, not decrypted", () => {
 })
 
 void test("the master key comes from COMPANY_LOOKUP_KEY_FILE, 64 hex characters, never quoted in an error", () => {
-  const directory = mkdtempSync(join(tmpdir(), "qwbe-master-"))
+  const directory = mkdtempSync(join(tmpdir(), "rfi-master-"))
   const file = (name: string, content: string) => {
     const path = join(directory, name)
     writeFileSync(path, content, { mode: 0o600 })

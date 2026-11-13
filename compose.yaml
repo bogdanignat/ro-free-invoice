@@ -1,4 +1,4 @@
-name: qwbe-invoicing
+name: ro-free-invoice
 
 x-postgres-environment: &postgres-environment
   PGHOST: db
@@ -7,6 +7,8 @@ x-postgres-environment: &postgres-environment
 
 services:
   db:
+    # Fixed name: Docker then refuses a second dev Postgres on the same cluster volume.
+    container_name: ro-free-invoice-db
     image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     environment:
       POSTGRES_DB: qwbe_invoicing
@@ -44,7 +46,7 @@ services:
   db-init:
     image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     user: "0:0"
-    command: ["sh", "/qwbe-postgres/db-init.sh"]
+    command: ["sh", "/rfi-postgres/db-init.sh"]
     environment:
       PGHOST: db
       PGDATABASE: qwbe_invoicing
@@ -53,18 +55,18 @@ services:
       - pg_owner_password
       - pg_app_password
     volumes:
-      - ./deploy/postgres:/qwbe-postgres:ro
+      - ./deploy/postgres:/rfi-postgres:ro
     depends_on:
       db:
         condition: service_healthy
     restart: "no"
 
   migrate:
-    image: qwbe-invoicing:${IMAGE_TAG:-local}
+    image: ro-free-invoice:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["node", "bin/qwbe-invoicing.ts", "migrate", "--apply", "--json"]
+    command: ["node", "bin/ro-free-invoice.ts", "migrate", "--apply", "--json"]
     environment:
       <<: *postgres-environment
       # The schema owner, not a superuser. The password is read from this file by the
@@ -93,7 +95,7 @@ services:
     restart: "no"
 
   app:
-    image: qwbe-invoicing:${IMAGE_TAG:-local}
+    image: ro-free-invoice:${IMAGE_TAG:-local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -112,21 +114,25 @@ services:
       COMPANY_LOOKUP_KEY_FILE: /run/secrets/company_lookup_key
       # Optional plugins, comma-separated (`payments`, `efactura`, `company-lookup`). Passed through
       # only when set: unset means every plugin runs, empty means none. Restart to apply.
-      QWBE_PLUGINS:
+      RFI_PLUGINS:
       # The ANAF e-Factura environment: `test` unless `prod` is written out in .env. The
       # OAuth client and its secrets come only with compose.anaf.yaml (docs/LOCAL_DEVELOPMENT.md).
       ANAF_ENVIRONMENT: ${ANAF_ENVIRONMENT:-test}
       # The one origin the browser reaches: the kernel pins Host, X-Forwarded-* and
-      # Origin to it, and serves the UI (QWBE_UI_DIR, set in the image) and /api on it.
+      # Origin to it, and serves the UI (RFI_UI_DIR, set in the image) and /api on it.
       PUBLIC_ORIGIN: https://${APP_DOMAIN:-invoice.test}
-      # Off by default; `QWBE_BEARER_API=on` in .env serves the Bearer API on the same origin.
-      QWBE_BEARER_API: ${QWBE_BEARER_API:-off}
+      # Off by default; `RFI_BEARER_API=on` in .env serves the Bearer API on the same origin.
+      RFI_BEARER_API: ${RFI_BEARER_API:-off}
       # Unset trusts no proxy's X-Forwarded-For (README, Configuration). Passed through only when set.
-      QWBE_TRUSTED_PROXY:
+      RFI_TRUSTED_PROXY:
       # `backup` and `restore` stage into a `mkdtemp` under TMPDIR, and the archive
-      # bounds allow 1 GiB expanded: staging is a disk volume, not the small tmpfs
-      # below, because a 1 GiB staging tree in `/tmp` would be 1 GiB of RAM.
+      # bounds allow 64 GiB expanded: staging is a disk volume, not the small tmpfs
+      # below, because a staging tree of tens of GiB in `/tmp` would be that much RAM.
       TMPDIR: /var/backups/staging
+      # Renamed keys, passed through only when set, so a stale one in .env reaches the kernel's refusal.
+      QWBE_PLUGINS:
+      QWBE_BEARER_API:
+      QWBE_TRUSTED_PROXY:
     secrets:
       - api_token
       - pg_app_password
@@ -150,10 +156,10 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: warden
-      traefik.http.routers.qwbe-invoicing.rule: Host(`${APP_DOMAIN:-invoice.test}`)
-      traefik.http.routers.qwbe-invoicing.entrypoints: https
-      traefik.http.routers.qwbe-invoicing.tls: "true"
-      traefik.http.services.qwbe-invoicing.loadbalancer.server.port: "3000"
+      traefik.http.routers.ro-free-invoice.rule: Host(`${APP_DOMAIN:-invoice.test}`)
+      traefik.http.routers.ro-free-invoice.entrypoints: https
+      traefik.http.routers.ro-free-invoice.tls: "true"
+      traefik.http.services.ro-free-invoice.loadbalancer.server.port: "3000"
     restart: unless-stopped
     stop_grace_period: 15s
     init: true
@@ -180,6 +186,8 @@ networks:
     external: true
     name: warden
 
+# The development volumes keep their pre-rename names, so dev data and the ANAF TEST
+# connection survive the rename; override them with the *_VOLUME_NAME variables.
 volumes:
   invoicing-data:
     name: ${DATA_VOLUME_NAME:-qwbe-invoicing-data}

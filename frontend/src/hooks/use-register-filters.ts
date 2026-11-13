@@ -2,10 +2,10 @@ import { useMemo, useState } from "react"
 
 import { useDebouncedValue } from "./use-debounced-value.ts"
 import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
-import type { RegisterKindFilter, RegisterQuery } from "../lib/invoice-register-query.ts"
+import type { RegisterKindFilter, RegisterQuery, RegisterSpvFilter } from "../lib/invoice-register-query.ts"
 import { readPageSize, rememberPageSize, type PageSize } from "../lib/register-page-size.ts"
 import {
-  choosePeriod, editCustomRange, initialRegisterFilters, isNarrowed, registerRange,
+  choosePeriod, chooseSpv, editCustomRange, initialRegisterFilters, isNarrowed, registerRange,
 } from "../lib/register-filters-state.ts"
 import { customRangeIssue, type RegisterPeriod } from "../lib/register-period.ts"
 import type { ReportRange } from "../lib/report-period.ts"
@@ -24,11 +24,13 @@ export interface RegisterFiltersModel {
   readonly customIssue: string | undefined
   readonly kind: RegisterKindFilter
   readonly search: string
+  readonly spv: RegisterSpvFilter
   readonly pageSize: PageSize
   readonly choosePeriod: (period: RegisterPeriod) => void
   readonly editCustom: (field: keyof ReportRange, value: string) => void
   readonly setKind: (kind: RegisterKindFilter) => void
   readonly setSearch: (search: string) => void
+  readonly setSpv: (spv: RegisterSpvFilter) => void
   readonly setPageSize: (size: PageSize) => void
 }
 
@@ -50,17 +52,19 @@ export const useRegisterFilters = (): RegisterFiltersModel => {
   const settledRange = useDebouncedValue(range, state.period === "custom" ? TYPING_DEBOUNCE_MS : 0)
   const search = useDebouncedValue(state.search, TYPING_DEBOUNCE_MS).trim()
   return {
-    query: { range: settledRange, kind: state.kind, search, limit: state.pageSize },
-    narrowed: isNarrowed(settledRange, state.kind, search),
+    query: { range: settledRange, kind: state.kind, search, spv: state.spv, limit: state.pageSize },
+    narrowed: isNarrowed(settledRange, state.kind, search, state.spv),
     period: state.period,
     customRange: state.typed,
     customIssue: customRangeIssue(state.typed),
     kind: state.kind,
     search: state.search,
+    spv: state.spv,
     pageSize: state.pageSize,
     choosePeriod: (period) => { setState((current) => choosePeriod(current, period, todayIn(ORGANIZATION_TIME_ZONE))) },
     editCustom: (field, value) => { setState((current) => editCustomRange(current, field, value)) },
     setKind: (kind) => { setState((current) => ({ ...current, kind })) },
+    setSpv: (spv) => { setState((current) => chooseSpv(current, spv)) },
     setSearch: (typed) => { setState((current) => ({ ...current, search: typed })) },
     setPageSize: (pageSize) => {
       rememberPageSize(pageSize)

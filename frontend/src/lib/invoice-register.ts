@@ -1,4 +1,5 @@
 import { decodePage, integer, nullableText, object, text, type Decoder } from "./model-decoder.ts"
+import { decodeSpv, type SpvStatus } from "./spv-status.ts"
 
 /**
  * One register, two document kinds.
@@ -22,6 +23,8 @@ interface InvoiceRegisterCommon {
   readonly customer: InvoiceRegisterCustomer
   readonly currency: string
   readonly totalIncludingVat: string
+  /** Where the document stands in SPV and by when; `null` without the e-Factura plugin. */
+  readonly spv: SpvStatus | null
 }
 
 const eFacturaStatuses = ["not_sent", "queued", "processing", "accepted", "rejected", "refused", "unknown"] as const
@@ -67,6 +70,7 @@ const decodeCommon = (value: Readonly<Record<string, unknown>>): InvoiceRegister
     customer: { name: text(customer.name, "customer.name") },
     currency: text(value.currency, "currency"),
     totalIncludingVat: text(value.totalIncludingVat, "totalIncludingVat"),
+    spv: decodeSpv(value.spv),
   }
 }
 

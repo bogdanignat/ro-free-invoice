@@ -1,4 +1,4 @@
-import type { RegisterKindFilter } from "./invoice-register-query.ts"
+import type { RegisterKindFilter, RegisterSpvFilter } from "./invoice-register-query.ts"
 import type { PageSize } from "./register-page-size.ts"
 import {
   DEFAULT_REGISTER_PERIOD, OPEN_RANGE, isSendableRange, presetDateRange, type RegisterPeriod,
@@ -20,11 +20,12 @@ export interface RegisterFiltersState {
   readonly applied: ReportRange
   readonly kind: RegisterKindFilter
   readonly search: string
+  readonly spv: RegisterSpvFilter
   readonly pageSize: PageSize
 }
 
 export const initialRegisterFilters = (pageSize: PageSize): RegisterFiltersState => ({
-  period: DEFAULT_REGISTER_PERIOD, typed: OPEN_RANGE, applied: OPEN_RANGE, kind: "all", search: "", pageSize,
+  period: DEFAULT_REGISTER_PERIOD, typed: OPEN_RANGE, applied: OPEN_RANGE, kind: "all", search: "", spv: "all", pageSize,
 })
 
 /** The dates the register is asked for under the current period. */
@@ -38,6 +39,10 @@ export const choosePeriod = (state: RegisterFiltersState, period: RegisterPeriod
   return { ...state, period, typed: current, applied: current }
 }
 
+/** An unsent document from last month is still due, so "De rezolvat în SPV" drops the period; it can be narrowed again. */
+export const chooseSpv = (state: RegisterFiltersState, spv: RegisterSpvFilter): RegisterFiltersState =>
+  spv === "unresolved" ? { ...state, spv, period: "all" } : { ...state, spv }
+
 export const editCustomRange = (
   state: RegisterFiltersState, field: keyof ReportRange, value: string,
 ): RegisterFiltersState => {
@@ -46,5 +51,5 @@ export const editCustomRange = (
 }
 
 /** Whether anything narrows the register, so an empty answer is not read as "nothing issued yet". */
-export const isNarrowed = (range: ReportRange, kind: RegisterKindFilter, search: string): boolean =>
-  range.from !== "" || range.to !== "" || kind !== "all" || search.trim() !== ""
+export const isNarrowed = (range: ReportRange, kind: RegisterKindFilter, search: string, spv: RegisterSpvFilter): boolean =>
+  range.from !== "" || range.to !== "" || kind !== "all" || search.trim() !== "" || spv !== "all"

@@ -3,7 +3,7 @@ import { Schema } from "effect"
 
 import * as C from "./schema-customers-catalog.ts"
 import * as I from "./schema-issuer.ts"
-import { PageQuery, UnitOfMeasure } from "./schema-primitives.ts"
+import { UnitOfMeasure } from "./schema-primitives.ts"
 import { body, conflict, documentType, id, invoicingBase, notFound, series, validation } from "./http-api-shared.ts"
 import { Deleted, VatRegistryUnavailableError } from "./schema-errors-session.ts"
 
@@ -17,12 +17,12 @@ export const masterDataEndpoints = {
     .setPayload(I.DocumentSeriesArchivedInput).addSuccess(I.DocumentSeries))))),
   listUnitOfMeasures: invoicingBase(HttpApiEndpoint.get("listUnitOfMeasures", "/unit-of-measures").addSuccess(Schema.Array(UnitOfMeasure))),
   listVatRegimes: invoicingBase(validation(HttpApiEndpoint.get("listVatRegimes", "/vat-regimes").addSuccess(I.VatCatalogue))),
-  listCustomers: invoicingBase(validation(HttpApiEndpoint.get("listCustomers", "/customers").setUrlParams(PageQuery).addSuccess(C.CustomerPage))),
+  listCustomers: invoicingBase(validation(HttpApiEndpoint.get("listCustomers", "/customers").setUrlParams(C.SearchPageQuery).addSuccess(C.CustomerPage))),
   getCustomer: invoicingBase(notFound(HttpApiEndpoint.get("getCustomer")`/customers/${id}`.addSuccess(C.Customer))),
   createCustomer: invoicingBase(validation(body(HttpApiEndpoint.post("createCustomer", "/customers").setPayload(C.CustomerInput).addSuccess(C.Customer)))),
   updateCustomer: invoicingBase(notFound(validation(body(HttpApiEndpoint.put("updateCustomer")`/customers/${id}`.setPayload(C.CustomerInput).addSuccess(C.Customer))))),
   deleteCustomer: invoicingBase(conflict(notFound(body(HttpApiEndpoint.del("deleteCustomer")`/customers/${id}`.addSuccess(Deleted))))),
-  listProductPresets: invoicingBase(validation(HttpApiEndpoint.get("listProductPresets", "/product-presets").setUrlParams(PageQuery).addSuccess(C.ProductPresetPage))),
+  listProductPresets: invoicingBase(validation(HttpApiEndpoint.get("listProductPresets", "/product-presets").setUrlParams(C.SearchPageQuery).addSuccess(C.ProductPresetPage))),
   createProductPreset: invoicingBase(conflict(validation(body(HttpApiEndpoint.post("createProductPreset", "/product-presets")
     .setPayload(C.ProductPresetInput).addSuccess(C.ProductPreset))))),
   updateProductPreset: invoicingBase(conflict(notFound(validation(body(HttpApiEndpoint.put("updateProductPreset")`/product-presets/${id}`

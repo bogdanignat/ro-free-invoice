@@ -1,9 +1,13 @@
-import { ValidationFailure } from "../../contracts/failures.ts"
+import { validationFailure } from "../../contracts/failures.ts"
 import type { BuyerSnapshot, PartySnapshot } from "../../domain/invoice.ts"
-import { CIUS_TEXT_LIMITS, ciusText } from "../../domain/validation.ts"
+import { CIUS_TEXT_LIMITS, ciusTextIssues } from "../../domain/validation.ts"
+import type { IssueDetail } from "../../issues/index.ts"
 import { isRomanianCountyCode } from "./romanian-counties.ts"
 
-const required = (value: string | undefined, field: string, issues: Array<string>) => {
+// A string is a party issue not coded yet (T-2692); the CIUS-RO texts carry their code.
+type Issues = Array<IssueDetail | string>
+
+const required = (value: string | undefined, field: string, issues: Issues) => {
   if (value === undefined || value.trim().length === 0) issues.push(`${field} is required`)
 }
 
@@ -22,18 +26,20 @@ export const isValidRomanianCui = (value: string): boolean => {
   return Number(cui.at(-1)) === (remainder === 10 ? 0 : remainder)
 }
 
-export const validateParty = (party: PartySnapshot): void => {
-  const issues: Array<string> = []
+const partyIssues = (party: PartySnapshot): Issues => {
+  const issues: Issues = []
   const county = party.address.county as string | undefined
   required(party.name, "name", issues)
   required(party.address.countryCode, "address.countryCode", issues)
   required(party.address.city, "address.city", issues)
   required(party.address.street, "address.street", issues)
   required(county, "address.county", issues)
-  ciusText("name", party.name, CIUS_TEXT_LIMITS.partyName, issues)
-  ciusText("address.street", party.address.street, CIUS_TEXT_LIMITS.street, issues)
-  ciusText("address.city", party.address.city, CIUS_TEXT_LIMITS.city, issues)
-  ciusText("address.postalCode", party.address.postalCode, CIUS_TEXT_LIMITS.postalCode, issues)
+  const cius: Array<IssueDetail> = []
+  ciusTextIssues("name", party.name, CIUS_TEXT_LIMITS.partyName, cius)
+  ciusTextIssues("address.street", party.address.street, CIUS_TEXT_LIMITS.street, cius)
+  ciusTextIssues("address.city", party.address.city, CIUS_TEXT_LIMITS.city, cius)
+  ciusTextIssues("address.postalCode", party.address.postalCode, CIUS_TEXT_LIMITS.postalCode, cius)
+  issues.push(...cius)
   if (party.fiscalIdentifier.trim() !== "" && !isValidRomanianCui(party.fiscalIdentifier)) issues.push("fiscalIdentifier must be a valid Romanian CUI")
   if (party.address.countryCode !== "RO") issues.push("address.countryCode must be RO")
   if (county !== undefined && county !== "" && !isRomanianCountyCode(county)) {
@@ -44,7 +50,12 @@ export const validateParty = (party: PartySnapshot): void => {
       issues.push("address.sector must be an integer between 1 and 6 for RO-B")
     }
   } else if (party.address.sector !== undefined) issues.push("address.sector is only allowed for RO-B")
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  return issues
+}
+
+export const validateParty = (party: PartySnapshot): void => {
+  const issues = partyIssues(party)
+  if (issues.length > 0) throw validationFailure(issues)
 }
 
 export const isValidRomanianCnp = (value: string): boolean => {
@@ -57,17 +68,15 @@ export const isValidRomanianCnp = (value: string): boolean => {
 }
 
 export const validateBuyer = (buyer: BuyerSnapshot): void => {
-  const issues: Array<string> = []
+  const issues: Issues = []
   const partyType: unknown = buyer.partyType
   if (partyType !== "company" && partyType !== "individual") issues.push("partyType must be company or individual")
-  try { validateParty({ ...buyer, fiscalIdentifier: buyer.partyType === "individual" ? "" : buyer.fiscalIdentifier }) } catch (error) {
-    if (error instanceof ValidationFailure) issues.push(...error.issues)
-  }
+  issues.push(...partyIssues({ ...buyer, fiscalIdentifier: buyer.partyType === "individual" ? "" : buyer.fiscalIdentifier }))
   if (buyer.partyType === "company" && buyer.fiscalIdentifier.trim() === "") issues.push("fiscalIdentifier is required for company")
   if (buyer.partyType === "individual" && buyer.fiscalIdentifier !== "" && !isValidRomanianCnp(buyer.fiscalIdentifier)) {
     issues.push("fiscalIdentifier must be a valid Romanian CNP")
   }
   if (buyer.partyType === "individual" && buyer.vatRegistered) issues.push("vatRegistered must be false for individual")
   if (typeof buyer.vatRegistered !== "boolean") issues.push("vatRegistered must be boolean")
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  if (issues.length > 0) throw validationFailure(issues)
 }

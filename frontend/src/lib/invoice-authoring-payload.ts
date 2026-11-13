@@ -32,13 +32,20 @@ const buyerPayload = (
       },
     }
 
-export const createDraftPayload = (form: InvoiceAuthoringForm): CreateDraftInput => ({
+const supplyDatePayload = (form: InvoiceAuthoringForm): string | null => form.supplyDate === "" ? null : form.supplyDate
+
+const documentHeader = (form: InvoiceAuthoringForm) => ({
   ...buyerPayload(form),
   series: form.series,
   issueDate: form.issueDate,
-  currency: "RON",
+  currency: "RON" as const,
   dueDate: form.dueDate === "" ? null : form.dueDate,
   notes: form.notes.trim() === "" ? null : form.notes.trim(),
+})
+
+export const createDraftPayload = (form: InvoiceAuthoringForm): CreateDraftInput => ({
+  ...documentHeader(form),
+  supplyDate: supplyDatePayload(form),
 })
 
 // The series is always sent: the server moves the draft only when it differs,
@@ -48,6 +55,7 @@ export const updateDraftPayload = (form: InvoiceAuthoringForm): UpdateDraftInput
   series: form.series,
   issueDate: form.issueDate,
   dueDate: form.dueDate === "" ? null : form.dueDate,
+  supplyDate: supplyDatePayload(form),
   notes: form.notes.trim() === "" ? null : form.notes.trim(),
 })
 
@@ -60,12 +68,14 @@ export const draftLinePayload = (line: EditableInvoiceLine): DraftLineInput => (
   ...presentIdentifiers(line),
 })
 
+// An empty supply date stays absent: the invoice's VAT then follows its issue date,
+// and the proforma, whose form never has one, sends none.
 export const authoringDocumentPayload = (
   form: InvoiceAuthoringForm,
   lines: ReadonlyArray<EditableInvoiceLine>,
 ): AuthoringDocumentInput => ({
-  ...createDraftPayload(form),
-  currency: "RON",
+  ...documentHeader(form),
+  ...(form.supplyDate === "" ? {} : { supplyDate: form.supplyDate }),
   lines: lines.map(draftLinePayload),
 })
 
@@ -92,6 +102,7 @@ export const authoringPayloadMatchesDraft = (
     && draft.series === payload.series
     && draft.issueDate === payload.issueDate
     && draft.dueDate === (payload.dueDate ?? null)
+    && (draft.supplyDate ?? null) === (payload.supplyDate ?? null)
     && draft.currency === payload.currency
     && draft.notes === (payload.notes ?? null)
     && draft.lines.length === payload.lines.length

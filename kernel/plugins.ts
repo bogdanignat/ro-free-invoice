@@ -11,7 +11,7 @@ export const optionalPlugins: ReadonlyArray<string> = [payments, efactura, compa
 
 /**
  * Which optional plugins this installation runs. Read once, at startup, from
- * `QWBE_PLUGINS`; a change takes a restart. A plugin that is off has no route,
+ * `RFI_PLUGINS`; a change takes a restart. A plugin that is off has no route,
  * no OpenAPI entry, no grant and no service, but its tables and migrations stay.
  */
 export interface PluginSelection {
@@ -38,7 +38,7 @@ export const parsePlugins = (value: string | undefined): PluginSelection => {
   const names = value.split(",").map((name) => name.trim()).filter((name) => name.length > 0)
   const unknown = names.filter((name) => !optionalPlugins.includes(name))
   if (unknown.length > 0) {
-    throw new Error(`QWBE_PLUGINS names unknown plugins: ${unknown.join(", ")} (known: ${optionalPlugins.join(", ")})`)
+    throw new Error(`RFI_PLUGINS names unknown plugins: ${unknown.join(", ")} (known: ${optionalPlugins.join(", ")})`)
   }
   return {
     payments: names.includes(payments.manifest.name),

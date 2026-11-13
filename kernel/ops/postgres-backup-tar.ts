@@ -2,7 +2,7 @@ import { createReadStream } from "node:fs"
 import { Readable } from "node:stream"
 import { createGunzip } from "node:zlib"
 
-import { ArchiveRejected } from "./postgres-backup-paths.ts"
+import { ArchiveRejected, manifestMember } from "./postgres-backup-paths.ts"
 
 /**
  * The tar and gzip readers the restore path uses instead of `tar -t`.
@@ -24,25 +24,49 @@ import { ArchiveRejected } from "./postgres-backup-paths.ts"
 export interface ArchiveLimits {
   readonly maxMembers: number
   readonly maxMemberBytes: number
+  /** The manifest is read whole into memory and parsed, so it has a bound of its own. */
+  readonly maxManifestBytes: number
   readonly maxExpandedBytes: number
   readonly maxCompressedBytes: number
+  /** One read pass over an archive; each of create's read-back, inspect and restore's two passes gets it. */
   readonly runtimeMillis: number
 }
 
+const gibibyte = 1024 * 1024 * 1024
+
 /**
- * Bounds, not guesses: the dump of a development database and a handful of PDFs
- * are orders of magnitude below these, and every one of them is an explicit
- * refusal rather than an out-of-memory or a filled disk. `maxExpandedBytes` is
- * the decompression-bomb bound; no ratio is computed, because the absolute cap
- * is the property that matters.
+ * Production bounds, fixed (no env override), sized for 10 years at 2,000
+ * documents a month:
+ * - 10 y x 12 x 2,000 = 240,000 PDFs of ~100 KB, one member each = ~24 GB of
+ *   artifacts; the dump (e-Factura XMLs included) is a few GB.
+ * - `maxMembers` 500,000: the 240,000 artifacts, ~2x headroom.
+ * - `maxMemberBytes` 8 GiB - 1: the dump is the one big member. This is also the
+ *   ceiling of the ustar size field (11 octal digits; base-256 is refused), so the
+ *   format cannot carry more; a PDF is ~100 KB.
+ * - `maxManifestBytes` 128 MiB: ~230 bytes per entry x 500,000 members = ~110 MiB.
+ * - `maxExpandedBytes` 64 GiB: ~24 GB artifacts + <= 8 GiB dump + ~0.25 GB tar
+ *   framing (240,000 x 1 KiB) = ~33 GB, ~2x headroom. This is the
+ *   decompression-bomb bound; no ratio is computed, because the absolute cap is
+ *   the property that matters, and every bound is an explicit refusal rather than
+ *   an out-of-memory or a filled disk.
+ * - `maxCompressedBytes` 48 GiB: PDFs barely compress (~24 GB) plus the compressed
+ *   dump (~1-3 GB).
+ * - `runtimeMillis` 60 min per pass: ~33 GB at a pessimistic ~100 MB/s of gunzip
+ *   plus hashing is ~6 min. It stays under the backup unit's `TimeoutStartSec`
+ *   (3 h), so a stuck read ends with a message, not with systemd's SIGKILL.
  */
 export const defaultArchiveLimits: ArchiveLimits = {
-  maxMembers: 4_096,
-  maxMemberBytes: 512 * 1024 * 1024,
-  maxExpandedBytes: 1024 * 1024 * 1024,
-  maxCompressedBytes: 512 * 1024 * 1024,
-  runtimeMillis: 120_000,
+  maxMembers: 500_000,
+  maxMemberBytes: 8 * gibibyte - 1,
+  maxManifestBytes: 128 * 1024 * 1024,
+  maxExpandedBytes: 64 * gibibyte,
+  maxCompressedBytes: 48 * gibibyte,
+  runtimeMillis: 60 * 60_000,
 }
+
+/** The bound a member's declared size is held to: the manifest has a tighter one. */
+export const memberSizeBound = (path: string, limits: ArchiveLimits): number =>
+  path === manifestMember ? limits.maxManifestBytes : limits.maxMemberBytes
 
 export const blockSize = 512
 

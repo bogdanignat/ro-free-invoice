@@ -56,13 +56,17 @@ type LedgerTransaction = Omit<PaymentsTransaction, "aggregateCollections" | "lis
 
 export const paymentsTransactionAdapter = (client: TransactionClient): LedgerTransaction => ({
   findInvoiceSnapshot: (organizationId, id) => read("find issued invoice", async () => {
+    // A storno stores its totals negative, so the credit is the negated sum of its totals.
     const { rows } = await client.query(
-      "SELECT * FROM issued_invoices WHERE organization_id = $1 AND id = $2", [organizationId, id],
+      `SELECT i.*, (SELECT COALESCE(-SUM(c.total_including_tax), 0) FROM correction_documents c
+          WHERE c.organization_id = i.organization_id AND c.original_invoice_id = i.id) AS credited_amount
+      FROM issued_invoices i WHERE i.organization_id = $1 AND i.id = $2`, [organizationId, id],
     )
     const value = firstRow(rows)
     return value === undefined ? undefined : {
       id: text(value, "id"), organizationId: text(value, "organization_id"), currency: text(value, "currency"),
       dueDate: nullableText(value, "due_date"), totalIncludingVat: money(value, "total_including_tax"),
+      creditedAmount: money(value, "credited_amount"),
     }
   }),
   savePayment: (payment) => write("save payment", async () => {

@@ -8,7 +8,7 @@ import * as E from "./schema-errors-session.ts"
 const bearer = HttpApiSecurity.bearer.pipe(
   HttpApiSecurity.annotate(OpenApi.Description, "Authorization: Bearer <kernel API token>"),
 )
-const sessionCookie = HttpApiSecurity.apiKey({ key: "qwbe_session", in: "cookie" }).pipe(
+const sessionCookie = HttpApiSecurity.apiKey({ key: "rfi_session", in: "cookie" }).pipe(
   HttpApiSecurity.annotate(OpenApi.Description, "Opaque browser session cookie"),
 )
 export class ApiAuthentication extends HttpApiMiddleware.Tag<ApiAuthentication>()("ApiAuthentication", {

@@ -9,6 +9,7 @@ import {
   defaultArchiveLimits,
   expandedBlocks,
   isZeroBlock,
+  memberSizeBound,
   parseHeader,
 } from "./postgres-backup-tar.ts"
 
@@ -54,17 +55,34 @@ const countingSink: ArchiveSink = {
  */
 const extractionSink = (root: string): ArchiveSink => {
   let handle: Awaited<ReturnType<typeof open>> | undefined
+  // One write per MiB instead of one per 512-byte block: tens of millions fewer syscalls on a large dump.
+  const buffer = Buffer.allocUnsafe(1024 * 1024)
+  let used = 0
+  const flush = async (): Promise<void> => {
+    // A short write (e.g. just before ENOSPC) is continued, so the error surfaces instead of a short file.
+    for (let written = 0; written < used && handle !== undefined;) {
+      written += (await handle.write(buffer, written, used - written)).bytesWritten
+    }
+    used = 0
+  }
   return {
     begin: async (member) => {
       const target = safeMemberPath(root, member.path)
       await mkdir(dirname(target), { recursive: true, mode: 0o700 })
       handle = await open(target, "wx", 0o600)
     },
-    data: async (chunk) => { await handle?.write(chunk) },
+    data: async (chunk) => {
+      if (used + chunk.length > buffer.length) await flush()
+      used += chunk.copy(buffer, used)
+    },
     end: async () => {
       const current = handle
-      handle = undefined
-      await current?.close()
+      try {
+        await flush()
+      } finally {
+        handle = undefined
+        await current?.close()
+      }
     },
   }
 }
@@ -109,7 +127,7 @@ const readArchive = async (
     if (seen.has(header.path)) throw new ArchiveRejected(`duplicate member: ${header.path}`)
     seen.add(header.path)
     if (header.directory) continue
-    if (header.byteLength > limits.maxMemberBytes) {
+    if (header.byteLength > memberSizeBound(header.path, limits)) {
       throw new ArchiveRejected(`member exceeds the size bound: ${header.path}`)
     }
     const member: ArchiveMember = { path: header.path, byteLength: header.byteLength }

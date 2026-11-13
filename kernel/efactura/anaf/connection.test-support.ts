@@ -21,7 +21,7 @@ export const ISSUER_CIF = "12345674"
 
 export const anafSettingsFor = (overrides: { readonly clientId?: string } = {}): AnafSettings => ({
   environment: "test",
-  client: { clientId: overrides.clientId ?? "qwbe_test_client", redirectUri: "https://invoice.test/api/anaf/callback",
+  client: { clientId: overrides.clientId ?? "rfi_test_client", redirectUri: "https://invoice.test/api/anaf/callback",
     clientSecret: Redacted.make(CLIENT_SECRET), tokenKey: Redacted.make(randomBytes(32)) },
 })
 
@@ -109,7 +109,7 @@ export const connectionRig = async (pool: Pool, dataDirectory: string, settings:
       const headers: Record<string, string> = { "content-type": "application/json" }
       if (options.cookie !== undefined) headers.cookie = options.cookie
       if (!path.startsWith("/anaf/")) headers.authorization = `Bearer ${options.as ?? "owner"}`
-      const response = await handler.handle(new Request(`http://qwbe.local/api${path}`, { method, headers,
+      const response = await handler.handle(new Request(`http://rfi.local/api${path}`, { method, headers,
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }) }))
       const text = await response.text()
       return { status: response.status, headers: response.headers, body: text === "" ? {} : JSON.parse(text) as Record<string, unknown> }
@@ -132,7 +132,7 @@ export const connectionRig = async (pool: Pool, dataDirectory: string, settings:
   const callback = async (cookie: string | undefined, query: string): Promise<string> => {
     const reply = await call("GET", `/anaf/callback${query}`, cookie === undefined ? {} : { cookie })
     assert.equal(reply.status, 303)
-    return new URL(reply.headers.get("location") ?? "", "http://qwbe.local").searchParams.get("anaf") ?? ""
+    return new URL(reply.headers.get("location") ?? "", "http://rfi.local").searchParams.get("anaf") ?? ""
   }
   const host = connectionHost(pool, settings, token.transport, now)
   const stored = (): Promise<ConnectionRecord | undefined> => Effect.runPromise(host.store.transaction((t) => t.findConnection(ORG)))

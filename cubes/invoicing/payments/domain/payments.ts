@@ -1,13 +1,14 @@
-import { formatDecimal, parseDecimal, parseUnsignedDecimal } from "../../contracts/money.ts"
-import { controlCharacters } from "../../domain/validation.ts"
-import { ValidationFailure } from "../contracts/failures.ts"
+import { formatDecimal, parseDecimal, parseUnsignedDecimal } from "../../money/index.ts"
+import { controlCharacterIssues, validateDate } from "../../domain/validation.ts"
+import * as issue from "../../issues/index.ts"
+import { ValidationFailure, validationFailure } from "../contracts/failures.ts"
 
 // Same rule as the invoicing cube: the fiscal "today" is the Romanian calendar day, not UTC.
 export const organizationTimeZone = "Europe/Bucharest"
 export const calendarDate = (instant: Date, timeZone: string = organizationTimeZone): string =>
   new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(instant)
 
-export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "overpaid" | "overdue"
+export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "overpaid" | "overdue" | "credited"
 // A reversal is a second immutable row that cancels one payment in full; nothing is ever edited or deleted.
 export type PaymentKind = "payment" | "reversal"
 export interface Payment {
@@ -52,51 +53,48 @@ export interface RecordPaymentInput {
 /** An amount typed in: trimmed, unsigned, at most two decimals and strictly positive. */
 const parseMoneyMinor = (value: string, field: string): bigint => {
   const parsed = parseUnsignedDecimal(value.trim(), 2)
-  if (!parsed.ok) throw new ValidationFailure({ issues: [`${field} must be a non-negative amount with at most two decimals`] })
-  if (parsed.units <= 0n) throw new ValidationFailure({ issues: [`${field} must be greater than zero`] })
+  if (!parsed.ok) throw validationFailure([issue.amountInvalid(field)])
+  if (parsed.units <= 0n) throw validationFailure([issue.amountNotPositive(field)])
   return parsed.units
 }
-const validateDate = (value: string, field: string): void => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  if (match === null) throw new ValidationFailure({ issues: [`${field} must be a calendar date in YYYY-MM-DD format`] })
-  const year = Number(match[1]); const month = Number(match[2]); const day = Number(match[3])
-  const date = new Date(Date.UTC(year, month - 1, day))
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-    throw new ValidationFailure({ issues: [`${field} must be a valid calendar date`] })
+/** The details a check refused with; a refusal without a code on every issue propagates as is, never vanishes. */
+const refusedWith = (check: () => unknown): ReadonlyArray<issue.IssueDetail> => {
+  try { check() } catch (error) {
+    if (!(error instanceof ValidationFailure)) throw error
+    const coded = error.details?.filter((detail) => detail !== undefined) ?? []
+    if (coded.length !== error.issues.length) throw error
+    return coded
   }
+  return []
 }
 /** A text as stored (trimmed); the baseline CHECKs the same lengths. A note may span lines. */
-const boundedText = (field: string, value: string | undefined, maximum: number, issues: Array<string>, newlines = false): void => {
+const boundedText = (field: string, value: string | undefined, maximum: number, issues: Array<issue.IssueDetail>, newlines = false): void => {
   if (value === undefined) return
   const text = value.trim()
-  if (text.length > maximum) issues.push(`${field} must be at most ${String(maximum)} characters`)
-  controlCharacters(field, text, issues, newlines)
+  if (text.length > maximum) issues.push(issue.tooLong(field, maximum))
+  controlCharacterIssues(field, text, issues, newlines)
 }
 export const validateRecordPaymentInput = (input: RecordPaymentInput): void => {
-  const issues: Array<string> = []
-  if (input.invoiceId.trim().length === 0) issues.push("invoiceId is required")
-  try { parseMoneyMinor(input.amount, "amount") } catch (error) {
-    if (error instanceof ValidationFailure) issues.push(...error.issues)
-  }
-  if (!/^[A-Z]{3}$/.test(input.currency)) issues.push("currency must be an ISO 4217 code")
-  if (input.method.trim().length === 0) issues.push("method is required")
-  if (input.externalReference !== undefined && input.externalReference.trim().length === 0) issues.push("externalReference must not be empty when provided")
-  if (input.note !== undefined && input.note.trim().length === 0) issues.push("note must not be empty when provided")
+  const issues: Array<issue.IssueDetail> = []
+  if (input.invoiceId.trim().length === 0) issues.push(issue.required("invoiceId"))
+  issues.push(...refusedWith(() => parseMoneyMinor(input.amount, "amount")))
+  if (!/^[A-Z]{3}$/.test(input.currency)) issues.push(issue.currencyInvalid())
+  if (input.method.trim().length === 0) issues.push(issue.required("method"))
+  if (input.externalReference !== undefined && input.externalReference.trim().length === 0) issues.push(issue.emptyWhenProvided("externalReference"))
+  if (input.note !== undefined && input.note.trim().length === 0) issues.push(issue.emptyWhenProvided("note"))
   boundedText("method", input.method, 50, issues)
   boundedText("externalReference", input.externalReference, 100, issues)
   boundedText("note", input.note, 500, issues, true)
-  try { validateDate(input.paymentDate, "paymentDate") } catch (error) {
-    if (error instanceof ValidationFailure) issues.push(...error.issues)
-  }
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  issues.push(...refusedWith(() => { validateDate(input.paymentDate, "paymentDate") }))
+  if (issues.length > 0) throw validationFailure(issues)
 }
 export const validateReversePaymentInput = (input: ReversePaymentInput): void => {
-  const issues: Array<string> = []
-  if (input.invoiceId.trim().length === 0) issues.push("invoiceId is required")
-  if (input.paymentId.trim().length === 0) issues.push("paymentId is required")
-  if (input.reason !== undefined && input.reason.trim().length === 0) issues.push("reason must not be empty when provided")
+  const issues: Array<issue.IssueDetail> = []
+  if (input.invoiceId.trim().length === 0) issues.push(issue.required("invoiceId"))
+  if (input.paymentId.trim().length === 0) issues.push(issue.required("paymentId"))
+  if (input.reason !== undefined && input.reason.trim().length === 0) issues.push(issue.emptyWhenProvided("reason"))
   boundedText("reason", input.reason, 500, issues, true)
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  if (issues.length > 0) throw validationFailure(issues)
 }
 /** A canonical amount ("12.50", "-0.05") or a validated input amount, in bani. */
 export const moneyMinor = (value: string): bigint => {

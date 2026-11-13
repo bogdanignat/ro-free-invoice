@@ -94,10 +94,15 @@ export const documentBodyView = (
   totals: totals(document),
 })
 
+/** The supply date is shown only when it differs from the issue date it otherwise repeats. */
+const supplyDateFacts = ({ supplyDate, issueDate }: IssuedInvoice) =>
+  supplyDate === issueDate ? [] : [{ label: "Data livrării/prestării", value: supplyDate }]
+
 export const projectIssuedInvoice = (invoice: IssuedInvoice): DocumentSnapshotView => ({
   ...documentBodyView(invoice),
   facts: [
     { label: "Emisă", value: invoice.issueDate },
+    ...supplyDateFacts(invoice),
     { label: "Scadență", value: orDash(invoice.dueDate) },
     { label: "Monedă", value: invoice.currency },
     ...invoice.eFacturaStatus === null ? [] : [{ label: "e-Factura", value: eFacturaStatusLabel(invoice.eFacturaStatus) }],

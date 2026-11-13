@@ -9,7 +9,8 @@ import {
 
 const ready: IssueBlockInput = {
   readiness: { editable: true, synchronized: true, hasLines: true },
-  hasDraft: true, linesStarted: true, pending: false, staleTaxWarning: null, dueDateIssue: null, seriesWarning: undefined,
+  hasDraft: true, linesStarted: true, pending: false, staleTaxWarning: null, dueDateIssue: null,
+  supplyDateIssue: null, seriesWarning: undefined,
 }
 
 const dueDateMissing = invoiceDueDateIssue(true)
@@ -36,6 +37,12 @@ void test("a new document is never 'unsaved': it may be issued directly", () => 
   assert.deepEqual(issueBlockReasons({
     ...ready, hasDraft: false, readiness: { editable: true, synchronized: false, hasLines: true },
   }), [])
+})
+
+void test("a supply after the issue is named; a new document with a supply date is not held back", () => {
+  const unsaved = { ...ready, hasDraft: false, readiness: { editable: true, synchronized: false, hasLines: true } }
+  assert.deepEqual(issueBlockReasons(unsaved), [])
+  assert.deepEqual(issueBlockReasons({ ...unsaved, supplyDateIssue: "late" }), ["late"])
 })
 
 void test("a write in flight or a locked draft does not list reasons", () => {

@@ -10,8 +10,7 @@ import { COLLECTIONS_STATUS_FILTERS } from "../../lib/dashboard-query.ts"
 
 /**
  * The invoices issued in the period, filtered by today's payment status. Only
- * rendered with the payments plugin on; the status is the backend's, so the
- * storno limitation is stated rather than worked around.
+ * rendered with the payments plugin on; the status and balances are the backend's.
  */
 export const SituationSection = ({ dashboard }: { readonly dashboard: DashboardModel }) => {
   const headingId = useId()
@@ -34,7 +33,6 @@ export const SituationSection = ({ dashboard }: { readonly dashboard: DashboardM
     <ReportFrame block={situation} loading="Se încarcă facturile perioadei…">
       {(view) => <>
         <StatCards label="Situația facturilor filtrate" cards={view.cards} />
-        <p className="status-note">Storno-ul nu schimbă statusul facturii: o factură stornată apare în continuare cu soldul ei.</p>
         {view.rows.length === 0
           ? <EmptyState>Nicio factură din perioadă nu corespunde filtrului.</EmptyState>
           : <CollectionsTable rows={view.rows} />}

@@ -1,13 +1,13 @@
 import { Effect } from "effect"
 
 import { checked } from "../../application/support.ts"
-import { ValidationFailure, type PaymentsFailure } from "../contracts/failures.ts"
+import { currencyMismatch } from "../../issues/index.ts"
+import { validationFailure, type PaymentsFailure } from "../contracts/failures.ts"
 import { legacyPaymentsPermissions, paymentsPermissions } from "../contracts/permissions.ts"
 import { formatMinor, moneyMinor, validateRecordPaymentInput, type Idempotent, type Payment, type RecordPaymentInput } from "../domain/payments.ts"
-import { findReplay, idempotencyRecord, validateAttempt } from "./idempotency.ts"
 import { createCollectionsReport } from "./collections.ts"
 import { createReversePayment } from "./reversals.ts"
-import { createAuthorize, missingInvoice, recordAuditEvent, replayed, summarize, type InvoicePaymentSummary, type PaymentsDependencies, type RecordPaymentResult } from "./support.ts"
+import { createAuthorize, findReplay, idempotencyRecord, missingInvoice, recordAuditEvent, replayed, summarize, validateAttempt, type InvoicePaymentSummary, type PaymentsDependencies, type RecordPaymentResult } from "./support.ts"
 
 export const createPaymentsService = (dependencies: PaymentsDependencies) => {
   const permissions = paymentsPermissions(dependencies.cubeIdentity)
@@ -21,7 +21,7 @@ export const createPaymentsService = (dependencies: PaymentsDependencies) => {
       if (invoice === undefined) return yield* Effect.fail(missingInvoice(input.invoiceId))
       const replayId = yield* findReplay(transaction, context.organization.id, idempotency, "record_payment")
       if (replayId !== undefined) return yield* replayed(transaction, context, invoice, replayId, now)
-      if (invoice.currency !== input.currency) return yield* Effect.fail(new ValidationFailure({ issues: ["payment currency must match invoice currency"] }))
+      if (invoice.currency !== input.currency) return yield* Effect.fail(validationFailure([currencyMismatch()]))
       const existing = yield* transaction.listPayments(context.organization.id, input.invoiceId)
       const payment: Payment = {
         id, invoiceId: input.invoiceId, organizationId: context.organization.id, kind: "payment",
