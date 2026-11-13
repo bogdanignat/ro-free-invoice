@@ -71,10 +71,11 @@ offending field at once.
   only the four XML space characters, so a field holding nothing but U+00A0
   is an empty field to a reader and a code no list contains to ANAF.
   Membership in UN/ECE Recommendation 20 is not: 2162 codes do not fit the
-  cube's size budget. The invoicing host picks the unit from a closed catalogue
-  of eight, each verified against the official list, but that is a guarantee of
-  the host — a caller that builds an `EFacturaDocument` itself can still name a
-  unit that does not exist.
+  cube's size budget. The invoicing host picks the unit from a closed, curated
+  catalogue (`cubes/invoicing/domain/unit-of-measures.ts`), each code checked
+  against UN/ECE Rec 20/21, but that is a guarantee of the host — a caller
+  that builds an `EFacturaDocument` itself can still name a unit that does not
+  exist.
 - BR-O-02: a document that is not subject to VAT states no VAT registration at
   all — neither BT-31 nor BT-48. Also returned verbatim by the validator.
 - BR-CO-25: an invoice with a positive amount due needs a due date. This mirrors

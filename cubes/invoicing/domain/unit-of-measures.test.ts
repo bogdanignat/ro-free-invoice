@@ -9,18 +9,29 @@ void test("publishes only the curated Romanian invoicing units, piece first, wit
   assert.deepEqual(unitOfMeasures, [
     { code: "H87", name: "bucată" },
     { code: "C62", name: "unitate" },
+    { code: "SET", name: "set" },
+    { code: "LS", name: "forfetar" },
+    { code: "MIN", name: "minut" },
     { code: "HUR", name: "oră" },
+    { code: "DAY", name: "zi" },
+    { code: "WEE", name: "săptămână" },
+    { code: "MON", name: "lună" },
+    { code: "ANN", name: "an" },
     { code: "KGM", name: "kilogram" },
+    { code: "TNE", name: "tonă" },
     { code: "LTR", name: "litru" },
-    { code: "MTR", name: "metru" },
-    { code: "MTK", name: "metru pătrat" },
     { code: "MTQ", name: "metru cub" },
+    { code: "MTR", name: "metru" },
+    { code: "KMT", name: "kilometru" },
+    { code: "MTK", name: "metru pătrat" },
+    { code: "KWH", name: "kilowatt-oră" },
   ], "keep the catalogue limited to practical units, not every available UN/ECE code")
   assert.ok(unitOfMeasures.every(({ code }) => /^[A-Z0-9]{2,3}$/.test(code)))
+  for (const unit of unitOfMeasures) assert.deepEqual(normalizeUnitOfMeasure(unit), unit)
 })
 
-void test("rejects removed calendar, packaging and redundant units for new input", () => {
-  for (const code of ["DAY", "WEE", "MON", "ANN", "MIN", "GRM", "TNE", "MLT", "CMT", "MMT", "KMT", "SET", "PR", "KWH", "LS", "E48", "XPK", "XBX"]) {
+void test("rejects packaging and redundant units for new input", () => {
+  for (const code of ["GRM", "MLT", "CMT", "MMT", "PR", "E48", "XPK", "XBX"]) {
     assert.throws(() => normalizeUnitOfMeasure({ code, name: "unitate eliminată" }), ValidationFailure, code)
   }
 })

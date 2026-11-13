@@ -15,9 +15,10 @@ import { normalizeSpace } from "./decimals.ts"
  * the half that costs one comparison — nothing left holding a space after
  * `normalize-space`. Membership in the list itself is unchecked, because 2162
  * codes do not fit the cube's budget. The invoicing host picks the unit from a
- * closed catalogue of eight, each verified against the official list, but that
- * is a guarantee of the host, not of this cube — a caller that builds an
- * `EFacturaDocument` itself can still name a unit ANAF has never heard of.
+ * closed, curated catalogue (`cubes/invoicing/domain/unit-of-measures.ts`),
+ * each code checked against UN/ECE Rec 20/21, but that is a guarantee of the
+ * host, not of this cube — a caller that builds an `EFacturaDocument` itself
+ * can still name a unit ANAF has never heard of.
  *
  * The comparisons follow each rule exactly. BR-CL-22 folds case before it
  * looks the code up, so `vatex-eu-o` is the same code to ANAF; BR-CL-14 and

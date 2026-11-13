@@ -5,7 +5,7 @@ import { useInvoiceIssuance } from "./use-invoice-issuance.ts"
 import { createInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
 import { useAuthoringRecovery } from "./use-authoring-recovery.ts"
 import type { InvoiceAuthoringSession, InvoiceAuthoringSessionInput } from "./invoice-authoring-session-types.ts"
-import { today } from "../lib/format.ts"
+import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
 import { authoringDerived, authoringRecoveryDerived } from "../lib/invoice-authoring-derived.ts"
 import { openingAuthoringForm, openingAuthoringLines } from "../lib/invoice-authoring-opening.ts"
 import { documentLinesStarted } from "../lib/document-authoring-readiness.ts"
@@ -24,8 +24,10 @@ import type { DraftInvoice } from "../lib/draft-models.ts"
  * computed here so the components underneath only render.
  */
 export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput): InvoiceAuthoringSession => {
-  const [form, setForm] = useState(() => openingAuthoringForm(input, today()))
-  const [lines, setLines] = useState(() => openingAuthoringLines(input, today(), crypto.randomUUID()))
+  // One reading of the day, on mount, so the form and the lines open on the same date.
+  const [openedOn] = useState(() => todayIn(ORGANIZATION_TIME_ZONE))
+  const [form, setForm] = useState(() => openingAuthoringForm(input, openedOn))
+  const [lines, setLines] = useState(() => openingAuthoringLines(input, openedOn, crypto.randomUUID()))
   const forcedUpdateLineIds = (currentDraft: DraftInvoice): ReadonlyArray<string> =>
     staleDraftLineIds(currentDraft.issueDate, currentDraft.lines, input.vatCatalogue, input.issuer)
   // An unresolved write from this tab blocks both saving and issuing until it
