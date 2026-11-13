@@ -9,7 +9,7 @@ export const CollectionsTable = ({ rows }: { readonly rows: ReadonlyArray<Collec
       <thead>
         <tr>
           <th scope="col">Număr</th><th scope="col">Client</th><th scope="col">Emisă</th><th scope="col">Scadență</th>
-          <th scope="col" className="numeric">Total</th><th scope="col" className="numeric">Încasat</th>
+          <th scope="col" className="numeric">Total</th><th scope="col" className="numeric">Încasat</th><th scope="col" className="numeric">Stornat</th>
           <th scope="col" className="numeric">Sold</th><th scope="col">Status</th>
         </tr>
       </thead>
@@ -21,6 +21,7 @@ export const CollectionsTable = ({ rows }: { readonly rows: ReadonlyArray<Collec
           <td data-label="Scadență">{row.dueDate}</td>
           <td data-label="Total" className="numeric">{row.total}</td>
           <td data-label="Încasat" className="numeric">{row.paid}</td>
+          <td data-label="Stornat" className="numeric">{row.credited}</td>
           <td data-label="Sold" className="numeric">{row.remaining}</td>
           <td data-label="Status"><span className={`badge ${row.statusTone}`}>{row.statusLabel}</span></td>
         </tr>)}

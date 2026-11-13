@@ -4,10 +4,9 @@ import { checked } from "../../application/support.ts"
 import { ValidationFailure, type PaymentsFailure } from "../contracts/failures.ts"
 import { legacyPaymentsPermissions, paymentsPermissions } from "../contracts/permissions.ts"
 import { formatMinor, moneyMinor, validateRecordPaymentInput, type Idempotent, type Payment, type RecordPaymentInput } from "../domain/payments.ts"
-import { findReplay, idempotencyRecord, validateAttempt } from "./idempotency.ts"
 import { createCollectionsReport } from "./collections.ts"
 import { createReversePayment } from "./reversals.ts"
-import { createAuthorize, missingInvoice, recordAuditEvent, replayed, summarize, type InvoicePaymentSummary, type PaymentsDependencies, type RecordPaymentResult } from "./support.ts"
+import { createAuthorize, findReplay, idempotencyRecord, missingInvoice, recordAuditEvent, replayed, summarize, validateAttempt, type InvoicePaymentSummary, type PaymentsDependencies, type RecordPaymentResult } from "./support.ts"
 
 export const createPaymentsService = (dependencies: PaymentsDependencies) => {
   const permissions = paymentsPermissions(dependencies.cubeIdentity)

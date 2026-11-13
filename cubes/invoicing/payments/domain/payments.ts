@@ -7,7 +7,7 @@ export const organizationTimeZone = "Europe/Bucharest"
 export const calendarDate = (instant: Date, timeZone: string = organizationTimeZone): string =>
   new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(instant)
 
-export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "overpaid" | "overdue"
+export type PaymentStatus = "unpaid" | "partially_paid" | "paid" | "overpaid" | "overdue" | "credited"
 // A reversal is a second immutable row that cancels one payment in full; nothing is ever edited or deleted.
 export type PaymentKind = "payment" | "reversal"
 export interface Payment {

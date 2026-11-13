@@ -5,7 +5,7 @@ import { Effect } from "effect"
 
 import { DomainConflict, PermissionDenied, ResourceNotFound, createPaymentsService, cube, paymentsMigrations, paymentsPermissions, type Payment, type PaymentIdempotencyRecord, type PaymentsTransaction } from "./index.ts"
 
-const invoice = { id: "invoice-1", organizationId: "org-1", currency: "RON", dueDate: "2026-09-15", totalIncludingVat: "100.00" }
+const invoice = { id: "invoice-1", organizationId: "org-1", currency: "RON", dueDate: "2026-09-15", totalIncludingVat: "100.00", creditedAmount: "0.00" }
 const payments = new Map<string, Payment>()
 const records = new Map<string, PaymentIdempotencyRecord>()
 const auditEvents: Array<{ readonly action: string; readonly actorId: string; readonly organizationId: string; readonly targetId: string; readonly reason?: string }> = []
@@ -24,7 +24,7 @@ const transaction: PaymentsTransaction = {
   aggregateCollections: (organizationId) => Effect.succeed({ months: [], collected: organizationId === "org-1" ? "12.00" : "0.00" }),
   listCollectionInvoices: (organizationId) => Effect.succeed(organizationId === invoice.organizationId ? [{
     id: invoice.id, series: "QWBE", number: 1, issueDate: "2026-09-01", dueDate: invoice.dueDate,
-    customer: { name: "Client SRL" }, totalIncludingVat: invoice.totalIncludingVat, paidAmount: "12.00",
+    customer: { name: "Client SRL" }, totalIncludingVat: invoice.totalIncludingVat, paidAmount: "12.00", creditedAmount: "0.00",
   }] : []),
 }
 let keyCounter = 0
@@ -55,7 +55,7 @@ void test("records and summarizes payments through invoice and payment ports", a
   assert.equal(result.payment.kind, "payment")
   assert.deepEqual(auditEvents, [{ action: "payment.recorded", actorId: "user-1", organizationId: "org-1", targetId: result.payment.id }])
   assert.deepEqual(await Effect.runPromise(service().listPayments(invoice.id)), {
-    invoiceId: invoice.id, status: "partially_paid", paidAmount: "25.50", remainingAmount: "74.50", payments: [result.payment],
+    invoiceId: invoice.id, status: "partially_paid", paidAmount: "25.50", creditedAmount: "0.00", remainingAmount: "74.50", payments: [result.payment],
   })
   const replay = await Effect.runPromise(service("org-1", undefined, ["payment-9"]).recordPayment(attempt))
   assert.deepEqual(replay, result)

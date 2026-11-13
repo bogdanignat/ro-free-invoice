@@ -109,7 +109,8 @@ a rewrite.
   the saved customer it was issued to; converting it into a draft relinks the customer while it
   still exists.
 - **Payments**: separate records allocated to invoices, with derived states `unpaid`,
-  `partially_paid`, `paid`, `overpaid` and `overdue`. Payments never mutate the invoice.
+  `partially_paid`, `paid`, `overpaid`, `overdue` and `credited` (fully reversed by storno), read
+  against the total net of storno (`creditedAmount`). Payments never mutate the invoice.
 - **Corrections (storno)**: an issued invoice is corrected by a new immutable document that
   references the original, with a mandatory reason. There is no delete for issued invoices.
 - **Company lookup** (optional plugin `company-lookup`): the customer, one-time buyer and issuer

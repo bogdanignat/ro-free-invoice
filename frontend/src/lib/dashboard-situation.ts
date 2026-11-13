@@ -19,6 +19,7 @@ export interface CollectionRow {
   readonly dueDate: string
   readonly total: string
   readonly paid: string
+  readonly credited: string
   readonly remaining: string
   readonly statusLabel: string
   readonly statusTone: PaymentStatusTone
@@ -28,6 +29,7 @@ export const situationCards = (situation: CollectionsSituation, currency: string
   { key: "count", label: "Facturi", value: String(situation.count) },
   { key: "total", label: "Total (cu TVA)", value: money(situation.totalIncludingVat, currency) },
   { key: "paid", label: "Încasat pe ele", value: money(situation.paidAmount, currency), hint: "Toate plățile facturilor, indiferent de dată" },
+  { key: "credited", label: "Stornat", value: money(situation.creditedAmount, currency) },
   { key: "remaining", label: "Sold rămas", value: money(situation.remainingAmount, currency) },
   {
     key: "overdue", label: "Restanțe", value: money(situation.overdueAmount, currency),
@@ -45,6 +47,7 @@ export const collectionRows = (situation: CollectionsSituation, currency: string
     dueDate: orDash(item.dueDate),
     total: money(item.totalIncludingVat, currency),
     paid: money(item.paidAmount, currency),
+    credited: money(item.creditedAmount, currency),
     remaining: money(item.remainingAmount, currency),
     statusLabel: paymentStatusLabel(item.status),
     statusTone: paymentStatusTone(item.status),

@@ -61,6 +61,7 @@ const collectionInvoice: Decoder<CollectionInvoice> = (input) => {
     customerName: text(object(value.customer).name, "customer.name"),
     totalIncludingVat: amount(value.totalIncludingVat, "totalIncludingVat"),
     paidAmount: amount(value.paidAmount, "paidAmount"),
+    creditedAmount: amount(value.creditedAmount, "creditedAmount"),
     remainingAmount: amount(value.remainingAmount, "remainingAmount"),
     status: literal(PAYMENT_STATUSES, value.status, "status"),
   }
@@ -72,6 +73,7 @@ const situation = (input: unknown): CollectionsSituation => {
     count: integer(value.count, "count"),
     totalIncludingVat: amount(value.totalIncludingVat, "totalIncludingVat"),
     paidAmount: amount(value.paidAmount, "paidAmount"),
+    creditedAmount: amount(value.creditedAmount, "creditedAmount"),
     remainingAmount: amount(value.remainingAmount, "remainingAmount"),
     overdueCount: integer(value.overdueCount, "overdueCount"),
     overdueAmount: amount(value.overdueAmount, "overdueAmount"),

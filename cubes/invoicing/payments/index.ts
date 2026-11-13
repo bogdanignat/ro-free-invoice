@@ -20,6 +20,7 @@ export const cube = {
 export * from "./contracts/index.ts"
 export * from "./domain/payments.ts"
 export * from "./domain/settlement.ts"
+export * from "./domain/collections-report.ts"
 export { createPaymentsService } from "./application/payments.ts"
 export type { CollectionsReportInput } from "./application/collections.ts"
 export type { InvoicePaymentSummary, PaymentsDependencies, PaymentsService, RecordPaymentResult } from "./application/payments.ts"

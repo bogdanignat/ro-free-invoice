@@ -7,7 +7,7 @@
  * Amounts stay the decimal strings the backend computed; a balance is never
  * re-derived here.
  */
-export const PAYMENT_STATUSES = ["unpaid", "partially_paid", "paid", "overpaid", "overdue"] as const
+export const PAYMENT_STATUSES = ["unpaid", "partially_paid", "paid", "overpaid", "overdue", "credited"] as const
 export type PaymentStatus = typeof PAYMENT_STATUSES[number]
 
 /** A reversal is its own ledger entry pointing at the payment it cancels; nothing is ever deleted. */
@@ -31,6 +31,7 @@ export interface PaymentSummary {
   readonly invoiceId: string
   readonly status: PaymentStatus
   readonly paidAmount: string
+  readonly creditedAmount: string
   readonly remainingAmount: string
   readonly payments: ReadonlyArray<Payment>
 }

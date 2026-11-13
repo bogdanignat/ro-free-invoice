@@ -3,7 +3,7 @@ import { Effect } from "effect"
 import { reportPeriodIssues } from "../../corrections/index.ts"
 import { ValidationFailure, type PaymentsFailure } from "../contracts/failures.ts"
 import { legacyPaymentsPermissions, paymentsPermissions } from "../contracts/permissions.ts"
-import { collectionsReport, type CollectionsReport, type CollectionsStatusFilter } from "../domain/settlement.ts"
+import { collectionsReport, type CollectionsReport, type CollectionsStatusFilter } from "../domain/collections-report.ts"
 import { calendarDate } from "../domain/payments.ts"
 import type { Authorize, PaymentsDependencies } from "./support.ts"
 

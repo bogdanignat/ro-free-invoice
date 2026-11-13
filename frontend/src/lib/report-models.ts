@@ -44,6 +44,7 @@ export interface CollectionInvoice {
   readonly customerName: string
   readonly totalIncludingVat: string
   readonly paidAmount: string
+  readonly creditedAmount: string
   readonly remainingAmount: string
   /** Today's status, as the backend classified it; never recomputed here. */
   readonly status: PaymentStatus
@@ -54,6 +55,7 @@ export interface CollectionsSituation {
   readonly count: number
   readonly totalIncludingVat: string
   readonly paidAmount: string
+  readonly creditedAmount: string
   readonly remainingAmount: string
   readonly overdueCount: number
   readonly overdueAmount: string
