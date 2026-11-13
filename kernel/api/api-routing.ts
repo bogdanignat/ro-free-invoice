@@ -3,7 +3,7 @@ import {
 } from "@effect/platform"
 import { Cause, Chunk, Effect, Option } from "effect"
 
-import { logInternalFailure } from "../failure-log.ts"
+import { failureReason, logInternalFailure } from "../failure-log.ts"
 
 const issuePath = (issue: { readonly path: ReadonlyArray<PropertyKey>, readonly message: string }): string => issue.path.length === 0
   ? issue.message : `${issue.path.map(String).join(".")}: ${issue.message}`
@@ -65,6 +65,6 @@ export const finalMiddleware = (app: HttpApp.Default): HttpApp.Default => Effect
       && "reason" in defectValue && defectValue.reason === "Decode")) {
     return Effect.succeed(HttpServerResponse.unsafeJson({ error: "invalid_json" }, { status: 400 }))
   }
-  logInternalFailure({ kind: "defect", reason: Cause.pretty(cause) })
+  logInternalFailure({ kind: "defect", reason: failureReason(Cause.squash(cause)) })
   return Effect.succeed(HttpServerResponse.unsafeJson({ error: "internal_failure" }, { status: 500 }))
 })

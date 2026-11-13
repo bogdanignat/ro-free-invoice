@@ -2,7 +2,7 @@ import { HttpApiSchema } from "@effect/platform"
 import { Schema } from "effect"
 
 import type { ProviderFailureReason } from "../../cubes/invoicing/company-lookup/index.ts"
-import { bodyObject, optional, optionalString } from "./schema-primitives.ts"
+import { bodyObject, bounded, InputText, optional, optionalString } from "./schema-primitives.ts"
 
 const Provider = Schema.Literal("none", "anaf", "openapi")
 // The default decode message quotes the value it refused, and the key travels in this body.
@@ -10,8 +10,8 @@ const quiet = (message: string) => ({ message: () => message })
 
 /** `openapiKey` is write-only: decoded straight into a redacted value, never answered. */
 export const CompanyLookupSettingsInput = Schema.Struct({
-  provider: Schema.String.annotations(quiet("provider must be a string")),
-  openapiKey: optional(Schema.Redacted(Schema.String.annotations(quiet("openapiKey must be a string")))),
+  provider: bounded(1000, Schema.String.annotations(quiet("provider must be a string"))),
+  openapiKey: optional(Schema.Redacted(bounded(1000, Schema.String.annotations(quiet("openapiKey must be a string"))))),
   clearOpenapiKey: optional(Schema.Boolean.annotations(quiet("clearOpenapiKey must be a boolean"))),
 }).annotations(bodyObject)
 export const CompanyLookupSettings = Schema.Struct({
@@ -20,8 +20,8 @@ export const CompanyLookupSettings = Schema.Struct({
 export const CompanyLookupAvailability = Schema.Struct({
   provider: Provider, nameSearch: Schema.Boolean, minCuiDigits: Schema.Int, minNameLetters: Schema.Int,
 })
-export const CompanyLookupInput = Schema.Struct({ cui: Schema.String }).annotations(bodyObject)
-export const CompanySearchInput = Schema.Struct({ q: Schema.String }).annotations(bodyObject)
+export const CompanyLookupInput = Schema.Struct({ cui: InputText }).annotations(bodyObject)
+export const CompanySearchInput = Schema.Struct({ q: InputText }).annotations(bodyObject)
 
 const ProposedAddress = Schema.Struct({
   county: optionalString, sector: optional(Schema.Int), city: optionalString, street: optionalString,

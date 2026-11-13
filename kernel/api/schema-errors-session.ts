@@ -1,10 +1,10 @@
 import { HttpApiSchema } from "@effect/platform"
 import { Schema } from "effect"
 
-import { optionalString } from "./schema-primitives.ts"
+import { bounded, optionalString } from "./schema-primitives.ts"
 
 export const Deleted = Schema.Struct({ deleted: Schema.Literal(true) })
-export const LoginInput = Schema.Struct({ token: Schema.String })
+export const LoginInput = Schema.Struct({ token: bounded(4096) })
 /** `plugins`: the optional plugins this installation runs, so the browser asks nothing of one that is off. */
 export const AuthenticatedSession = Schema.Struct({
   authenticated: Schema.Literal(true), csrfToken: Schema.String, plugins: Schema.Array(Schema.Literal("payments", "efactura", "company-lookup")),

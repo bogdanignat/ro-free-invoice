@@ -133,7 +133,7 @@ const bearerSwitch = (value: string | undefined): boolean => {
 }
 
 export const runtimeConfig = (environment: NodeJS.ProcessEnv = process.env): RuntimeConfig => {
-  const nodeEnvironment = environment.NODE_ENV ?? "development"
+  const nodeEnvironment = environment.NODE_ENV ?? "production"
   const publicOrigin = canonicalOrigin(environment.PUBLIC_ORIGIN)
   const companyLookupKey = companyLookupKeyFrom(environment.COMPANY_LOOKUP_KEY_FILE)
   return {

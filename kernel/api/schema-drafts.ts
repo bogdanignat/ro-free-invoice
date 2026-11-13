@@ -1,8 +1,9 @@
 import { Schema } from "effect"
 
 import {
-  bodyObject, Buyer, BuyerSelection, DocumentNotes, DocumentSource, nullableString, optional,
-  optionalNullableNotes, optionalNullableString, optionalString, pageOf, requireBuyer, UnitOfMeasure,
+  bodyObject, Buyer, BuyerSelection, DocumentNotes, DocumentSource, DocumentSourceInput, InputText, linesOf, nullableString,
+  optional, optionalInput, optionalNullableInput, optionalNullableNotes, optionalString, pageOf, requireBuyer,
+  UnitOfMeasure, UnitOfMeasureInput,
 } from "./schema-primitives.ts"
 
 export const VatTreatmentFields = { vatCategoryCode: Schema.Literal("S", "O"), vatExemptionReason: nullableString }
@@ -26,18 +27,18 @@ export const DraftInvoice = Schema.Struct({
 })
 export const DraftInvoicePage = pageOf(DraftInvoice)
 export const DraftLineInput = Schema.Struct({
-  ...ItemIdentifierFields, description: Schema.String, quantity: Schema.String, unitPrice: Schema.String,
-  unitOfMeasure: UnitOfMeasure, vatRateCode: Schema.String,
+  itemCode: optionalInput, barcode: optionalInput, description: InputText, quantity: InputText, unitPrice: InputText,
+  unitOfMeasure: UnitOfMeasureInput, vatRateCode: InputText,
 }).annotations(bodyObject)
 // Lines are optional on creation: a draft may be saved empty, or arrive complete
 // in one idempotent request. Only issuance insists on at least one line.
 export const DraftInput = Schema.Struct({
-  ...BuyerSelection.fields, source: optional(DocumentSource), series: Schema.String, issueDate: Schema.String,
-  currency: optionalString, dueDate: optionalNullableString, notes: optionalNullableNotes,
-  lines: optional(Schema.Array(DraftLineInput)),
+  ...BuyerSelection.fields, source: optional(DocumentSourceInput), series: InputText, issueDate: InputText,
+  currency: optionalInput, dueDate: optionalNullableInput, notes: optionalNullableNotes,
+  lines: optional(linesOf(DraftLineInput)),
 }).annotations(bodyObject).pipe(requireBuyer)
 // `series` absent keeps the draft's series; a new one must be an active invoice series (T-2082).
 export const UpdateDraftInput = Schema.Struct({
-  ...BuyerSelection.fields, source: optional(Schema.NullOr(DocumentSource)), series: optionalString, issueDate: Schema.String,
-  dueDate: optionalNullableString, notes: optionalNullableNotes,
+  ...BuyerSelection.fields, source: optional(Schema.NullOr(DocumentSourceInput)), series: optionalInput, issueDate: InputText,
+  dueDate: optionalNullableInput, notes: optionalNullableNotes,
 }).annotations(bodyObject).pipe(requireBuyer)

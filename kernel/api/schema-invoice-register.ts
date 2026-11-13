@@ -2,7 +2,7 @@ import { Schema } from "effect"
 
 import { E_FACTURA_STATUSES, maximumRegisterSearchLength } from "../../cubes/invoicing/index.ts"
 import {
-  PageQuery, SourceQueryFields, allErrors, nullableString, optional, pageOf, requireCompleteSource,
+  InputText, PageQuery, SourceQueryFields, allErrors, nullableString, optional, pageOf, requireCompleteSource,
 } from "./schema-primitives.ts"
 
 const common = {
@@ -24,7 +24,7 @@ export const InvoiceRegisterRow = Schema.Union(InvoiceRegisterInvoice, InvoiceRe
 export const InvoiceRegisterPage = pageOf(InvoiceRegisterRow)
 
 const issueDate = (description: string) =>
-  optional(Schema.String.annotations({ description, jsonSchema: { type: "string", format: "date" } }))
+  optional(InputText.annotations({ description, jsonSchema: { type: "string", format: "date" } }))
 const search = `${String(maximumRegisterSearchLength)} characters`
 
 /**
@@ -42,7 +42,7 @@ export const InvoiceRegisterQuery = Schema.Struct({
     description: "Only invoices or only corrections (storno); absent = both.",
     message: () => ({ message: "kind must be invoice or correction", override: true }),
   })),
-  q: optional(Schema.String.annotations({
+  q: optional(InputText.annotations({
     description: `Case-insensitive search in series + number (spaces ignored: "FCT 12", "FCT12", "12") or in the customer name. % and _ match themselves; blank = no search; at most ${search}.`,
   })),
 }).annotations(allErrors).pipe(requireCompleteSource)

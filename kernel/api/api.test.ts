@@ -464,6 +464,15 @@ void test("requires host authentication and serves the complete invoice-core rou
       body: { ...authoredBody, lines: { description: "bad" } } }, runtime)).status, 400)
     assert.equal((await handleApiRequest({ method: "POST", url: "/api/invoices", authorization,
       body: authoredBody }, runtime)).status, 400)
+    // T-2672: a list past 500 lines, and a string past its ceiling, are validation errors, not 500s.
+    for (const body of [
+      { ...authoredBody, lines: Array.from({ length: 501 }, () => authoredBody.lines[0]) },
+      { ...authoredBody, series: "S".repeat(1001) },
+    ]) {
+      const refused = await handleApiRequest({ method: "POST", url: "/api/invoices", authorization, idempotencyKey: "too-big", body }, runtime)
+      assert.equal(refused.status, 400)
+      assert.equal((refused.body as { error: string }).error, "ValidationFailure")
+    }
     assert.equal((await handleApiRequest({ method: "POST", url: "/api/invoices", authorization,
       idempotencyKey: "invalid-unit", body: { ...authoredBody, lines: [{ ...authoredBody.lines[0], unitOfMeasure: { code: "NOPE", name: "inventată" } }] } }, runtime)).status, 400)
     const directInvoice = await handleApiRequest({ method: "POST", url: "/api/invoices", authorization, idempotencyKey: "direct-invoice-1", body: authoredBody }, runtime)

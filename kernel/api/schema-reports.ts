@@ -1,17 +1,18 @@
 import { Schema } from "effect"
 
-import { allErrors, nullableString, optional } from "./schema-primitives.ts"
+import { allErrors, InputText, nullableString, optional } from "./schema-primitives.ts"
 
-const date = (description: string) => Schema.String.annotations({ description })
-const period = {
-  from: date("First day of the period, YYYY-MM-DD, inclusive."),
-  to: date("Last day of the period, YYYY-MM-DD, inclusive. At most 36 calendar months after from."),
-}
-export const ReportQuery = Schema.Struct(period).annotations(allErrors)
+const periodOf = (date: Schema.Schema<string>) => ({
+  from: date.annotations({ description: "First day of the period, YYYY-MM-DD, inclusive." }),
+  to: date.annotations({ description: "Last day of the period, YYYY-MM-DD, inclusive. At most 36 calendar months after from." }),
+})
+const period = periodOf(Schema.String)
+const periodQuery = periodOf(InputText)
+export const ReportQuery = Schema.Struct(periodQuery).annotations(allErrors)
 export const CollectionsStatusFilter = Schema.Literal("all", "paid", "unpaid", "overdue").annotations({
   description: "paid = paid, overpaid and credited (fully reversed by storno); unpaid = unpaid, partially paid and overdue; default all.",
 })
-export const CollectionsQuery = Schema.Struct({ ...period, status: optional(CollectionsStatusFilter) }).annotations(allErrors)
+export const CollectionsQuery = Schema.Struct({ ...periodQuery, status: optional(CollectionsStatusFilter) }).annotations(allErrors)
 
 const revenueFigures = {
   revenueExcludingVat: Schema.String, invoicedIncludingVat: Schema.String, invoiceCount: Schema.Int, correctionCount: Schema.Int,
