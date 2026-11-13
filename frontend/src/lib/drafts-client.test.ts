@@ -3,6 +3,7 @@ import test from "node:test"
 
 import { createAuthoringReferenceClient } from "./authoring-reference-client.ts"
 import { createDraftsClient } from "./drafts-client.ts"
+import { decodeDraft } from "./draft-decoders.ts"
 import { ApiFailure } from "./api-errors.ts"
 import type { BrowserTransport, TransportOptions } from "./browser-transport.ts"
 
@@ -97,6 +98,12 @@ void test("a malformed draft is refused at the boundary, not three components de
   const { transport } = recorder(() => ({ ...draft, status: "nu-este-un-status" }))
   const client = createDraftsClient(transport)
   await assert.rejects(client.getDraft("draft-1", new AbortController().signal), /status/u)
+})
+
+void test("a draft's supply date decodes as given; null leaves it absent", () => {
+  assert.equal(decodeDraft({ ...draft, supplyDate: "2025-12-20" }).supplyDate, "2025-12-20")
+  assert.equal("supplyDate" in decodeDraft({ ...draft, supplyDate: null }), false)
+  assert.throws(() => decodeDraft({ ...draft, supplyDate: 20251220 }), /supplyDate/u)
 })
 
 void test("the customer and preset registries page by cursor", async () => {

@@ -25,6 +25,7 @@ export const headerMatchesDraft = (form: InvoiceAuthoringForm, draft: DraftInvoi
     && draft.series === form.series
     && draft.issueDate === form.issueDate
     && (draft.dueDate ?? "") === form.dueDate
+    && (draft.supplyDate ?? "") === form.supplyDate
     && (draft.notes ?? "") === form.notes.trim()
 }
 
@@ -68,7 +69,8 @@ export const authoringReadiness = (
     editable,
     synchronized,
     hasLines,
-    canIssue: editable && hasLines && !pending && (draft === undefined || synchronized),
+    // A supply date reaches the invoice only through its saved draft (`POST /invoices` has none).
+    canIssue: editable && hasLines && !pending && (draft === undefined ? form.supplyDate === "" : synchronized),
   }
 }
 

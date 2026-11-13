@@ -4,12 +4,13 @@ import test from "node:test"
 import { STALE_TAX_WARNING, documentLinesStarted } from "./document-authoring-readiness.ts"
 import { newEditableDocumentLine } from "./document-authoring-form-model.ts"
 import {
-  INCOMPLETE_LINES_ISSUE, UNSAVED_CHANGES_ISSUE, invoiceDueDateIssue, issueBlockReasons, type IssueBlockInput,
+  INCOMPLETE_LINES_ISSUE, UNSAVED_CHANGES_ISSUE, UNSAVED_SUPPLY_DATE_ISSUE, invoiceDueDateIssue, issueBlockReasons, type IssueBlockInput,
 } from "./invoice-authoring-workflow.ts"
 
 const ready: IssueBlockInput = {
   readiness: { editable: true, synchronized: true, hasLines: true },
-  hasDraft: true, linesStarted: true, pending: false, staleTaxWarning: null, dueDateIssue: null, seriesWarning: undefined,
+  hasDraft: true, linesStarted: true, pending: false, staleTaxWarning: null, dueDateIssue: null,
+  supplyDate: "", supplyDateIssue: null, seriesWarning: undefined,
 }
 
 const dueDateMissing = invoiceDueDateIssue(true)
@@ -36,6 +37,13 @@ void test("a new document is never 'unsaved': it may be issued directly", () => 
   assert.deepEqual(issueBlockReasons({
     ...ready, hasDraft: false, readiness: { editable: true, synchronized: false, hasLines: true },
   }), [])
+})
+
+void test("a new document with a supply date must be saved first, and a supply after the issue is named", () => {
+  const unsaved = { ...ready, hasDraft: false, readiness: { editable: true, synchronized: false, hasLines: true } }
+  assert.deepEqual(issueBlockReasons({ ...unsaved, supplyDate: "2026-08-20" }), [UNSAVED_SUPPLY_DATE_ISSUE])
+  assert.deepEqual(issueBlockReasons({ ...ready, supplyDate: "2026-08-20" }), [])
+  assert.deepEqual(issueBlockReasons({ ...ready, supplyDate: "2026-09-02", supplyDateIssue: "late" }), ["late"])
 })
 
 void test("a write in flight or a locked draft does not list reasons", () => {

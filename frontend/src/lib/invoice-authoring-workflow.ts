@@ -43,7 +43,8 @@ export const invoiceDueDateIssue = (required: boolean): string | null => require
   : null
 
 export const UNSAVED_CHANGES_ISSUE = "Draftul are modificări nesalvate. Salvează draftul înainte de emitere."
-export const INCOMPLETE_LINES_ISSUE = "Completează toate liniile (descriere, cantitate, preț, unitate, cotă TVA) și corectează codurile semnalate înainte de emitere."
+export const UNSAVED_SUPPLY_DATE_ISSUE = "Salvează draftul înainte de emitere, ca data livrării să intre pe factură."
+export const INCOMPLETE_LINES_ISSUE ="Completează toate liniile (descriere, cantitate, preț, unitate, cotă TVA) și corectează codurile semnalate înainte de emitere."
 
 export interface IssueBlockInput {
   readonly readiness: Pick<AuthoringReadiness, "editable" | "synchronized" | "hasLines">
@@ -54,6 +55,9 @@ export interface IssueBlockInput {
   readonly pending: boolean
   readonly staleTaxWarning: string | null
   readonly dueDateIssue: string | null
+  /** The supply date as typed, empty when it is the issue date. */
+  readonly supplyDate: string
+  readonly supplyDateIssue: string | null
   readonly seriesWarning: string | undefined
 }
 
@@ -63,8 +67,10 @@ export const issueBlockReasons = (input: IssueBlockInput): ReadonlyArray<string>
   return [
     input.readiness.hasLines || !(input.hasDraft || input.linesStarted) ? null : INCOMPLETE_LINES_ISSUE,
     input.hasDraft && !input.readiness.synchronized ? UNSAVED_CHANGES_ISSUE : null,
+    input.hasDraft || input.supplyDate === "" ? null : UNSAVED_SUPPLY_DATE_ISSUE,
     input.staleTaxWarning,
     input.dueDateIssue,
+    input.supplyDateIssue,
     input.seriesWarning ?? null,
   ].filter((reason) => reason !== null)
 }

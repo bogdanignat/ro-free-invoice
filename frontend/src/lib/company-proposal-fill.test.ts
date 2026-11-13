@@ -24,7 +24,7 @@ const typedCustomer = { ...newCustomerForm(), city: "Iași", street: "Str. Veche
 const buyer: DocumentAuthoringForm = {
   buyerMode: "one-time", customerId: "", partyType: "company", name: "", companyTaxIdentifier: "", individualTaxIdentifier: "",
   vatRegistered: false, countryCode: "RO", city: "Iași", street: "Str. Veche 3", county: "RO-IS", sector: undefined, postalCode: "",
-  series: "FCT", issueDate: "2026-10-19", dueDate: "2026-11-03", dueDateEdited: false, notes: "",
+  series: "FCT", issueDate: "2026-10-19", dueDate: "2026-11-03", dueDateEdited: false, supplyDate: "", notes: "",
 }
 
 void test("decoding keeps only what arrived; a malformed answer is refused", () => {

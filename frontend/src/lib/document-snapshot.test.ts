@@ -130,6 +130,18 @@ void test("an invoice with neither due date nor notes keeps both nulls", () => {
   assert.equal(invoice.notes, null)
 })
 
+void test("an issued invoice keeps its supply date and refuses a malformed one", () => {
+  assert.equal(decodeIssuedInvoice({ ...invoiceJson, supplyDate: "2026-01-20" }).supplyDate, "2026-01-20")
+  assert.throws(() => decodeIssuedInvoice({ ...invoiceJson, supplyDate: 20260120 }), /supplyDate/u)
+})
+
+void test("the supply date is a fact only when it differs from the issue date", () => {
+  const facts = (supplyDate: string) => projectIssuedInvoice(decodeIssuedInvoice({ ...invoiceJson, supplyDate })).facts
+  assert.equal(facts("2026-02-03").some((fact) => fact.label === "Data livrării/prestării"), false)
+  const earlier = facts("2026-01-20")
+  assert.deepEqual(earlier[1], { label: "Data livrării/prestării", value: "2026-01-20" })
+})
+
 void test("a correction decodes with the invoice it reverses and the reason", () => {
   const correction = decodeCorrectionDocument(correctionJson)
   assert.equal(correction.originalInvoiceId, "inv-1")

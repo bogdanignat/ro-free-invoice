@@ -16,6 +16,7 @@ export interface EditorActionsInput {
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
   readonly productPresets: ReadonlyArray<ProductPreset>
   readonly customers: ReadonlyArray<Customer>
+  /** The date new lines take their VAT on: an invoice's supply date (`effectiveSupplyDate`), a proforma's issue date. */
   readonly issueDate: string
   /** A draft saved with a due date owns it; anything else still derives it from the payment terms. */
   readonly deriveDueDate: boolean

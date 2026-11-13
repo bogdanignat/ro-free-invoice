@@ -3,6 +3,7 @@ import { BuyerEditor } from "./BuyerEditor.tsx"
 import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
 import { Select } from "../ui/Select.tsx"
+import { SupplyDateField } from "./SupplyDateField.tsx"
 
 /**
  * The document head: identity, series, dates and currency, next to the issuer
@@ -35,6 +36,9 @@ export const InvoiceAuthoringHeader = ({ session }: { readonly session: InvoiceA
           aria-describedby={feedback.dueDateIssue === null ? undefined : "invoice-due-date-issue"}
           onChange={(event) => { actions.chooseDueDate(event.currentTarget.value) }} />
       </Field>
+      <SupplyDateField value={document.form.supplyDate} issueDate={document.form.issueDate}
+        issue={feedback.supplyDateIssue} warning={feedback.supplyDateWarning} disabled={status.pending}
+        onChange={(supplyDate) => { actions.changeForm({ supplyDate }) }} />
       <div className="static-field"><span>Monedă</span><span className="fixed-value">RON</span></div>
     </div>
     <BuyerEditor

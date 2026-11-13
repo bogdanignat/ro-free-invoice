@@ -8,6 +8,8 @@ import { positiveInvoiceRequiresDueDate } from "./invoice-positive-total.ts"
 import { knownResultNotice, type KnownWrite, type RecoveryNoticeModel } from "./operation-recovery-view.ts"
 import { vatRatesForIssuer } from "./vat-defaults.ts"
 import { draftSeriesState } from "./draft-series.ts"
+import { effectiveSupplyDate, invoiceSupplyDateIssue, lateIssueWarning } from "./supply-date.ts"
+import { invoiceDueDateIssue } from "./invoice-authoring-workflow.ts"
 
 /**
  * Everything the authoring screen can work out from the form, the lines and the
@@ -37,24 +39,42 @@ export interface AuthoringDerived {
   readonly taxReadiness: AuthoringTaxReadiness
   readonly dueDateRequired: boolean
   readonly series: ReturnType<typeof draftSeriesState>
+  /** The date the VAT follows (`effectiveSupplyDate`): new lines, rates and the issuer's regime are read on it. */
+  readonly vatDate: string
+  readonly dueDateIssue: string | null
+  readonly supplyDateIssue: string | null
+  readonly supplyDateWarning: string | null
+  /** What the document itself allows; the session adds the unconfirmed writes and the journal. */
+  readonly issuable: boolean
 }
 
 export const authoringDerived = (input: AuthoringDerivedInput): AuthoringDerived => {
   const readiness = authoringReadiness(input.form, input.lines, input.draft, input.workflowPending)
   const staleTax = input.draft !== undefined && input.staleLineIds(input.draft).length > 0
+  const taxReadiness = authoringTaxReadiness(readiness, staleTax)
+  const vatDate = effectiveSupplyDate(input.form)
+  // A draft may be saved without a due date; a positive-total invoice may not.
+  const dueDateRequired = positiveInvoiceRequiresDueDate(
+    input.form.dueDate,
+    readiness.synchronized ? input.draft?.totalIncludingVat : undefined,
+    input.lines,
+  )
+  const series = draftSeriesState(input.form.series, input.invoiceSeries, input.draft?.series)
+  const supplyDateIssue = invoiceSupplyDateIssue(input.form)
   return {
     readiness,
     payload: authoringDocumentPayload(input.form, input.lines),
-    vatRates: vatRatesForIssuer(input.vatCatalogue, input.issuer, input.form.issueDate),
+    vatRates: vatRatesForIssuer(input.vatCatalogue, input.issuer, vatDate),
     staleTax,
-    taxReadiness: authoringTaxReadiness(readiness, staleTax),
-    // A draft may be saved without a due date; a positive-total invoice may not.
-    dueDateRequired: positiveInvoiceRequiresDueDate(
-      input.form.dueDate,
-      readiness.synchronized ? input.draft?.totalIncludingVat : undefined,
-      input.lines,
-    ),
-    series: draftSeriesState(input.form.series, input.invoiceSeries, input.draft?.series),
+    taxReadiness,
+    dueDateRequired,
+    series,
+    vatDate,
+    dueDateIssue: invoiceDueDateIssue(dueDateRequired),
+    supplyDateIssue,
+    supplyDateWarning: lateIssueWarning(input.form),
+    // An archived series takes no new number (`series.warning`); the server refuses it too.
+    issuable: taxReadiness.canIssue && !dueDateRequired && supplyDateIssue === null && series.warning === undefined,
   }
 }
 
