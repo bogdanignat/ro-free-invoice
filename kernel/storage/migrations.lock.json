@@ -41,6 +41,10 @@
       {
         "name": "invoicing-001-baseline",
         "sha256": "a36c4b0db74bcda0bde9a0f891c4218fe441367131f8ac0257924591ba7a21ee"
+      },
+      {
+        "name": "invoicing-002-seal-issued-documents",
+        "sha256": "fd0a23defc3547de061f1804537cf3a523525d6e5287d57273182335e204dcaa"
       }
     ]
   },

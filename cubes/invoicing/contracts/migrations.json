@@ -98,5 +98,24 @@
       "CREATE TRIGGER correction_tax_breakdown_no_update BEFORE UPDATE ON correction_tax_breakdown FOR EACH ROW EXECUTE FUNCTION qwbe_abort('correction tax breakdown is immutable')",
       "CREATE TRIGGER correction_tax_breakdown_no_delete BEFORE DELETE ON correction_tax_breakdown FOR EACH ROW EXECUTE FUNCTION qwbe_abort('correction tax breakdown is immutable')"
     ]
+  },
+  {
+    "name": "invoicing-002-seal-issued-documents",
+    "statements": [
+      "ALTER TABLE issued_invoices ADD COLUMN sealed INTEGER NOT NULL DEFAULT 1 CONSTRAINT issued_invoices_sealed_valid CHECK(sealed IN(0,1))",
+      "CREATE TRIGGER issued_invoices_seal_only BEFORE UPDATE OF sealed ON issued_invoices FOR EACH ROW WHEN (OLD.sealed=1 OR NEW.sealed!=1) EXECUTE FUNCTION qwbe_abort('issued invoices are immutable')",
+      "ALTER TABLE correction_documents ADD COLUMN sealed INTEGER NOT NULL DEFAULT 1 CONSTRAINT correction_documents_sealed_valid CHECK(sealed IN(0,1))",
+      "CREATE TRIGGER correction_documents_seal_only BEFORE UPDATE OF sealed ON correction_documents FOR EACH ROW WHEN (OLD.sealed=1 OR NEW.sealed!=1) EXECUTE FUNCTION qwbe_abort('correction documents are immutable')",
+      "CREATE FUNCTION qwbe_issued_lines_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.issued_invoices WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.invoice_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='issued invoice lines are sealed'; END IF; RETURN NEW; END $qwbe$",
+      "CREATE TRIGGER issued_lines_no_late_insert BEFORE INSERT ON issued_lines FOR EACH ROW EXECUTE FUNCTION qwbe_issued_lines_no_late_insert()",
+      "CREATE FUNCTION qwbe_issued_tax_breakdown_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.issued_invoices WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.invoice_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='issued invoice tax breakdown is sealed'; END IF; RETURN NEW; END $qwbe$",
+      "CREATE TRIGGER issued_tax_breakdown_no_late_insert BEFORE INSERT ON issued_tax_breakdown FOR EACH ROW EXECUTE FUNCTION qwbe_issued_tax_breakdown_no_late_insert()",
+      "CREATE FUNCTION qwbe_correction_lines_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.correction_documents WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.correction_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='correction lines are sealed'; END IF; RETURN NEW; END $qwbe$",
+      "CREATE TRIGGER correction_lines_no_late_insert BEFORE INSERT ON correction_lines FOR EACH ROW EXECUTE FUNCTION qwbe_correction_lines_no_late_insert()",
+      "CREATE FUNCTION qwbe_correction_tax_breakdown_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.correction_documents WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.correction_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='correction tax breakdown is sealed'; END IF; RETURN NEW; END $qwbe$",
+      "CREATE TRIGGER correction_tax_breakdown_no_late_insert BEFORE INSERT ON correction_tax_breakdown FOR EACH ROW EXECUTE FUNCTION qwbe_correction_tax_breakdown_no_late_insert()",
+      "CREATE OR REPLACE FUNCTION qwbe_proforma_lines_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.proformas WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.proforma_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='proforma lines are sealed'; END IF; RETURN NEW; END $qwbe$",
+      "CREATE OR REPLACE FUNCTION qwbe_proforma_tax_no_late_insert() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $qwbe$ DECLARE parent_sealed INTEGER; BEGIN EXECUTE format('SELECT sealed FROM %I.proformas WHERE id=$1',TG_TABLE_SCHEMA) INTO parent_sealed USING NEW.proforma_id; IF parent_sealed IS DISTINCT FROM 0 THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='proforma tax breakdown is sealed'; END IF; RETURN NEW; END $qwbe$"
+    ]
   }
 ]
