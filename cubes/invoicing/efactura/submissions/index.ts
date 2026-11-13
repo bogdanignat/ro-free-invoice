@@ -29,6 +29,8 @@ export {
   ARCHIVE_STATES, FISCAL_STATES, FISCAL_TRANSITIONS, LIVE_STATES, archiveFor, canStoreArchive, canSupersede, documentStatus, fiscalTransition,
 } from "./domain/states.ts"
 export type { ArchiveState, FiscalEvent, FiscalState } from "./domain/states.ts"
+export { SPV_STATES, spvDeadline, spvNeedsAction, spvState, spvUrgency } from "./domain/deadline.ts"
+export type { SpvState, SpvUrgency } from "./domain/deadline.ts"
 export { ANAF_XML_LIMITS, childrenNamed, localName, parseStrictXml } from "./domain/xml.ts"
 export type { XmlElement, XmlLimits, XmlOptions, XmlParse, XmlRefusal } from "./domain/xml.ts"
 export { CALL_OUTCOMES, anafId, sanitizedMessages, type AnafReply, type CallOutcome, type Interrupted } from "./domain/replies.ts"

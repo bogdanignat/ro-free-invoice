@@ -20,7 +20,7 @@ void test("the register opens on the current month, both kinds, no search, the d
   const model = firstRender()
   assert.ok(model)
   assert.equal(model.period, "month")
-  assert.deepEqual(model.query, { range: presetDateRange("month", todayIn(ORGANIZATION_TIME_ZONE)), kind: "all", search: "", limit: DEFAULT_PAGE_SIZE })
+  assert.deepEqual(model.query, { range: presetDateRange("month", todayIn(ORGANIZATION_TIME_ZONE)), kind: "all", search: "", spv: "all", limit: DEFAULT_PAGE_SIZE })
   assert.equal(model.narrowed, true)
   assert.equal(model.customIssue, undefined)
 })

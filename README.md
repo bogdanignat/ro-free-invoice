@@ -870,6 +870,10 @@ cursor pages inside the filter it was issued for. Refusals are `400 ValidationFa
 issue per field: `from must not be after to`, `from|to must be a calendar date in YYYY-MM-DD format`,
 `kind: kind must be invoice or correction`, `q must be at most 100 characters`,
 `q must not contain control characters`, `limit must be an integer between 1 and 200`.
+With the e-Factura plugin on, every row also carries `spv` (SPV group, operational deadline and
+its urgency; `null` with the plugin off) and `spv=unresolved` keeps the documents still to resolve
+in SPV (not sent, rejected/refused, unknown); with the plugin off that filter is refused with
+`spv filter requires the e-Factura plugin`. See `docs/EFACTURA.md`.
 
 Issued invoices have no `DELETE`. Mistakes are handled through correction documents, which are
 numbered in the invoice series like any other invoice (Codul fiscal art. 330). Issue dates cannot be

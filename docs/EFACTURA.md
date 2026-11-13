@@ -431,7 +431,14 @@ so does every later upload of it (a retry after a 401/403, a resubmit). `validar
 as for B2B, and reconciliation still searches ANAF's list by the issuer's CIF, never
 by the buyer's. BT-47 carries the buyer's CNP only when the customer has one
 (their choice to be identified, art. 10^1 alin. (3)), otherwise `0000000000000`.
-The 5-day deadline is not tracked by the application.
+The invoice register shows each issued document's SPV standing (not sent, in progress,
+accepted, failed, unclear) and an **operational** deadline: the issue date plus 5 working
+days from 2026-01-01 (5 calendar days until 2025-12-31). It is not the exact legal
+deadline: it counts Monday to Friday only, so public holidays (which push the legal term
+later) and the delivery date (which can cap it) are not taken into account, and it is never
+later than the legal one. `GET /api/invoice-register?spv=unresolved` keeps the documents
+still to resolve (not sent, rejected/refused, unknown), each marked overdue or expiring
+within one working day against today's date in Europe/Bucharest.
 
 **The CNP is personal data.** It lives only in the frozen snapshot, in the
 submitted XML and in ANAF's ZIP (which holds that XML), and those bytes are read

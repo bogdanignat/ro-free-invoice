@@ -1,6 +1,8 @@
 import type { ReportRange } from "./report-period.ts"
 
 export type RegisterKindFilter = "all" | "invoice" | "correction"
+/** `unresolved`: only documents still to resolve in SPV (not sent, rejected, unknown). */
+export type RegisterSpvFilter = "all" | "unresolved"
 
 /**
  * One request's worth of register filters, exactly what `GET /api/invoice-register`
@@ -12,6 +14,7 @@ export interface RegisterQuery {
   readonly range: ReportRange
   readonly kind: RegisterKindFilter
   readonly search: string
+  readonly spv: RegisterSpvFilter
   readonly limit: number
 }
 
@@ -23,6 +26,7 @@ export const registerPath = (query: RegisterQuery, cursor: string | undefined): 
   if (query.range.from !== "") params.set("from", query.range.from)
   if (query.range.to !== "") params.set("to", query.range.to)
   if (query.kind !== "all") params.set("kind", query.kind)
+  if (query.spv !== "all") params.set("spv", query.spv)
   const search = query.search.trim()
   if (search !== "") params.set("q", search)
   params.set("limit", String(query.limit))

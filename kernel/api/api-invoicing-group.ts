@@ -19,7 +19,7 @@ import { applicationHttpApi } from "./http-api.ts"
 export const invoicingGroup = (runtime: ApiRuntime, use: UseServices) => {
   const m = masterDataHandlers(use)
   const c = customerHandlers(use)
-  const status = eFacturaStatusView(runtime.plugins.efactura)
+  const status = eFacturaStatusView(runtime.plugins.efactura, runtime.now)
   const d = draftHandlers(use, status)
   const p = correctionHandlers(use)
   const i = issuanceHandlers(use, status)

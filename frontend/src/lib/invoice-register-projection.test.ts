@@ -3,6 +3,7 @@ import test from "node:test"
 
 import { correctionDetailHref, invoiceDetailHref, projectInvoiceRegisterRow } from "./invoice-register-projection.ts"
 import type { InvoiceRegisterCorrectionRow, InvoiceRegisterInvoiceRow } from "./invoice-register.ts"
+import type { SpvState, SpvUrgency } from "./spv-status.ts"
 
 const invoice: InvoiceRegisterInvoiceRow = {
   kind: "invoice",
@@ -15,6 +16,7 @@ const invoice: InvoiceRegisterInvoiceRow = {
   totalIncludingVat: "1190.00",
   dueDate: "2026-03-05",
   eFacturaStatus: "accepted",
+  spv: { state: "accepted", deadline: "2026-02-10", urgency: null },
 }
 
 const correction: InvoiceRegisterCorrectionRow = {
@@ -28,6 +30,7 @@ const correction: InvoiceRegisterCorrectionRow = {
   totalIncludingVat: "-1190.00",
   dueDate: null,
   eFacturaStatus: null,
+  spv: null,
   originalReference: { id: "inv-1", series: "FCT", number: 12 },
 }
 
@@ -64,22 +67,27 @@ void test("an invoice without a due date also reads as a dash", () => {
   assert.equal(projectInvoiceRegisterRow({ ...invoice, dueDate: null }).dueDate, "—")
 })
 
-void test("each e-Factura status has a Romanian label", () => {
-  const labels = (["not_sent", "queued", "processing", "accepted", "rejected", "refused", "unknown"] as const)
-    .map((status) => projectInvoiceRegisterRow({ ...invoice, eFacturaStatus: status }).status)
-  assert.deepEqual(labels, ["Netrimisă", "În procesare", "În procesare", "Acceptată", "Respinsă", "Refuzată", "Necunoscut"])
+const spvOf = (state: SpvState, urgency: SpvUrgency | null) => ({ state, deadline: "2026-02-10", urgency })
+
+void test("each SPV group has a Romanian label and a tone; failed and unknown read in the danger tone", () => {
+  const rows = (["not_sent", "in_progress", "accepted", "failed", "unknown"] as const)
+    .map((state) => projectInvoiceRegisterRow({ ...invoice, spv: spvOf(state, null) }))
+  assert.deepEqual(rows.map((row) => row.status), ["Netrimisă", "În curs", "Acceptată", "Respinsă", "Neclar"])
+  assert.deepEqual(rows.map((row) => row.statusClass), ["badge muted", "badge info", "badge positive",
+    "badge text-invoice-danger-text", "badge text-invoice-danger-text"])
 })
 
-void test("a status that needs attention reads in the danger tone; with e-Factura off the dash is muted", () => {
-  const classes = (["not_sent", "queued", "processing", "accepted", "rejected", "refused", "unknown"] as const)
-    .map((status) => projectInvoiceRegisterRow({ ...invoice, eFacturaStatus: status }).statusClass)
-  assert.deepEqual(classes, ["badge muted", "badge info", "badge info", "badge positive",
-    "badge text-invoice-danger-text", "badge text-invoice-danger-text", "badge text-invoice-danger-text"])
-  assert.equal(projectInvoiceRegisterRow(correction).statusClass, "badge muted")
+void test("the deadline shows only while something is left to resolve, with a warning tone when overdue or imminent", () => {
+  const note = (urgency: SpvUrgency | null) => projectInvoiceRegisterRow({ ...invoice, spv: spvOf("not_sent", urgency) }).deadline
+  assert.equal(note(null), null)
+  assert.deepEqual(note("ok"), { text: "Termen SPV: 2026-02-10", className: "text-invoice-muted" })
+  assert.deepEqual(note("imminent"), { text: "Expiră SPV: 2026-02-10", className: "font-bold text-invoice-danger-text" })
+  assert.deepEqual(note("overdue"), { text: "Termen depășit SPV: 2026-02-10", className: "font-bold text-invoice-danger-text" })
+  assert.equal(projectInvoiceRegisterRow(correction).deadline, null)
 })
 
-void test("a correction shows its own e-Factura status", () => {
-  assert.equal(projectInvoiceRegisterRow({ ...correction, eFacturaStatus: "accepted" }).status, "Acceptată")
+void test("a correction shows its own SPV group", () => {
+  assert.equal(projectInvoiceRegisterRow({ ...correction, spv: spvOf("failed", "overdue") }).status, "Respinsă")
 })
 
 // The two kinds are numbered independently, so an invoice and a correction can

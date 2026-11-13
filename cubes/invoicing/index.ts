@@ -46,5 +46,5 @@ export type { Proforma, ProformaSummary, ProformaConversion, ProformaInvoiceConv
 export type {
   CorrectionDocument, CreateCorrectionInput, InvoiceRegisterCursor, InvoiceRegisterFilter, InvoiceRegisterKind, InvoiceRegisterRow,
 } from "./corrections/index.ts"
-export { maximumRegisterSearchLength } from "./corrections/index.ts"
+export { SPV_UNRESOLVED_STATUSES, maximumRegisterSearchLength } from "./corrections/index.ts"
 export type * from "./domain/unit-of-measures.ts"

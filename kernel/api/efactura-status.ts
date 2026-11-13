@@ -1,6 +1,9 @@
-import type { Schema } from "effect"
+import { Effect, type Schema } from "effect"
 
-import type { InvoiceRegisterRow, IssuedInvoice, IssuedInvoiceSummary, Page } from "../../cubes/invoicing/index.ts"
+import { bucharestDay, spvDeadline, spvNeedsAction, spvState, spvUrgency } from "../../cubes/invoicing/efactura/submissions/index.ts"
+import {
+  ValidationFailure, type InvoiceRegisterFilter, type InvoiceRegisterRow, type IssuedInvoice, type IssuedInvoiceSummary, type Page,
+} from "../../cubes/invoicing/index.ts"
 import type { InvoiceRegisterPage } from "./schema-invoice-register.ts"
 import type { IssuedInvoice as IssuedInvoiceResponse, IssuedInvoicePage } from "./schema-issuance.ts"
 
@@ -15,12 +18,30 @@ export interface EFacturaStatusView {
   readonly invoice: (invoice: IssuedInvoice) => Schema.Schema.Type<typeof IssuedInvoiceResponse>
   readonly invoices: (page: Page<IssuedInvoiceSummary>) => Schema.Schema.Type<typeof IssuedInvoicePage>
   readonly register: (page: Page<InvoiceRegisterRow>) => Schema.Schema.Type<typeof InvoiceRegisterPage>
+  /** With the plugin off the register hides the status, so a filter on it is refused rather than leaking it. */
+  readonly spvFilter: (spv: InvoiceRegisterFilter["spv"]) => Effect.Effect<InvoiceRegisterFilter["spv"], ValidationFailure>
 }
 
-export const eFacturaStatusView = (active: boolean): EFacturaStatusView => active
-  ? { invoice: (invoice) => invoice, invoices: (page) => page, register: (page) => page }
+const registerSpv = (row: InvoiceRegisterRow, today: string) => {
+  const deadline = spvDeadline(row.issueDate)
+  return { state: spvState(row.eFacturaStatus), deadline, urgency: spvNeedsAction(row.eFacturaStatus) ? spvUrgency(deadline, today) : null }
+}
+
+/** `now` is the register's "today" (Europe/Bucharest) for the urgency of each deadline. */
+export const eFacturaStatusView = (active: boolean, now: () => Date = () => new Date()): EFacturaStatusView => active
+  ? {
+    invoice: (invoice) => invoice, invoices: (page) => page,
+    register: (page) => {
+      const today = bucharestDay(now())
+      return { ...page, items: page.items.map((row) => ({ ...row, spv: registerSpv(row, today) })) }
+    },
+    spvFilter: Effect.succeed,
+  }
   : {
     invoice: (invoice) => ({ ...invoice, eFacturaStatus: null }),
     invoices: (page) => ({ ...page, items: page.items.map((invoice) => ({ ...invoice, eFacturaStatus: null })) }),
-    register: (page) => ({ ...page, items: page.items.map((row) => ({ ...row, eFacturaStatus: null })) }),
+    register: (page) => ({ ...page, items: page.items.map((row) => ({ ...row, eFacturaStatus: null, spv: null })) }),
+    spvFilter: (spv) => spv === undefined
+      ? Effect.succeed(undefined)
+      : Effect.fail(new ValidationFailure({ issues: ["spv filter requires the e-Factura plugin"] })),
   }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
-  choosePeriod, editCustomRange, initialRegisterFilters, isNarrowed, registerRange, type RegisterFiltersState,
+  choosePeriod, chooseSpv, editCustomRange, initialRegisterFilters, isNarrowed, registerRange, type RegisterFiltersState,
 } from "./register-filters-state.ts"
 
 const today = "2026-10-26"
@@ -51,9 +51,20 @@ void test("a backwards interval keeps asking for the last valid one; clearing an
 })
 
 void test("only Toate with both kinds and no search is the whole register", () => {
-  assert.equal(isNarrowed(registerRange(choosePeriod(opened, "all", today), today), "all", ""), false)
-  assert.equal(isNarrowed({ from: "", to: "" }, "all", "   "), false)
-  assert.equal(isNarrowed({ from: "", to: "" }, "invoice", ""), true)
-  assert.equal(isNarrowed({ from: "", to: "" }, "all", "FCT"), true)
-  assert.equal(isNarrowed(registerRange(opened, today), "all", ""), true)
+  assert.equal(isNarrowed(registerRange(choosePeriod(opened, "all", today), today), "all", "", "all"), false)
+  assert.equal(isNarrowed({ from: "", to: "" }, "all", "   ", "all"), false)
+  assert.equal(isNarrowed({ from: "", to: "" }, "invoice", "", "all"), true)
+  assert.equal(isNarrowed({ from: "", to: "" }, "all", "FCT", "all"), true)
+  assert.equal(isNarrowed({ from: "", to: "" }, "all", "", "unresolved"), true)
+  assert.equal(isNarrowed(registerRange(opened, today), "all", "", "all"), true)
+})
+
+void test("choosing De rezolvat în SPV opens the period to Toate, which can then be narrowed again", () => {
+  const unresolved = chooseSpv(opened, "unresolved")
+  assert.equal(unresolved.spv, "unresolved")
+  assert.deepEqual(registerRange(unresolved, today), { from: "", to: "" })
+  assert.deepEqual(registerRange(choosePeriod(unresolved, "month", today), today), { from: "2026-10-01", to: today })
+  const back = chooseSpv(choosePeriod(unresolved, "last-month", today), "all")
+  assert.equal(back.spv, "all")
+  assert.equal(back.period, "last-month")
 })

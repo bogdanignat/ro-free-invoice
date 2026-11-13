@@ -5,7 +5,7 @@ import { maximumRegisterSearchLength, normalizeRegisterFilter, registerFilterIss
 
 void test("an empty or complete register filter is accepted", () => {
   assert.deepEqual(registerFilterIssues({}), [])
-  assert.deepEqual(registerFilterIssues({ from: "2024-02-29", to: "2024-02-29", kind: "correction", search: "FCT 12" }), [])
+  assert.deepEqual(registerFilterIssues({ from: "2024-02-29", to: "2024-02-29", kind: "correction", search: "FCT 12", spv: "unresolved" }), [])
   assert.deepEqual(registerFilterIssues({ search: "x".repeat(maximumRegisterSearchLength) }), [])
 })
 
@@ -15,6 +15,7 @@ void test("each refusal of the register filter names its field", () => {
     "from must be a calendar date in YYYY-MM-DD format", "to must be a calendar date in YYYY-MM-DD format",
   ])
   assert.deepEqual(registerFilterIssues({ kind: "proforma" as "invoice" }), ["kind must be invoice or correction"])
+  assert.deepEqual(registerFilterIssues({ spv: "sent" as "unresolved" }), ["spv must be unresolved"])
   assert.deepEqual(registerFilterIssues({ search: "x".repeat(maximumRegisterSearchLength + 1) }), ["q must be at most 100 characters"])
   assert.deepEqual(registerFilterIssues({ search: "a\nb" }), ["q must not contain control characters"])
 })

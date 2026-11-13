@@ -15,7 +15,9 @@ import type { BrandingNormalizer, IssuerTransaction } from "../issuer/index.ts"
 import { codeTakenConflict, type CatalogTransaction, type ProductPreset } from "../catalog/index.ts"
 import type { Customer, CustomersTransaction } from "../customers/index.ts"
 import type { AuditEvent, IdempotencyRecord } from "../domain/invoice.ts"
-import type { CorrectionsTransaction, InvoiceRegisterCursor, InvoiceRegisterFilter, InvoiceRegisterRow } from "../corrections/index.ts"
+import {
+  SPV_UNRESOLVED_STATUSES, type CorrectionsTransaction, type InvoiceRegisterCursor, type InvoiceRegisterFilter, type InvoiceRegisterRow,
+} from "../corrections/index.ts"
 import type { ProformaConversion, ProformaTransaction } from "../issuance/index.ts"
 import type { DraftInvoice, InvoicingDependencies, InvoicingTransaction, IssuedInvoice, Proforma } from "./invoicing.ts"
 import type { DocumentCursor, DraftCursor, NameCursor, PageQuery } from "./ports.ts"
@@ -44,11 +46,12 @@ const afterDocument = (item: { readonly issueDate: string; readonly number: numb
   item.issueDate < after.issueDate || (item.issueDate === after.issueDate && item.number < after.number)
   || (item.issueDate === after.issueDate && item.number === after.number && item.id > after.id)
 // The same contract as the PostgreSQL adapter: inclusive dates, one kind, series + number with spaces
-// ignored or the customer name, case-insensitively.
+// ignored or the customer name, case-insensitively, and `spv: unresolved` on the stored e-Factura status.
 const inRegisterFilter = (row: InvoiceRegisterRow, filter: InvoiceRegisterFilter = {}): boolean => {
   if (filter.from !== undefined && row.issueDate < filter.from) return false
   if (filter.to !== undefined && row.issueDate > filter.to) return false
   if (filter.kind !== undefined && row.kind !== filter.kind) return false
+  if (filter.spv === "unresolved" && !(SPV_UNRESOLVED_STATUSES as ReadonlyArray<string>).includes(row.eFacturaStatus)) return false
   if (filter.search === undefined) return true
   const needle = filter.search.toLowerCase()
   return `${row.series}${String(row.number)}`.toLowerCase().replace(/\s+/gu, "").includes(needle.replace(/\s+/gu, ""))

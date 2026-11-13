@@ -14,9 +14,14 @@ export interface InvoiceRegisterFilter {
   readonly to?: string | undefined
   readonly kind?: InvoiceRegisterKind | undefined
   readonly search?: string | undefined
+  /** `unresolved`: only documents still to resolve in SPV (not sent, rejected/refused, unknown). */
+  readonly spv?: "unresolved" | undefined
 }
 
 export const maximumRegisterSearchLength = 100
+/** What `spv: unresolved` keeps: not sent, rejected/refused (correct and resend) or unknown (reconcile). */
+export const SPV_UNRESOLVED_STATUSES = ["not_sent", "rejected", "refused", "unknown"] as const satisfies ReadonlyArray<EFacturaStatus>
+const registerSpvFilters: ReadonlyArray<string> = ["unresolved"] satisfies ReadonlyArray<NonNullable<InvoiceRegisterFilter["spv"]>>
 const registerKinds: ReadonlyArray<string> = ["invoice", "correction"] satisfies ReadonlyArray<InvoiceRegisterKind>
 
 /** Empty when the filter can be asked for; the rule lives here so every caller (HTTP, CLI) gets it. */
@@ -30,6 +35,7 @@ export const registerFilterIssues = (filter: InvoiceRegisterFilter): ReadonlyArr
   if (filter.kind !== undefined && !registerKinds.includes(filter.kind)) {
     issues.push("kind must be invoice or correction")
   }
+  if (filter.spv !== undefined && !registerSpvFilters.includes(filter.spv)) issues.push("spv must be unresolved")
   if (filter.search !== undefined && filter.search.length > maximumRegisterSearchLength) {
     issues.push(`q must be at most ${String(maximumRegisterSearchLength)} characters`)
   }
