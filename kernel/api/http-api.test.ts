@@ -256,6 +256,13 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
     "/api/reports/revenue", "/api/reports/collections"]) {
     expectStatuses("get", path, ["400"])
   }
+  // q is the one filter of the customer and product pickers; it sits beside the page parameters, never required.
+  for (const path of ["/api/customers", "/api/product-presets"]) {
+    const parameters = (spec.paths[path]?.get?.parameters ?? []) as ReadonlyArray<{ readonly name: string; readonly in: string; readonly required?: boolean }>
+    const query = parameters.filter((parameter) => parameter.in === "query")
+    assert.deepEqual(query.map((parameter) => parameter.name).sort(), ["cursor", "limit", "q"], path)
+    assert.equal(query.some((parameter) => parameter.required === true), false, path)
+  }
   for (const path of ["/api/issuer", "/api/customers/{id}", "/api/drafts/{id}", "/api/invoices/{invoiceId}/payments", "/api/corrections/{id}", "/api/invoices/{id}", "/api/invoices/{invoiceId}/pdf", "/api/proformas/{id}", "/api/proformas/{proformaId}/pdf",
     "/api/invoices/{id}/efactura.xml", "/api/corrections/{id}/efactura.xml", "/api/corrections/{id}/pdf"]) {
     expectStatuses("get", path, ["404"])

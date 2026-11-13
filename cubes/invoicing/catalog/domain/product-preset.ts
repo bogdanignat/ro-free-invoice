@@ -1,8 +1,7 @@
 import { DomainConflict, ValidationFailure } from "../../contracts/failures.ts"
 import { normalizeMoney } from "../../domain/calculation.ts"
-import { normalizeUnitOfMeasure, type UnitOfMeasure } from "../../domain/unit-of-measures.ts"
 import { validateLineDescription } from "../../domain/validation.ts"
-import { normalizeItemCode, validateBarcode } from "../../items/index.ts"
+import { normalizeItemCode, normalizeUnitOfMeasure, validateBarcode, type UnitOfMeasure } from "../../items/index.ts"
 import { isTaxableVatRateOn } from "../../issuer/index.ts"
 
 export const productKinds = ["goods", "service"] as const

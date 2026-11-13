@@ -1,8 +1,18 @@
 import { Schema } from "effect"
 
+import { maximumSearchLength } from "../../cubes/invoicing/index.ts"
 import {
-  bodyObject, Buyer, BuyerInput, InputText, optional, optionalInput, optionalString, pageOf, UnitOfMeasure, UnitOfMeasureInput,
+  allErrors, bodyObject, Buyer, BuyerInput, InputText, optional, optionalInput, optionalString, PageQuery, pageOf, UnitOfMeasure,
+  UnitOfMeasureInput,
 } from "./schema-primitives.ts"
+
+// The text limit is the cube's (`searchTextIssues`), so every client reads one message.
+export const SearchPageQuery = Schema.Struct({
+  ...PageQuery.fields,
+  q: optional(InputText.annotations({
+    description: `Case-insensitive search; % and _ match themselves; blank = no search; at most ${String(maximumSearchLength)} characters.`,
+  })),
+}).annotations(allErrors)
 
 export const CustomerInput = Schema.Struct({
   ...BuyerInput.fields, defaultPaymentTermDays: optional(Schema.Int),

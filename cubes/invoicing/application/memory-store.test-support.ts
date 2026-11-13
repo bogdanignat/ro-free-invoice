@@ -58,6 +58,10 @@ const inRegisterFilter = (row: InvoiceRegisterRow, filter: InvoiceRegisterFilter
     || row.customer.name.toLowerCase().includes(needle)
 }
 
+// The customers' and presets' search: any column contains it, ignoring case; an absent column never matches.
+const containsText = (search: string | undefined, ...columns: ReadonlyArray<string | undefined>): boolean =>
+  search === undefined || columns.some((column) => column?.toLowerCase().includes(search.toLowerCase()) === true)
+
 const afterRegister = (item: InvoiceRegisterRow, after: InvoiceRegisterCursor): boolean =>
   afterDocument(item, after) || (item.issueDate === after.issueDate && item.number === after.number
     && item.id === after.id && item.kind > after.kind)
@@ -130,9 +134,10 @@ export const memoryStore = (state: MemoryState): InvoicingDependencies["store"] 
       findCustomer: (organizationId, id) => Effect.succeed(
         working.customers.get(id)?.organizationId === organizationId ? working.customers.get(id) : undefined,
       ),
-      listCustomers: (organizationId, page) => Effect.succeed(paged(
+      listCustomers: (organizationId, page, search) => Effect.succeed(paged(
         [...working.customers.values()]
-          .filter((customer) => customer.organizationId === organizationId && customer.deletedAt === undefined)
+          .filter((customer) => customer.organizationId === organizationId && customer.deletedAt === undefined
+            && containsText(search, customer.name, customer.fiscalIdentifier))
           .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
         page, (customer, after) => afterName(customer.name, customer.id, after),
       )),
@@ -155,8 +160,9 @@ export const memoryStore = (state: MemoryState): InvoicingDependencies["store"] 
       findProductPreset: (organizationId, id) => Effect.succeed(
         working.productPresets.get(id)?.organizationId === organizationId ? working.productPresets.get(id) : undefined,
       ),
-      listProductPresets: (organizationId, page) => Effect.succeed(paged([...working.productPresets.values()]
-        .filter((preset) => preset.organizationId === organizationId)
+      listProductPresets: (organizationId, page, search) => Effect.succeed(paged([...working.productPresets.values()]
+        .filter((preset) => preset.organizationId === organizationId
+          && containsText(search, preset.code, preset.description, preset.barcode))
         .sort((a, b) => a.description.localeCompare(b.description) || a.id.localeCompare(b.id)),
       page, (preset, after) => afterName(preset.description, preset.id, after))),
       deleteProductPreset: (organizationId, id) => Effect.sync(() => {

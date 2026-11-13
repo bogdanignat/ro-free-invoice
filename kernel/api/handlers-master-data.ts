@@ -35,7 +35,7 @@ export const masterDataHandlers = (use: UseServices) => ({
   listVatRegimes: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "listVatRegimes", () =>
     use((s) => s.invoicing.getVatCatalogue()).pipe(Effect.mapError(errors("ValidationFailure")))),
   listProductPresets: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "listProductPresets", ({ urlParams }) =>
-    use((s) => s.invoicing.listProductPresets(urlParams)).pipe(Effect.mapError(errors("ValidationFailure")))),
+    use((s) => s.invoicing.listProductPresets(urlParams, urlParams.q)).pipe(Effect.mapError(errors("ValidationFailure")))),
   createProductPreset: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "createProductPreset", ({ payload }) =>
     use((s) => s.invoicing.createProductPreset(payload)).pipe(Effect.mapError(presetErrors()))),
   updateProductPreset: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "updateProductPreset", ({ path, payload }) =>

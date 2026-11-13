@@ -1,4 +1,5 @@
 import type { EFacturaStatus } from "../../domain/invoice.ts"
+import { maximumSearchLength, normalizeSearchText, searchTextIssues } from "../../domain/search.ts"
 import { isCalendarDate } from "./reports.ts"
 
 export type InvoiceRegisterKind = "invoice" | "correction"
@@ -18,7 +19,7 @@ export interface InvoiceRegisterFilter {
   readonly spv?: "unresolved" | undefined
 }
 
-export const maximumRegisterSearchLength = 100
+export const maximumRegisterSearchLength = maximumSearchLength
 /** What `spv: unresolved` keeps: not sent, rejected/refused (correct and resend) or unknown (reconcile). */
 export const SPV_UNRESOLVED_STATUSES = ["not_sent", "rejected", "refused", "unknown"] as const satisfies ReadonlyArray<EFacturaStatus>
 const registerSpvFilters: ReadonlyArray<string> = ["unresolved"] satisfies ReadonlyArray<NonNullable<InvoiceRegisterFilter["spv"]>>
@@ -36,18 +37,13 @@ export const registerFilterIssues = (filter: InvoiceRegisterFilter): ReadonlyArr
     issues.push("kind must be invoice or correction")
   }
   if (filter.spv !== undefined && !registerSpvFilters.includes(filter.spv)) issues.push("spv must be unresolved")
-  if (filter.search !== undefined && filter.search.length > maximumRegisterSearchLength) {
-    issues.push(`q must be at most ${String(maximumRegisterSearchLength)} characters`)
-  }
-  if (filter.search !== undefined && /\p{Cc}/u.test(filter.search)) issues.push("q must not contain control characters")
+  issues.push(...searchTextIssues(filter.search))
   return issues
 }
 
 /** The filter the store runs: a blank search is no search, and the search is trimmed. */
-export const normalizeRegisterFilter = (filter: InvoiceRegisterFilter): InvoiceRegisterFilter => {
-  const search = filter.search?.trim()
-  return { ...filter, search: search === "" ? undefined : search }
-}
+export const normalizeRegisterFilter = (filter: InvoiceRegisterFilter): InvoiceRegisterFilter =>
+  ({ ...filter, search: normalizeSearchText(filter.search) })
 
 interface RegisterRow {
   readonly id: string

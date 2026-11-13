@@ -1,5 +1,5 @@
 import type { BuyerSnapshot, DocumentSeries, DocumentSource, ItemIdentifiers } from "./invoice.ts"
-import type { UnitOfMeasure } from "./unit-of-measures.ts"
+import type { UnitOfMeasure } from "../items/index.ts"
 
 export type ConfigureDocumentSeriesInput = Pick<DocumentSeries, "documentType" | "series">
 

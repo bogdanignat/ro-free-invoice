@@ -1,4 +1,6 @@
-import type { UnitOfMeasure } from "./unit-of-measures.ts"
+import type { ItemIdentifiers, UnitOfMeasure } from "../items/index.ts"
+
+export type { ItemIdentifiers }
 
 export interface Address {
   readonly countryCode: string
@@ -100,12 +102,6 @@ export interface DocumentSeries {
   readonly series: string
   // An archived series stays on its documents but is refused for new ones; reactivating it continues its numbering.
   readonly archived: boolean
-}
-
-/** BT-155 and BT-157: copied from the product when one is chosen, absent on a line typed by hand. */
-export interface ItemIdentifiers {
-  readonly itemCode?: string
-  readonly barcode?: string
 }
 
 export interface DraftLine extends VatTreatment, ItemIdentifiers {

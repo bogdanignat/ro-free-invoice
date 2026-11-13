@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { ValidationFailure } from "../contracts/failures.ts"
+import { ValidationFailure } from "../../contracts/failures.ts"
 import { normalizeUnitOfMeasure, unitOfMeasures } from "./unit-of-measures.ts"
 
 void test("publishes only the curated Romanian invoicing units, piece first, with UN/ECE codes", () => {

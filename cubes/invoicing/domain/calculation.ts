@@ -1,8 +1,7 @@
 import { ValidationFailure } from "../contracts/failures.ts"
 import { divideHalfUp, formatDecimal, parseUnsignedDecimal } from "../contracts/money.ts"
 import type { DraftInvoice, DraftLine, ItemIdentifiers, VatBreakdown, VatConfiguration } from "./invoice.ts"
-import { normalizeUnitOfMeasure, type UnitOfMeasure } from "./unit-of-measures.ts"
-import { itemIdentifiers } from "../items/index.ts"
+import { itemIdentifiers, normalizeUnitOfMeasure, type UnitOfMeasure } from "../items/index.ts"
 import { validateVatTreatment } from "./validation.ts"
 
 const parseScaled = (value: string, scale: number, field: string): bigint => {

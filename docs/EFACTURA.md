@@ -72,7 +72,7 @@ offending field at once.
   is an empty field to a reader and a code no list contains to ANAF.
   Membership in UN/ECE Recommendation 20 is not: 2162 codes do not fit the
   cube's size budget. The invoicing host picks the unit from a closed, curated
-  catalogue (`cubes/invoicing/domain/unit-of-measures.ts`), each code checked
+  catalogue (`cubes/invoicing/items/domain/unit-of-measures.ts`), each code checked
   against UN/ECE Rec 20/21, but that is a guarantee of the host — a caller
   that builds an `EFacturaDocument` itself can still name a unit that does not
   exist.

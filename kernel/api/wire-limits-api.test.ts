@@ -98,3 +98,32 @@ void test("a request past a wire ceiling is a 400 that never quotes the refused 
     }
   } finally { await value.close() }
 })
+
+void test("customers and product presets take q over HTTP: filtered, literal wildcards, 400 past the register's rules", async () => {
+  const value = await fixture("search")
+  try {
+    for (const name of ["Ștefan SRL", "100% Bio SRL"]) assert.equal((await value.call("POST", "/api/customers", customerNamed(name))).status, 200, name)
+    const preset = { code: "ART-1", kind: "goods", description: "Șurub", unitPrice: "10", unitOfMeasure: { code: "C62", name: "unitate" } }
+    assert.equal((await value.call("POST", "/api/product-presets", preset)).status, 200)
+    assert.equal((await value.call("POST", "/api/product-presets", { ...preset, code: "ART-2", description: "100% Bio" })).status, 200)
+
+    const names = async (path: string, query: string) => {
+      const answer = await value.call("GET", `${path}?${query}`)
+      assert.equal(answer.status, 200, query)
+      return (answer.body as { items: ReadonlyArray<{ name?: string; description?: string }> }).items.map((item) => item.name ?? item.description)
+    }
+    assert.deepEqual(await names("/api/customers", "q=%C8%99tefan"), ["Ștefan SRL"])
+    assert.deepEqual(await names("/api/customers", "q=%25"), ["100% Bio SRL"])
+    assert.deepEqual(await names("/api/customers", "q=%20%20"), ["100% Bio SRL", "Ștefan SRL"])
+    assert.deepEqual(await names("/api/customers", "limit=1&q=srl"), ["100% Bio SRL"])
+    assert.deepEqual(await names("/api/product-presets", "q=art-2"), ["100% Bio"])
+    assert.deepEqual(await names("/api/product-presets", "q=%C8%98URUB"), ["Șurub"])
+    assert.deepEqual(await names("/api/product-presets", "q=%25"), ["100% Bio"])
+
+    for (const path of ["/api/customers", "/api/product-presets"]) {
+      for (const [query, issue] of [[`q=${"x".repeat(101)}`, "q must be at most 100 characters"], ["q=a%00b", "q must not contain control characters"]] as const) {
+        assert.deepEqual(await value.call("GET", `${path}?${query}`), { status: 400, body: { error: "ValidationFailure", issues: [issue] } }, `${path} ${query}`)
+      }
+    }
+  } finally { await value.close() }
+})

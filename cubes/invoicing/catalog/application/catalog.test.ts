@@ -6,7 +6,7 @@ import { Effect } from "effect"
 import { createInvoicingService } from "../../application/invoicing.ts"
 import { brandingNormalizer, contextProvider, each, emptyState, fixedClock, identity, memoryStore, sequentialIds } from "../../application/memory-store.test-support.ts"
 import { DomainConflict, PermissionDenied, ResourceNotFound, ValidationFailure } from "../../contracts/index.ts"
-import { unitOfMeasures } from "../../domain/unit-of-measures.ts"
+import { unitOfMeasures } from "../../items/index.ts"
 
 void test("manages tenant product presets with hard deletion", async () => {
   const state = emptyState()
@@ -107,4 +107,37 @@ void test("an article code is unique in the organization whatever its case, free
   assert.equal(renamed instanceof DomainConflict, true)
   await Effect.runPromise(service.deleteProductPreset(first.id))
   assert.equal((await Effect.runPromise(service.updateProductPreset({ ...book, id: second.id, code: "carte-1" }))).code, "carte-1")
+})
+
+void test("searches product presets by code, description or barcode, case-insensitively, inside the cursor and the organization", async () => {
+  const state = emptyState()
+  const ids = sequentialIds()
+  const on = (organization: string) => createInvoicingService({
+    context: contextProvider({ identity, organization: { id: organization } }),
+    clock: fixedClock, ids, store: memoryStore(state), branding: brandingNormalizer, cubeIdentity: "invoicing",
+  })
+  const service = on("org-1")
+  const preset = (code: string, description: string, barcode?: string) => Effect.runPromise(service.createProductPreset({
+    code, kind: "goods", description, unitPrice: "1", unitOfMeasure: each, ...(barcode === undefined ? {} : { barcode }) }))
+  await preset("ART-1", "Șurub", "5941234567899")
+  await preset("ART-2", "100% Bio")
+  await preset("ZZZ-9", "Piuliță_M8")
+  await Effect.runPromise(on("org-2").createProductPreset({ code: "ART-1", kind: "goods", description: "Șurub străin", unitPrice: "1", unitOfMeasure: each }))
+
+  const names = async (search?: string, request: { limit?: number; cursor?: string } = {}) =>
+    (await Effect.runPromise(service.listProductPresets(request, search))).items.map((item) => item.description)
+  assert.deepEqual(await names(), ["100% Bio", "Piuliță_M8", "Șurub"])
+  assert.deepEqual(await names("  "), ["100% Bio", "Piuliță_M8", "Șurub"])
+  assert.deepEqual(await names("zzz-9"), ["Piuliță_M8"])
+  assert.deepEqual(await names("ȘURUB"), ["Șurub"])
+  assert.deepEqual(await names("594123"), ["Șurub"])
+  assert.deepEqual(await names("nimeni"), [])
+  const first = await Effect.runPromise(service.listProductPresets({ limit: 1 }, "art-"))
+  assert.deepEqual(first.items.map((item) => item.description), ["100% Bio"])
+  assert.deepEqual(await names("art-", { limit: 1, cursor: first.nextCursor ?? "" }), ["Șurub"])
+
+  for (const [search, issue] of [["x".repeat(101), "q must be at most 100 characters"], ["a\nb", "q must not contain control characters"]] as const) {
+    const failure = await Effect.runPromise(Effect.flip(service.listProductPresets(undefined, search)))
+    assert.deepEqual(failure instanceof ValidationFailure && failure.issues, [issue])
+  }
 })

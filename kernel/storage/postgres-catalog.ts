@@ -2,6 +2,7 @@ import { DomainConflict } from "../../cubes/invoicing/index.ts"
 import { codeTakenConflict, productKinds, type CatalogTransaction, type ProductKind, type ProductPreset } from "../../cubes/invoicing/catalog/index.ts"
 import { read, sqlState, write } from "./postgres-errors.ts"
 import { money, moneyValue } from "./postgres-money.ts"
+import { containsAny } from "./postgres-search.ts"
 import { firstRow, optionalText, text, type Row } from "./postgres-rows.ts"
 import { assignExcluded, foldedOrder, insertStatement, nameKeyset, pairs, rowsWanted } from "./postgres-sql.ts"
 import type { TransactionClient } from "./postgres-transaction.ts"
@@ -69,13 +70,14 @@ export const catalogTransactionAdapter = (client: TransactionClient): CatalogTra
     const value = firstRow(rows)
     return value === undefined ? undefined : productPresetFrom(value)
   }),
-  listProductPresets: (organizationId, page) => read("list product presets", async () => {
+  listProductPresets: (organizationId, page, search) => read("list product presets", async () => {
     // The ORDER BY expression is the one `product_presets_organization` indexes.
     const keyset = nameKeyset(page, "description", 2)
+    const matching = containsAny(["code", "description", "barcode"], search, 2 + keyset.values.length)
     const { rows } = await client.query(
-      `SELECT * FROM product_presets WHERE organization_id=$1${keyset.sql}
-        ORDER BY ${foldedOrder("description")} LIMIT $${String(2 + keyset.values.length)}`,
-      [organizationId, ...keyset.values, rowsWanted(page)],
+      `SELECT * FROM product_presets WHERE organization_id=$1${keyset.sql}${matching.sql}
+        ORDER BY ${foldedOrder("description")} LIMIT $${String(2 + keyset.values.length + matching.values.length)}`,
+      [organizationId, ...keyset.values, ...matching.values, rowsWanted(page)],
     )
     return rows.map(productPresetFrom)
   }),

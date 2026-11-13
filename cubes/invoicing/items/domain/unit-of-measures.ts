@@ -1,4 +1,4 @@
-import { ValidationFailure } from "../contracts/failures.ts"
+import { ValidationFailure } from "../../contracts/failures.ts"
 
 export interface UnitOfMeasure {
   readonly code: string

@@ -3,14 +3,15 @@ import { Effect } from "effect"
 import { checked, missing, namePageQuery, pageOf, type Authorize, type OperationDependencies, type Page, type PageRequest } from "../../application/support.ts"
 import type { InvoicingFailure } from "../../contracts/failures.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
-import { unitOfMeasures, type UnitOfMeasure } from "../../domain/unit-of-measures.ts"
+import { requireSearchText } from "../../domain/search.ts"
+import { unitOfMeasures, type UnitOfMeasure } from "../../items/index.ts"
 import { calendarDate } from "../../domain/validation.ts"
 import { normalizeProductPreset, type ProductPreset, type ProductPresetInput, type UpdateProductPresetInput } from "../domain/product-preset.ts"
 import type { CatalogTransaction } from "./ports.ts"
 
 export interface CatalogOperations {
   readonly createProductPreset: (input: ProductPresetInput) => Effect.Effect<ProductPreset, InvoicingFailure>
-  readonly listProductPresets: (page?: PageRequest) => Effect.Effect<Page<ProductPreset>, InvoicingFailure>
+  readonly listProductPresets: (page?: PageRequest, search?: string) => Effect.Effect<Page<ProductPreset>, InvoicingFailure>
   readonly updateProductPreset: (input: UpdateProductPresetInput) => Effect.Effect<ProductPreset, InvoicingFailure>
   readonly deleteProductPreset: (id: string) => Effect.Effect<void, InvoicingFailure>
   // The list is the kernel's, because every document line is checked against it; the
@@ -33,10 +34,11 @@ export const createCatalogOperations = (
     yield* dependencies.store.transaction((transaction) => transaction.saveProductPreset(preset))
     return structuredClone(preset)
   })
-  const listProductPresets = (page?: PageRequest) => Effect.gen(function*() {
+  const listProductPresets = (page?: PageRequest, search?: string) => Effect.gen(function*() {
     const query = yield* checked(() => namePageQuery(page))
+    const text = yield* checked(() => requireSearchText(search))
     const context = yield* authorize(permissions.read)
-    const rows = yield* dependencies.store.transaction((transaction) => transaction.listProductPresets(context.organization.id, query))
+    const rows = yield* dependencies.store.transaction((transaction) => transaction.listProductPresets(context.organization.id, query, text))
     return pageOf(rows, query, (preset) => ({ name: preset.description, id: preset.id }))
   })
   const updateProductPreset = (input: UpdateProductPresetInput) => Effect.gen(function*() {

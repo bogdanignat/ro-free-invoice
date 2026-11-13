@@ -13,7 +13,8 @@ export interface CustomersTransaction {
   readonly saveCustomer: (customer: Customer) => Write
   readonly findCustomer: (organizationId: string, id: string) => Read<Customer | undefined>
   // At most limit + 1 rows ordered by name then id; `after` is the key of the last item of the previous page.
-  readonly listCustomers: (organizationId: string, page: PageQuery<NameCursor>) => Read<ReadonlyArray<Customer>>
+  // `search` (validated, trimmed) keeps the customers whose name or fiscal identifier contains it, ignoring case only, diacritic letters included ("ștefan" finds "ȘTEFAN", "stefan" does not find "Ștefan").
+  readonly listCustomers: (organizationId: string, page: PageQuery<NameCursor>, search?: string) => Read<ReadonlyArray<Customer>>
   readonly softDeleteCustomer: (organizationId: string, id: string, deletedAt: string) => Write
   // Offered by the host so a customer still used by an open draft is kept; it gives
   // this cube no ownership of drafts.
