@@ -70,11 +70,7 @@ set_env RFI_IMAGE "$project"
 set_env BACKUP_DIR "$backups:/elsewhere"
 refused 'BACKUP_DIR in .* is not valid' "$scripts/backup.sh"
 cp "$work/env.good" "$checkout/.env"
-printf 'export QWBE_PLUGINS=payments\n' >> "$checkout/.env"
-refused 'QWBE_PLUGINS in .*renamed to RFI_' "$scripts/backup.sh"
-! grep -q payments "$log" || fail "the refusal of a stale QWBE_PLUGINS printed its value"
-cp "$work/env.good" "$checkout/.env"
-pass ".env: an interpolation, a missing key, compose files without compose.prod.yaml, an invalid RFI_IMAGE, BACKUP_DIR with ':', a stale QWBE_* key: refused"
+pass ".env: an interpolation, a missing key, compose files without compose.prod.yaml, an invalid RFI_IMAGE, BACKUP_DIR with ':': refused"
 
 docker tag "$(docker inspect -f '{{.Image}}' "$("${compose[@]}" ps -q db)")" "$project:mismatch"
 set_env IMAGE_TAG mismatch

@@ -126,8 +126,6 @@ services:
       # The origin the browser uses for the published port below.
       PUBLIC_ORIGIN: ${PREVIEW_ORIGIN:-http://invoicing-preview.localhost:3181}
       TMPDIR: /var/backups/staging
-      # A renamed key, passed through only when set, so a stale one in .env reaches the kernel's refusal.
-      QWBE_PLUGINS:
     secrets: [preview_api_token, pg_app_password, preview_company_lookup_key]
     volumes:
       - preview-data:/data

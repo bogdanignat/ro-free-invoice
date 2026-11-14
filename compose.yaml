@@ -129,10 +129,6 @@ services:
       # bounds allow 64 GiB expanded: staging is a disk volume, not the small tmpfs
       # below, because a staging tree of tens of GiB in `/tmp` would be that much RAM.
       TMPDIR: /var/backups/staging
-      # Renamed keys, passed through only when set, so a stale one in .env reaches the kernel's refusal.
-      QWBE_PLUGINS:
-      QWBE_BEARER_API:
-      QWBE_TRUSTED_PROXY:
     secrets:
       - api_token
       - pg_app_password

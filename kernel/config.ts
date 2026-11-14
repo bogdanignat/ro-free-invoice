@@ -132,14 +132,7 @@ const bearerSwitch = (value: string | undefined): boolean => {
   throw new Error("RFI_BEARER_API must be on or off")
 }
 
-/** A renamed key left behind would be ignored: an old `QWBE_PLUGINS` would quietly run every plugin. */
-const refuseRenamedVariables = (environment: NodeJS.ProcessEnv): void => {
-  const stale = Object.keys(environment).filter((name) => name.startsWith("QWBE_"))
-  if (stale.length > 0) throw new Error(`${stale.join(", ")}: the QWBE_* variables were renamed to RFI_*; rename or remove them`)
-}
-
 export const runtimeConfig = (environment: NodeJS.ProcessEnv = process.env): RuntimeConfig => {
-  refuseRenamedVariables(environment)
   const nodeEnvironment = environment.NODE_ENV ?? "production"
   const publicOrigin = canonicalOrigin(environment.PUBLIC_ORIGIN)
   const companyLookupKey = companyLookupKeyFrom(environment.COMPANY_LOOKUP_KEY_FILE)

@@ -37,14 +37,6 @@ void test("RFI_PLUGINS refuses an unknown name at startup, with the names it kno
   assert.throws(() => runtimeConfig({ NODE_ENV: "test", RFI_PLUGINS: "payment" }), /unknown plugins: payment /u)
 })
 
-void test("a leftover QWBE_* key refuses to start, named without its value", () => {
-  for (const name of ["QWBE_PLUGINS", "QWBE_UI_DIR", "QWBE_ANYTHING"]) {
-    assert.throws(() => runtimeConfig({ NODE_ENV: "test", [name]: "secret-value" }),
-      (error: Error) => error.message.startsWith(`${name}: the QWBE_* variables were renamed to RFI_*`) && !error.message.includes("secret-value"), name)
-  }
-  assert.throws(() => runtimeConfig({ NODE_ENV: "test", RFI_PLUGINS: "", QWBE_PLUGINS: "" }), /^Error: QWBE_PLUGINS: /u)
-})
-
 void test("the optional plugins are exactly the declared units with required: false, and the selection covers each", async () => {
   const manifest = JSON.parse(readFileSync(new URL("../qwbe-package.json", import.meta.url), "utf8")) as { cubes: ReadonlyArray<string> }
   const units = await Promise.all(manifest.cubes.map(async (path) =>
