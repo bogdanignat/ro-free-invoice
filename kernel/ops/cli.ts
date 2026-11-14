@@ -16,7 +16,7 @@ export const failureExitCode = (error: unknown): 1 | 2 =>
 export type Command =
   | { readonly name: "help" }
   | { readonly name: "serve" }
-  | { readonly name: "doctor"; readonly json: boolean }
+  | { readonly name: "doctor"; readonly json: boolean; readonly efactura: boolean }
   | { readonly name: "migrate"; readonly apply: boolean; readonly confirmProduction: boolean; readonly json: boolean }
   | { readonly name: "artifacts"; readonly apply: boolean; readonly confirmProduction: boolean; readonly json: boolean; readonly limit: number }
   | { readonly name: "backup"; readonly output: string; readonly json: boolean }
@@ -65,8 +65,10 @@ const parseCommandUnchecked = (args: ReadonlyArray<string>): Command => {
     return { name: "serve" }
   }
   if (name === "doctor") {
-    const parsed = parseArgs({ args: rest, options: { json: { type: "boolean", default: false } }, strict: true })
-    return { name: "doctor", json: parsed.values.json }
+    const parsed = parseArgs({
+      args: rest, options: { json: { type: "boolean", default: false }, efactura: { type: "boolean", default: false } }, strict: true,
+    })
+    return { name: "doctor", json: parsed.values.json, efactura: parsed.values.efactura }
   }
   if (name === "artifacts") {
     const parsed = parseArgs({

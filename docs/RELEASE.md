@@ -252,7 +252,9 @@ each in its own transaction with its ledger row, and the shipped ones never chan
 (README, "Schema and migrations"). `migrate` refuses a database whose schema its
 history does not explain before writing anything, so `app` does not start on it.
 `doctor --json` is the readiness gate and reports
-`pendingMigrations`, `migrationsReady` and `schemaDrift`. `artifacts` is a dry-run by
+`pendingMigrations`, `migrationsReady` and `schemaDrift`. `doctor --efactura --json` is
+a separate e-Factura health check for monitoring (exit 1 on any entry in `problems`;
+docs/EFACTURA.md, "Submitting to ANAF"); it is not part of readiness. `artifacts` is a dry-run by
 default and now reports both invoices and proformas missing PDFs; use `--apply`
 (plus `--confirm-production` outside development) only to reconcile at most
 `--limit` documents, one successful PDF at a time.

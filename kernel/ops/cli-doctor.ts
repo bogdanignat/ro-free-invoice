@@ -7,6 +7,7 @@ import { artifactsDirectoryReady, ledgerReady, planMigrations, schemaDriftOnClie
 import { createQueryRuntime } from "../storage/postgres-pool.ts"
 import { ScratchNotRolledBack } from "../storage/postgres-schema-fingerprint.ts"
 import { print, type CommandContext, type CommandOf } from "./cli.ts"
+import { runEFacturaDoctor } from "./cli-doctor-efactura.ts"
 import { extraSchemas } from "./postgres-backup-guards.ts"
 
 /**
@@ -116,7 +117,9 @@ export const doctorReport = async (config: RuntimeConfig, pool: Pool): Promise<D
   }
 }
 
-export const runDoctor = async (command: CommandOf<"doctor">, { config, settings }: CommandContext) => {
+export const runDoctor = async (command: CommandOf<"doctor">, context: CommandContext) => {
+  if (command.efactura) return runEFacturaDoctor(command, context)
+  const { config, settings } = context
   const runtime = createQueryRuntime(settings)
   try {
     const report = await doctorReport(config, runtime.pool)
