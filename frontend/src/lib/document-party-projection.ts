@@ -1,6 +1,6 @@
 import { orDash } from "./format.ts"
 import { money } from "./money.ts"
-import { addressCountyName } from "./romanian-counties.ts"
+import { addressCountyName, type RomanianCounty } from "./romanian-counties.ts"
 import type { Address, BuyerSnapshot, IssuerSnapshot } from "./document-snapshot.ts"
 
 /** The two party blocks of an issued document, as the legacy document prints them. */
@@ -20,10 +20,10 @@ export interface PartyView {
  * postal code, country — and parts the snapshot does not carry are dropped
  * rather than printed as empty separators.
  */
-const addressLine = (address: Address): string => [
+const addressLine = (address: Address, counties: ReadonlyArray<RomanianCounty>): string => [
   address.street,
   address.city,
-  addressCountyName(address.city, address.county),
+  addressCountyName(address.city, address.county, counties),
   address.sector === undefined ? undefined : `Sector ${String(address.sector)}`,
   address.postalCode,
   address.countryCode,
@@ -41,7 +41,7 @@ const vatNote = (registered: boolean): string => registered ? "Plătitor de TVA"
  * bare digits (`isValidRomanianCui`), so the prefix is added exactly once and
  * only for an issuer the snapshot recorded as VAT registered.
  */
-export const issuerView = (issuer: IssuerSnapshot): PartyView => ({
+export const issuerView = (issuer: IssuerSnapshot, counties: ReadonlyArray<RomanianCounty>): PartyView => ({
   heading: "Furnizor",
   name: issuer.name,
   details: [
@@ -54,17 +54,17 @@ export const issuerView = (issuer: IssuerSnapshot): PartyView => ({
     issuer.socialCapital === "" ? undefined : `Capital social ${money(issuer.socialCapital, "RON")}`,
     issuer.iban === "" ? undefined : `IBAN ${issuer.iban}`,
     issuer.bankName === "" ? undefined : `Bancă ${issuer.bankName}`,
-    addressLine(issuer.address),
+    addressLine(issuer.address, counties),
   ].filter((detail): detail is string => detail !== undefined),
 })
 
-export const customerView = (customer: BuyerSnapshot): PartyView => ({
+export const customerView = (customer: BuyerSnapshot, counties: ReadonlyArray<RomanianCounty>): PartyView => ({
   heading: "Cumpărător",
   name: customer.name,
   details: [
     customer.partyType === "company" ? "Persoană juridică" : "Persoană fizică",
     `${customer.partyType === "company" ? "CUI" : "CNP"} ${orDash(customer.fiscalIdentifier)}`,
-    addressLine(customer.address),
+    addressLine(customer.address, counties),
     vatNote(customer.vatRegistered),
   ],
 })

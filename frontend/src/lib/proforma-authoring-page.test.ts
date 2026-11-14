@@ -5,6 +5,7 @@ import { ApiFailure } from "./api-errors.ts"
 import type { DocumentSeries, Issuer, UnitOfMeasure, VatCatalogue } from "./draft-models.ts"
 import { proformaAuthoringPageState, type ProformaAuthoringPageInput } from "./proforma-authoring-page.ts"
 import type { ResourceSnapshot } from "./async-resource.ts"
+import type { ReferenceData } from "./authoring-reference-decoders.ts"
 
 const answered = <T>(data: T): ResourceSnapshot<T> => ({ data, isPending: false, error: null })
 const pending = <T>(): ResourceSnapshot<T> => ({ data: undefined, isPending: true, error: null })
@@ -32,9 +33,14 @@ const series: ReadonlyArray<DocumentSeries> = [
 
 const units: ReadonlyArray<UnitOfMeasure> = [{ code: "H87", name: "bucată" }]
 
+const reference: ReferenceData = {
+  counties: [{ code: "RO-B", name: "București" }],
+  textLimits: { partyName: 200, street: 150, city: 50, postalCode: 20, lineDescription: 100, documentNotes: 300 },
+}
+
 const ready: ProformaAuthoringPageInput = {
   issuer: answered<Issuer | null>(issuer), vatCatalogue: answered(vatCatalogue),
-  series: answered(series), units: answered(units),
+  series: answered(series), units: answered(units), reference: answered(reference),
 }
 
 void test("every blocking read answered gives the form, with only the proforma series", () => {
@@ -49,6 +55,7 @@ void test("a blocking read still in flight keeps the screen loading", () => {
   for (const partial of [
     { issuer: pending<Issuer | null>() }, { vatCatalogue: pending<VatCatalogue>() },
     { series: pending<ReadonlyArray<DocumentSeries>>() }, { units: pending<ReadonlyArray<UnitOfMeasure>>() },
+    { reference: pending<ReferenceData>() },
   ]) {
     assert.equal(proformaAuthoringPageState({ ...ready, ...partial }).kind, "loading")
   }
@@ -66,6 +73,9 @@ void test("a failed read becomes an error that names only what is still missing"
   assert.equal(state.kind, "error")
   assert.equal(state.error.message, "gateway")
   assert.deepEqual(state.reload, ["units"])
+  const noReference = proformaAuthoringPageState({ ...ready, reference: failed<ReferenceData>(new Error("reference")) })
+  assert.equal(noReference.kind, "error")
+  assert.deepEqual(noReference.reload, ["reference"])
 })
 
 void test("a rejection that is not an Error still reaches the screen as a sentence", () => {

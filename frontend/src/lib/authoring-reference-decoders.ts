@@ -5,6 +5,7 @@ import type {
   DocumentSeries, Issuer, ProductPreset, VatCatalogue, VatConfiguration, VatRate, VatRegistration,
 } from "./draft-models.ts"
 import { canonicalVatTreatment } from "./draft-decoders.ts"
+import type { RomanianCounty } from "./romanian-counties.ts"
 
 /** Decoders for the reference data an authoring session reads: registries, catalogues and the issuer profile. */
 
@@ -106,4 +107,41 @@ const decodeVatRate: Decoder<VatRate> = (input) => {
 export const decodeVatCatalogue: Decoder<VatCatalogue> = (input) => {
   const value = object(input)
   return { rates: array(value.rates, decodeVatRate, "rates") }
+}
+
+export interface TextLimits {
+  readonly partyName: number
+  readonly street: number
+  readonly city: number
+  readonly postalCode: number
+  readonly lineDescription: number
+  readonly documentNotes: number
+}
+
+/** The server's county list and text limits, so the forms never hold a copy of them. */
+export interface ReferenceData {
+  readonly counties: ReadonlyArray<RomanianCounty>
+  readonly textLimits: TextLimits
+}
+
+const decodeCounty: Decoder<RomanianCounty> = (input) => {
+  const value = object(input)
+  return { code: text(value.code, "code"), name: text(value.name, "name") }
+}
+
+export const decodeReferenceData: Decoder<ReferenceData> = (input) => {
+  const value = object(input)
+  const limits = object(value.textLimits)
+  const limit = (field: keyof TextLimits): number => {
+    const value = integer(limits[field], field)
+    if (value < 1) throw new Error(`invalid ${field}`)
+    return value
+  }
+  return {
+    counties: array(value.counties, decodeCounty, "counties"),
+    textLimits: {
+      partyName: limit("partyName"), street: limit("street"), city: limit("city"),
+      postalCode: limit("postalCode"), lineDescription: limit("lineDescription"), documentNotes: limit("documentNotes"),
+    },
+  }
 }

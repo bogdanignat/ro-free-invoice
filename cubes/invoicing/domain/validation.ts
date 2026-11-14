@@ -97,9 +97,11 @@ export const validateDocumentSource = (source: DocumentSource): void => {
   if (issues.length > 0) throw validationFailure(issues)
 }
 
+export const DOCUMENT_NOTES_MAX_LENGTH = 300
+
 export const validateDocumentNotes = (notes: string | null | undefined): void => {
   if (notes === null || notes === undefined) return
   const issues: Issues = []
-  freeText("notes", notes, 300, issues, true)
+  freeText("notes", notes, DOCUMENT_NOTES_MAX_LENGTH, issues, true)
   if (issues.length > 0) throw validationFailure(issues)
 }

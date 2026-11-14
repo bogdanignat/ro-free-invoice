@@ -13,7 +13,7 @@ import { documentLinesStarted } from "../lib/document-authoring-readiness.ts"
 import {
   draftDeletionState, issueBlockReasons, issuerIssuanceWarning,
 } from "../lib/invoice-authoring-workflow.ts"
-import { documentNotesIssue, documentNotesMaxLength } from "../lib/invoice-notes-validation.ts"
+import { documentNotesIssue } from "../lib/invoice-notes-validation.ts"
 import { countyRequiresSector } from "../lib/romanian-counties.ts"
 import { issuerForIssueDate } from "../lib/vat-snapshots.ts"
 import type { DraftInvoice } from "../lib/draft-models.ts"
@@ -95,7 +95,7 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
       unconfirmedMessage: draftWorkflow.unconfirmedMessage,
       issueUnconfirmedMessage: issueUnconfirmed,
       issuerWarning: issuerIssuanceWarning(input.issuer), staleTaxWarning: taxReadiness.warning, seriesWarning: series.warning,
-      notesIssue: documentNotesIssue(form.notes), notesMaxLength: documentNotesMaxLength,
+      notesIssue: documentNotesIssue(form.notes, input.notesMaxLength), notesMaxLength: input.notesMaxLength,
       dueDateIssue, supplyDateIssue: shown.supplyDateIssue, supplyDateWarning: derived.supplyDateWarning, notice: draftWorkflow.notice,
       issueBlockReasons: issueBlockReasons({
         readiness: derived.readiness, hasDraft: draft !== undefined, linesStarted: documentLinesStarted(lines), pending,

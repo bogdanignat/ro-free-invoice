@@ -3,7 +3,7 @@ import { UnitOfMeasureOptions } from "../UnitOfMeasureOptions.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
 import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
 import { FieldIssue } from "./FieldIssue.tsx"
 import { useEditorHeadingFocus } from "../../hooks/use-editor-heading-focus.ts"
@@ -32,6 +32,7 @@ interface ProductPresetEditorSectionProps {
 
 /** The product editor: one controlled form, and the refusal the model named. */
 export const ProductPresetEditorSection = (props: ProductPresetEditorSectionProps) => {
+  const limits = useTextLimits()
   const { editingId, form, issue, pending } = props
   const headingRef = useEditorHeadingFocus(editingId ?? "new")
   useRefusedFieldFocus(PRODUCT_FORM, issue?.field)
@@ -57,7 +58,7 @@ export const ProductPresetEditorSection = (props: ProductPresetEditorSectionProp
           </Select>
         </Field>
         <Field label="Descriere" required className="span-two">
-          <Input required disabled={pending} value={form.description} maxLength={CIUS_TEXT_LIMITS.lineDescription} {...aria("description")}
+          <Input required disabled={pending} value={form.description} maxLength={limits?.lineDescription} {...aria("description")}
             onChange={(event) => { props.onChange({ description: event.currentTarget.value }) }} />
           {refusal("description")}
         </Field>

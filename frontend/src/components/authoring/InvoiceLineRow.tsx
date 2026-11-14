@@ -4,7 +4,7 @@ import type { LineTotals } from "../../lib/draft-totals-preview.ts"
 import { AUTHORING_CURRENCY } from "../../lib/document-authoring-form-model.ts"
 import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
 import { Button } from "../Button.tsx"
 import { Combobox } from "../ui/Combobox.tsx"
@@ -34,6 +34,7 @@ const presetLabel = (preset: ProductPreset): string => `${preset.code} — ${pre
 
 /** One line of the document: preset prefill, the copied code and EAN (editable, may be cleared), amounts, unit and the VAT code resolved on the document date. */
 export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
+  const limits = useTextLimits()
   const { line, index, productPresets, vatRates, unitOfMeasures, pending } = props
   const presets = useProductPresetSearch(productPresets)
   const lineNumber = String(index + 1)
@@ -48,7 +49,7 @@ export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
     </Field>}
     <div className="line-fields">
       <Field label="Descriere" required>
-        <Input id={`line-${line.key}-description`} required disabled={pending} value={line.description} maxLength={CIUS_TEXT_LIMITS.lineDescription} onChange={(event) => { props.onChange(line.key, { description: event.currentTarget.value }) }} />
+        <Input id={`line-${line.key}-description`} required disabled={pending} value={line.description} maxLength={limits?.lineDescription} onChange={(event) => { props.onChange(line.key, { description: event.currentTarget.value }) }} />
       </Field>
       <LineIdentifierField label="Cod articol" id={`line-${line.key}-code`} value={line.itemCode ?? ""} maxLength={50}
         issue={itemCodeIssue(line.itemCode ?? "")} disabled={pending}

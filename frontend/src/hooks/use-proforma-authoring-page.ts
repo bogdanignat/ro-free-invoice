@@ -4,6 +4,7 @@ import { useAuth } from "./auth-context.ts"
 import { documentSeriesQuery, issuerQuery } from "./reference-queries.ts"
 import { useAuthoringPagedList } from "./use-authoring-paged-list.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
+import { useReferenceData } from "./use-reference-data.ts"
 import type { BackgroundError } from "./invoice-authoring-session-types.ts"
 import type { ProformaAuthoringSessionInput } from "./proforma-authoring-session-types.ts"
 import type { Customer, ProductPreset } from "../lib/draft-models.ts"
@@ -39,6 +40,7 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
   const units = useQuery({
     queryKey: ["unit-of-measures"], enabled, queryFn: ({ signal }) => clients.reference.listUnitOfMeasures(signal),
   })
+  const reference = useReferenceData()
   const customers = useAuthoringPagedList<Customer>(["customers"], (page, signal) => clients.reference.listCustomers(page, signal))
   const presets = useAuthoringPagedList<ProductPreset>(["product-presets"], (page, signal) => clients.reference.listProductPresets(page, signal))
   // A reference list that fails is background, not blocking: the form stays
@@ -54,6 +56,7 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
     vatCatalogue: { data: vatCatalogue.data, isPending: vatCatalogue.isPending, error: vatCatalogue.error },
     series: { data: series.data, isPending: series.isPending, error: series.error },
     units: { data: units.data, isPending: units.isPending, error: units.error },
+    reference: { data: reference.data, isPending: reference.isPending, error: reference.error },
   })
   // The buyer list is blocking on this screen only in the sense that the initial
   // buyer mode depends on whether saved customers exist; an empty first page is
@@ -65,6 +68,7 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
       "vat-catalogue": () => { void vatCatalogue.refetch() },
       series: () => { void series.refetch() },
       units: () => { void units.refetch() },
+      reference: () => { void reference.refetch() },
     }
     return {
       kind: "error",
@@ -80,6 +84,7 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
       vatCatalogue: state.vatCatalogue,
       proformaSeries: state.proformaSeries,
       unitOfMeasures: state.unitOfMeasures,
+      notesMaxLength: state.notesMaxLength,
       customers: customers.items ?? [],
       customersHasMore: customers.hasMore,
       customersLoadingMore: customers.loadingMore,

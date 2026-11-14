@@ -3,6 +3,7 @@ import test from "node:test"
 
 import { decodeCorrectionDocument, decodeIssuedInvoice } from "./document-snapshot-decoders.ts"
 import { projectCorrectionDocument, projectIssuedInvoice } from "./document-projection.ts"
+import { COUNTIES } from "./romanian-counties.test-support.ts"
 
 /**
  * The fixtures carry what the backend actually stores, not readable stand-ins.
@@ -138,7 +139,7 @@ void test("an issued invoice keeps its supply date and refuses a malformed or mi
 })
 
 void test("the supply date is a fact only when it differs from the issue date", () => {
-  const facts = (supplyDate: string) => projectIssuedInvoice(decodeIssuedInvoice({ ...invoiceJson, supplyDate })).facts
+  const facts = (supplyDate: string) => projectIssuedInvoice(decodeIssuedInvoice({ ...invoiceJson, supplyDate }), COUNTIES).facts
   assert.equal(facts("2026-02-03").some((fact) => fact.label === "Data livrării/prestării"), false)
   const earlier = facts("2026-01-20")
   assert.deepEqual(earlier[1], { label: "Data livrării/prestării", value: "2026-01-20" })
@@ -183,7 +184,7 @@ void test("a correction without its reason is refused", () => {
 })
 
 void test("an invoice projects its facts, parties and totals as strings", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson), COUNTIES)
   assert.equal(view.heading, "FCT 12")
   assert.deepEqual(view.facts, [
     { label: "Emisă", value: "2026-02-03" },
@@ -199,7 +200,7 @@ void test("an invoice projects its facts, parties and totals as strings", () => 
 // The county arrives as `RO-B`/`RO-CJ`; printing the code on a fiscal document
 // is the regression this asserts against, sector included.
 void test("an address resolves its ISO county code to the county name", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson), COUNTIES)
   assert.equal(
     view.parties[0]?.details.includes("Str. Lungă 1, București, Sector 3, 030123, RO"),
     true,
@@ -211,12 +212,12 @@ void test("an unknown county code is printed as stored rather than renamed", () 
   const view = projectIssuedInvoice(decodeIssuedInvoice({
     ...invoiceJson,
     customer: { ...customer, address: { ...customer.address, county: "RO-ZZ" } },
-  }))
+  }), COUNTIES)
   assert.equal(view.parties[1]?.details.includes("Str. Scurtă 2, Cluj-Napoca, RO-ZZ, RO"), true)
 })
 
 void test("the issuer states its VAT code once, RO prefixed, next to the bare CUI", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson), COUNTIES)
   const details = view.parties[0]?.details ?? []
   assert.equal(details.includes("CUI / CIF 12345674"), true)
   assert.equal(details.includes("Cod TVA RO12345674"), true)
@@ -227,7 +228,7 @@ void test("the issuer states its VAT code once, RO prefixed, next to the bare CU
 })
 
 void test("an issuer without IBAN, bank or capital omits those lines instead of leaving them blank", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson), COUNTIES)
   const details = view.parties[0]?.details ?? []
   assert.equal(details.some((detail) => detail.startsWith("IBAN")), false)
   assert.equal(details.some((detail) => detail.startsWith("Bancă")), false)
@@ -238,7 +239,7 @@ void test("an issuer without IBAN, bank or capital omits those lines instead of 
 })
 
 void test("a line carries its unit by name, its VAT treatment and its three amounts", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson), COUNTIES)
   assert.deepEqual(view.lines[0], {
     key: "line-1",
     description: "Abonament lunar",
@@ -256,16 +257,16 @@ void test("an issued invoice and a storno show the article code and the EAN the 
   const coded = { ...line, itemCode: "SRB-M6", barcode: "00012345600012" }
   const invoice = decodeIssuedInvoice({ ...invoiceJson, lines: [coded] })
   assert.deepEqual([invoice.lines[0]?.itemCode, invoice.lines[0]?.barcode], ["SRB-M6", "00012345600012"])
-  assert.equal(projectIssuedInvoice(invoice).lines[0]?.identifiers, "Cod: SRB-M6 · EAN: 00012345600012")
+  assert.equal(projectIssuedInvoice(invoice, COUNTIES).lines[0]?.identifiers, "Cod: SRB-M6 · EAN: 00012345600012")
   const correction = decodeCorrectionDocument({ ...correctionJson, lines: [{ ...coded, barcode: undefined }] })
-  assert.equal(projectCorrectionDocument(correction).lines[0]?.identifiers, "Cod: SRB-M6")
+  assert.equal(projectCorrectionDocument(correction, COUNTIES).lines[0]?.identifiers, "Cod: SRB-M6")
   assert.throws(() => decodeIssuedInvoice({ ...invoiceJson, lines: [{ ...line, barcode: 12345678 }] }))
 })
 
 void test("a quantity and the social capital read grouped, at the scale the snapshot froze", () => {
   const view = projectIssuedInvoice(decodeIssuedInvoice({
     ...invoiceJson, issuer: { ...issuer, socialCapital: "1250000.00" }, lines: [{ ...line, quantity: "4800.0000" }],
-  }))
+  }), COUNTIES)
   assert.equal(view.lines[0]?.quantity, "4,800.0000 bucată")
   assert.equal(view.parties[0]?.details.includes("Capital social 1,250,000.00 RON"), true)
 })
@@ -273,7 +274,7 @@ void test("a quantity and the social capital read grouped, at the scale the snap
 // Category `O` is stored with rate "0.00" because the model requires a rate, but
 // `0.00%` is not the mention the law asks for and not what legacy prints.
 void test("an article 310 line reads as the exemption, never as a zero rate", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson), COUNTIES)
   const vat = view.lines[0]?.vat ?? ""
   assert.equal(vat, "Scutit TVA — art. 310")
   assert.equal(vat.includes("%"), false)
@@ -281,7 +282,7 @@ void test("an article 310 line reads as the exemption, never as a zero rate", ()
 })
 
 void test("the exempt VAT breakdown row states the treatment and the legal reason", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson), COUNTIES)
   assert.deepEqual(view.vatRows[0], {
     key: "O-0.00",
     rate: "Scutit TVA — art. 310",
@@ -293,7 +294,7 @@ void test("the exempt VAT breakdown row states the treatment and the legal reaso
 
 void test("an e-Factura status reads in the same words as the register", () => {
   assert.equal(
-    projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson)).facts
+    projectIssuedInvoice(decodeIssuedInvoice(exemptInvoiceJson), COUNTIES).facts
       .find((fact) => fact.label === "e-Factura")?.value,
     "Netrimisă",
   )
@@ -305,21 +306,21 @@ void test("an e-Factura status outside the contract fails the document", () => {
 })
 
 void test("with the e-Factura plugin off the invoice decodes and its head names no e-Factura status", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice({ ...invoiceJson, eFacturaStatus: null }))
+  const view = projectIssuedInvoice(decodeIssuedInvoice({ ...invoiceJson, eFacturaStatus: null }), COUNTIES)
   assert.deepEqual(view.facts.map((fact) => fact.label), ["Emisă", "Scadență", "Monedă"])
 })
 
 // The correction's amounts arrive signed and are rendered signed: the screen is
 // a reading of a fiscal document, not a recalculation of it.
 void test("a correction projects its negative totals unchanged", () => {
-  const view = projectCorrectionDocument(decodeCorrectionDocument(correctionJson))
+  const view = projectCorrectionDocument(decodeCorrectionDocument(correctionJson), COUNTIES)
   assert.deepEqual(view.totals.map((total) => total.value), ["-1,000.00 RON", "-210.00 RON", "-1,210.00 RON"])
   assert.equal(view.lines[0]?.totalIncludingVat, "-1,210.00 RON")
   assert.equal(view.heading, "STR 4")
 })
 
 void test("a correction states its reason and links back to the original invoice", () => {
-  const view = projectCorrectionDocument(decodeCorrectionDocument(correctionJson))
+  const view = projectCorrectionDocument(decodeCorrectionDocument(correctionJson), COUNTIES)
   assert.deepEqual(view.facts, [
     { label: "Emisă", value: "2026-02-03" },
     { label: "Monedă", value: "RON" },
@@ -330,7 +331,7 @@ void test("a correction states its reason and links back to the original invoice
 })
 
 void test("a taxable VAT row states its rate and reads its absent reason as a dash", () => {
-  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson))
+  const view = projectIssuedInvoice(decodeIssuedInvoice(invoiceJson), COUNTIES)
   assert.deepEqual(view.vatRows[0], {
     key: "S-21.00", rate: "TVA 21%", base: "1,000.00 RON", amount: "210.00 RON", note: "—",
   })

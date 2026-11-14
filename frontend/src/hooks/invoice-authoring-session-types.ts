@@ -30,6 +30,8 @@ export interface InvoiceAuthoringSessionInput {
   readonly customersLoadMore: () => void
   readonly invoiceSeries: ReadonlyArray<string>
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
+  /** The server's limit for the remarks (`GET /api/reference-data`). */
+  readonly notesMaxLength: number
   readonly productPresets: ReadonlyArray<ProductPreset>
   readonly presetsHasMore: boolean
   readonly presetsLoadingMore: boolean

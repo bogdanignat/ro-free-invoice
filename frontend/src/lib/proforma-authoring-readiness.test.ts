@@ -25,6 +25,7 @@ const ready = (): ProformaSaveReadinessInput => ({
   form: { ...newAuthoringForm(issuer, "PRO", false, "2026-02-01"), name: "Alfa SRL" },
   lines: [filledLine],
   seriesOptions: ["PRO"],
+  notesMaxLength: 300,
   pending: false,
   blocked: false,
 })

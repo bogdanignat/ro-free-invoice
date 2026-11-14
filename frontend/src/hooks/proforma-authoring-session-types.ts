@@ -26,6 +26,8 @@ export interface ProformaAuthoringSessionInput {
   readonly customersLoadMore: () => void
   readonly proformaSeries: ReadonlyArray<string>
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
+  /** The server's limit for the remarks (`GET /api/reference-data`). */
+  readonly notesMaxLength: number
   readonly productPresets: ReadonlyArray<ProductPreset>
   readonly presetsHasMore: boolean
   readonly presetsLoadingMore: boolean

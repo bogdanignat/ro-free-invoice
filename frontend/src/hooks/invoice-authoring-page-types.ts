@@ -29,6 +29,7 @@ export type InvoiceAuthoringPageState =
     readonly customersLoadMore: () => void
     readonly invoiceSeries: ReadonlyArray<string>
     readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
+    readonly notesMaxLength: number
     readonly productPresets: ReadonlyArray<ProductPreset>
     readonly presetsHasMore: boolean
     readonly presetsLoadingMore: boolean

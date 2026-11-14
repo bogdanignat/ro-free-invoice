@@ -32,6 +32,8 @@ export const masterDataHandlers = (use: UseServices) => ({
     use((s) => s.invoicing.setDocumentSeriesArchived({ ...path, ...payload })).pipe(Effect.mapError(errors("ValidationFailure", "ResourceNotFound")))),
   listUnitOfMeasures: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "listUnitOfMeasures", () =>
     use((s) => s.invoicing.listUnitOfMeasures()).pipe(Effect.mapError(errors()))),
+  getReferenceData: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "getReferenceData", () =>
+    use((s) => s.invoicing.getReferenceData()).pipe(Effect.mapError(errors()))),
   listVatRegimes: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "listVatRegimes", () =>
     use((s) => s.invoicing.getVatCatalogue()).pipe(Effect.mapError(errors("ValidationFailure")))),
   listProductPresets: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "listProductPresets", ({ urlParams }) =>

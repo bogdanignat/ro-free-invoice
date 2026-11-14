@@ -50,6 +50,7 @@ export const InvoiceAuthoringView = ({ id }: InvoiceAuthoringViewProps) => {
           customersLoadMore={page.customersLoadMore}
           invoiceSeries={page.invoiceSeries}
           unitOfMeasures={page.unitOfMeasures}
+          notesMaxLength={page.notesMaxLength}
           productPresets={page.productPresets}
           presetsHasMore={page.presetsHasMore}
           presetsLoadingMore={page.presetsLoadingMore}

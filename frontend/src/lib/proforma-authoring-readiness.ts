@@ -15,6 +15,7 @@ export interface ProformaSaveReadinessInput {
   readonly form: InvoiceAuthoringForm
   readonly lines: ReadonlyArray<EditableInvoiceLine>
   readonly seriesOptions: ReadonlyArray<string>
+  readonly notesMaxLength: number
   readonly pending: boolean
   /** An unresolved journal entry or a result already known: nothing new may be authored. */
   readonly blocked: boolean
@@ -35,7 +36,7 @@ export interface ProformaSaveReadiness {
 export const PROFORMA_DUE_DATE_NOTE = "Fără scadență, proforma va putea fi transformată doar în draft de factură, nu direct în factură emisă."
 
 export const proformaSaveReadiness = (input: ProformaSaveReadinessInput): ProformaSaveReadiness => {
-  const notesIssue = documentNotesIssue(input.form.notes)
+  const notesIssue = documentNotesIssue(input.form.notes, input.notesMaxLength)
   const seriesChosen = input.form.series !== "" && input.seriesOptions.includes(input.form.series)
   return {
     notesIssue,

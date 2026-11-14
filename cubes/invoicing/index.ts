@@ -13,7 +13,7 @@ export const cube = {
 
 export * from "./contracts/index.ts"
 export { calculateTotals, validateFiscalDocument } from "./domain/calculation.ts"
-export { hasControlCharacters, validateVatTreatment } from "./domain/validation.ts"
+export { CIUS_TEXT_LIMITS, DOCUMENT_NOTES_MAX_LENGTH, hasControlCharacters, validateVatTreatment } from "./domain/validation.ts"
 export { maximumSearchLength } from "./domain/search.ts"
 export { unitOfMeasures } from "./items/index.ts"
 export type { IssueCode, IssueDetail } from "./issues/index.ts"

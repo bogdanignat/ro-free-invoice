@@ -1,6 +1,6 @@
 import {
   decodeCustomerPage, decodeDocumentSeriesList, decodeIssuer, decodeProductPresetPage,
-  decodeUnitOfMeasures, decodeVatCatalogue,
+  decodeReferenceData, decodeUnitOfMeasures, decodeVatCatalogue, type ReferenceData,
 } from "./authoring-reference-decoders.ts"
 import { decodeCustomer } from "./registry-decoders.ts"
 import { encoded, paged } from "./client-paths.ts"
@@ -25,6 +25,8 @@ export interface AuthoringReferenceClient {
   readonly listDocumentSeries: (signal: AbortSignal) => Promise<ReadonlyArray<DocumentSeries>>
   readonly listUnitOfMeasures: (signal: AbortSignal) => Promise<ReadonlyArray<UnitOfMeasure>>
   readonly getVatCatalogue: (signal: AbortSignal) => Promise<VatCatalogue>
+  /** The cube's county list and text limits: the forms offer and cap what the server accepts. */
+  readonly getReferenceData: (signal: AbortSignal) => Promise<ReferenceData>
   readonly listCustomers: (page: PageRequest | undefined, signal: AbortSignal) => Promise<Page<Customer>>
   readonly getCustomer: (id: string, signal: AbortSignal) => Promise<Customer>
   readonly listProductPresets: (page: PageRequest | undefined, signal: AbortSignal) => Promise<Page<ProductPreset>>
@@ -50,6 +52,8 @@ export const createAuthoringReferenceClient = (transport: BrowserTransport): Aut
     decodeUnitOfMeasures(await transport.json("/api/unit-of-measures", { signal })),
   getVatCatalogue: async (signal) =>
     decodeVatCatalogue(await transport.json("/api/vat-regimes", { signal })),
+  getReferenceData: async (signal) =>
+    decodeReferenceData(await transport.json("/api/reference-data", { signal })),
   listCustomers: async (page, signal) =>
     decodeCustomerPage(await transport.json(paged("/api/customers", page), { signal })),
   getCustomer: async (id, signal) =>

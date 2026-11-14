@@ -20,7 +20,7 @@ const receivedRoutes = ["POST /api/efactura/received/fetches", "GET /api/efactur
 const inventory = [
   "GET /api/issuer", "PUT /api/issuer", "GET /api/document-series", "POST /api/document-series",
   "PUT /api/document-series/:documentType/:series/archived",
-  "GET /api/unit-of-measures", "GET /api/vat-regimes",
+  "GET /api/unit-of-measures", "GET /api/reference-data", "GET /api/vat-regimes",
   "GET /api/customers", "GET /api/customers/:id", "POST /api/customers", "PUT /api/customers/:id", "DELETE /api/customers/:id",
   "GET /api/product-presets", "POST /api/product-presets", "PUT /api/product-presets/:id", "DELETE /api/product-presets/:id",
   "GET /api/drafts", "POST /api/drafts/totals-preview", "GET /api/drafts/:id", "POST /api/drafts", "PUT /api/drafts/:id", "DELETE /api/drafts/:id",
@@ -48,15 +48,15 @@ const efacturaRoutes = ["GET /api/invoices/:id/efactura.xml", "GET /api/correcti
 const companyLookupRoutes = ["GET /api/settings/company-lookup", "PUT /api/settings/company-lookup",
   "GET /api/company-lookup/availability", "POST /api/company-lookup/lookup", "POST /api/company-lookup/search"]
 
-void test("the contract with every plugin on exposes exactly the current 77 operations", () => {
+void test("the contract with every plugin on exposes exactly the current 78 operations", () => {
   const applicationRoutes: Array<{ readonly method: string, readonly operationId: string, readonly path: string }> = []
   HttpApi.reflect(activeHttpApi(allPlugins), { onGroup() {}, onEndpoint({ endpoint }) {
     applicationRoutes.push({ method: endpoint.method, operationId: endpoint.name, path: endpoint.path })
   } })
-  assert.equal(operationNames.length, 77)
-  assert.equal(new Set(operationNames).size, 77)
-  assert.equal(applicationRoutes.length, 77)
-  assert.equal(new Set(applicationRoutes.map((route) => route.operationId)).size, 77)
+  assert.equal(operationNames.length, 78)
+  assert.equal(new Set(operationNames).size, 78)
+  assert.equal(applicationRoutes.length, 78)
+  assert.equal(new Set(applicationRoutes.map((route) => route.operationId)).size, 78)
   assert.ok(operationNames.includes("listVatRegimes"))
   assert.deepEqual(applicationRoutes.map((route) => `${route.method} ${route.path}`).sort(), inventory)
   assert.equal(applicationRoutes.some((route) => route.path === "/api"), false)
@@ -280,7 +280,7 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
     assert.ok(operation, `${method.toUpperCase()} ${path} is absent`)
     assert.deepEqual(Object.keys(operation.responses).sort(), [...new Set([...base, ...extras])].sort())
   }
-  for (const path of ["/api/document-series", "/api/unit-of-measures", "/api/vat-regimes", "/api/invoices/{invoiceId}/corrections"]) {
+  for (const path of ["/api/document-series", "/api/unit-of-measures", "/api/reference-data", "/api/vat-regimes", "/api/invoices/{invoiceId}/corrections"]) {
     expectStatuses("get", path)
   }
   for (const path of ["/api/customers", "/api/product-presets", "/api/drafts", "/api/invoice-register", "/api/invoices", "/api/proformas",

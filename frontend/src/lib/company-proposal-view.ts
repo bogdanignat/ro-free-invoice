@@ -1,5 +1,5 @@
 import type { CompanyProposal, CompanySuggestion } from "./company-lookup-model.ts"
-import { romanianCountyName } from "./romanian-counties.ts"
+import { romanianCountyName, type RomanianCounty } from "./romanian-counties.ts"
 
 /**
  * The words of the proposal card and of a suggestion, in Romanian.
@@ -10,13 +10,16 @@ import { romanianCountyName } from "./romanian-counties.ts"
  */
 export type ProposalVatUse = "suggested" | "informative"
 
-const withCounty = (name: string, county: string | undefined): string =>
-  county === undefined ? name : `${name}, ${romanianCountyName(county)}`
+type Counties = ReadonlyArray<RomanianCounty>
 
-export const proposalHeadline = (proposal: CompanyProposal): string =>
-  `Am găsit: ${withCounty(proposal.name, proposal.address.county)}`
+const withCounty = (name: string, county: string | undefined, counties: Counties): string =>
+  county === undefined ? name : `${name}, ${romanianCountyName(county, counties)}`
 
-export const suggestionLabel = (suggestion: CompanySuggestion): string => withCounty(suggestion.name, suggestion.county)
+export const proposalHeadline = (proposal: CompanyProposal, counties: Counties): string =>
+  `Am găsit: ${withCounty(proposal.name, proposal.address.county, counties)}`
+
+export const suggestionLabel = (suggestion: CompanySuggestion, counties: Counties): string =>
+  withCounty(suggestion.name, suggestion.county, counties)
 
 /** What makes the company a doubtful party; empty when nothing does. */
 export const proposalWarnings = (proposal: CompanyProposal): ReadonlyArray<string> => [

@@ -1,5 +1,6 @@
 import { Button } from "../Button.tsx"
 import type { CompanyLookupModel } from "../../hooks/use-company-lookup.ts"
+import { useCounties } from "../../hooks/use-reference-data.ts"
 import type { CompanyProposal } from "../../lib/company-lookup-model.ts"
 import {
   proposalAddressReference, proposalHeadline, proposalVatLine, proposalWarnings, type ProposalVatUse,
@@ -19,6 +20,7 @@ interface CompanyProposalCardProps {
  * none of them stops the form from being filled in and saved by hand.
  */
 export const CompanyProposalCard = ({ lookup, vat, disabled, onApply }: CompanyProposalCardProps) => {
+  const counties = useCounties()
   const { outcome } = lookup
   if (outcome.kind === "idle" || outcome.kind === "applied") return null
   if (outcome.kind === "pending") return <p className="hint span-two" role="status">Se caută firma…</p>
@@ -28,7 +30,7 @@ export const CompanyProposalCard = ({ lookup, vat, disabled, onApply }: CompanyP
   const address = proposalAddressReference(proposal)
   return <section className="span-two grid gap-2 rounded-invoice-control border border-invoice-border bg-invoice-primary-soft p-3"
     aria-label="Firmă găsită">
-    <p className="m-0 font-bold text-invoice-ink" role="status">{proposalHeadline(proposal)}</p>
+    <p className="m-0 font-bold text-invoice-ink" role="status">{proposalHeadline(proposal, counties)}</p>
     {proposalWarnings(proposal).map((warning) => <p key={warning} className="hint warning">{warning}</p>)}
     <p className="hint">{proposalVatLine(proposal, vat)}</p>
     {address === undefined ? null : <p className="hint">{address}</p>}

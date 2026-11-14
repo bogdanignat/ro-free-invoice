@@ -8,7 +8,7 @@ import {
 import { draftDeletionState, invoiceDueDateIssue } from "./invoice-authoring-workflow.ts"
 import { DERIVED_DRAFT_DELETE_REFUSED } from "./draft-save-types.ts"
 import { authoringSeriesOptions } from "./document-authoring-options.ts"
-import { documentNotesIssue, documentNotesMaxLength } from "./invoice-notes-validation.ts"
+import { documentNotesIssue } from "./invoice-notes-validation.ts"
 import { positiveInvoiceRequiresDueDate } from "./invoice-positive-total.ts"
 import { formFromDraft } from "./document-authoring-transitions.ts"
 import { defaultVatCode, issuerVatRegistrationOn, presetVatCode, vatRatesForIssuer } from "./vat-defaults.ts"
@@ -195,9 +195,10 @@ void test("a screen offers the series of the document it authors, never the othe
 })
 
 void test("notes validation mirrors the server rules", () => {
-  assert.equal(documentNotesIssue("text simplu"), null)
-  assert.ok(documentNotesIssue("tab\taici") !== null)
-  assert.ok(documentNotesIssue("a".repeat(documentNotesMaxLength + 1)) !== null)
+  assert.equal(documentNotesIssue("text simplu", 300), null)
+  assert.ok(documentNotesIssue("tab\taici", 300) !== null)
+  assert.ok(documentNotesIssue("a".repeat(301), 300) !== null)
+  assert.equal(documentNotesIssue("a".repeat(300), 300), null)
 })
 
 void test("the effective VAT rates follow the issuer's registrations on the document date", () => {

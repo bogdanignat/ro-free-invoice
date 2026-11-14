@@ -1,6 +1,7 @@
 import { authoringSeriesOptions } from "./document-authoring-options.ts"
 import { resourceFailure, type ResourceSnapshot } from "./async-resource.ts"
 import type { DocumentSeries, Issuer, UnitOfMeasure, VatCatalogue } from "./draft-models.ts"
+import type { ReferenceData } from "./authoring-reference-decoders.ts"
 
 /**
  * Whether the proforma authoring screen may show a form at all, decided as a
@@ -13,13 +14,15 @@ import type { DocumentSeries, Issuer, UnitOfMeasure, VatCatalogue } from "./draf
  * invoice's: its note links to Setări, and a form already filled in would be
  * lost on the way there.
  */
-export type ProformaAuthoringResource = "issuer" | "vat-catalogue" | "series" | "units"
+export type ProformaAuthoringResource = "issuer" | "vat-catalogue" | "series" | "units" | "reference"
 
 export interface ProformaAuthoringPageInput {
   readonly issuer: ResourceSnapshot<Issuer | null>
   readonly vatCatalogue: ResourceSnapshot<VatCatalogue>
   readonly series: ResourceSnapshot<ReadonlyArray<DocumentSeries>>
   readonly units: ResourceSnapshot<ReadonlyArray<UnitOfMeasure>>
+  /** The county list and text limits the form's fields read. */
+  readonly reference: ResourceSnapshot<ReferenceData>
 }
 
 export type ProformaAuthoringPageState =
@@ -40,11 +43,12 @@ export type ProformaAuthoringPageState =
     readonly vatCatalogue: VatCatalogue
     readonly proformaSeries: ReadonlyArray<string>
     readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
+    readonly notesMaxLength: number
   }
 
 const missing = (input: ProformaAuthoringPageInput): ReadonlyArray<ProformaAuthoringResource> => ([
   ["issuer", input.issuer], ["vat-catalogue", input.vatCatalogue],
-  ["series", input.series], ["units", input.units],
+  ["series", input.series], ["units", input.units], ["reference", input.reference],
 ] as ReadonlyArray<readonly [ProformaAuthoringResource, ResourceSnapshot<unknown>]>)
   .filter(([, snapshot]) => snapshot.data === undefined)
   .map(([resource]) => resource)
@@ -53,9 +57,10 @@ export const proformaAuthoringPageState = (input: ProformaAuthoringPageInput): P
   const absent = missing(input)
   // Pending only counts while the resource has nothing to show: a background
   // refetch of data already held must not blank the form.
-  if (absent.length > 0 && [input.issuer, input.vatCatalogue, input.series, input.units]
+  const reads = [input.issuer, input.vatCatalogue, input.series, input.units, input.reference]
+  if (absent.length > 0 && reads
     .some((snapshot) => snapshot.data === undefined && snapshot.isPending)) return { kind: "loading" }
-  const failure = [input.issuer, input.vatCatalogue, input.series, input.units]
+  const failure = reads
     .find((snapshot) => snapshot.data === undefined && snapshot.error !== null && snapshot.error !== undefined)
   if (failure !== undefined) return { kind: "error", error: resourceFailure(failure.error), reload: absent }
   const issuer = input.issuer.data
@@ -69,11 +74,15 @@ export const proformaAuthoringPageState = (input: ProformaAuthoringPageInput): P
   if (proformaSeries.length === 0) return { kind: "proforma-series-required" }
   const unitOfMeasures = input.units.data ?? []
   if (unitOfMeasures.length === 0) return { kind: "unit-catalogue-empty" }
+  // Answered or failed above; a read still disabled (signed out) has nothing to show yet.
+  const reference = input.reference.data
+  if (reference === undefined) return { kind: "loading" }
   return {
     kind: "ready",
     issuer,
     vatCatalogue,
     proformaSeries,
     unitOfMeasures,
+    notesMaxLength: reference.textLimits.documentNotes,
   }
 }

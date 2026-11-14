@@ -2,6 +2,7 @@ import { documentBodyView, type DocumentSnapshotView } from "./document-projecti
 import { orDash } from "./format.ts"
 import { money } from "./money.ts"
 import type { Proforma } from "./proforma-models.ts"
+import type { RomanianCounty } from "./romanian-counties.ts"
 
 /**
  * What a proforma's conversion state reads as, in the registry and on its own
@@ -77,8 +78,8 @@ export const projectProformaRegister = (
  * correction, and a proforma's own links (the invoice or draft it became) live
  * in the conversion section, not in the document head.
  */
-export const projectProforma = (proforma: Proforma): DocumentSnapshotView => ({
-  ...documentBodyView(proforma),
+export const projectProforma = (proforma: Proforma, counties: ReadonlyArray<RomanianCounty>): DocumentSnapshotView => ({
+  ...documentBodyView(proforma, counties),
   facts: [
     { label: "Emisă", value: proforma.issueDate },
     { label: "Scadență", value: orDash(proforma.dueDate) },

@@ -3,7 +3,7 @@ import { CompanyProposalCard } from "../company-lookup/CompanyProposalCard.tsx"
 import { Field } from "../ui/Field.tsx"
 import { FieldIssue } from "../registry/FieldIssue.tsx"
 import { Input } from "../ui/Input.tsx"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
 import { ISSUER_FORM, type RegistryFieldAria } from "../../lib/registry-fields.ts"
 import { FISCAL_IDENTIFIER_MAX_LENGTH, type IssuerField } from "../../lib/issuer-payload.ts"
@@ -30,11 +30,12 @@ interface IssuerIdentityFieldsProps {
  * the VAT regime cannot, it stays the VAT section's.
  */
 export const IssuerIdentityFields = (props: IssuerIdentityFieldsProps) => {
+  const limits = useTextLimits()
   const { form, disabled, issue, aria } = props
   const { lookup, nameRef } = useCompanyLookup("issuer", true)
   return <div className="form-grid">
     <CompanyNameField lookup={lookup} inputRef={nameRef} label="Denumire legală" value={form.name} disabled={disabled}
-      maxLength={CIUS_TEXT_LIMITS.partyName} controlAria={aria("name")} onChange={(name) => { props.onChange({ name }) }}>
+      maxLength={limits?.partyName} controlAria={aria("name")} onChange={(name) => { props.onChange({ name }) }}>
       <FieldIssue issue={issue} field="name" form={ISSUER_FORM} />
     </CompanyNameField>
     <Field label="CUI / identificator fiscal" required>

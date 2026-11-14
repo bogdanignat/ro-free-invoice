@@ -11,7 +11,6 @@ import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
 import {
   newEditableInvoiceLine, preferredUnitOfMeasure, type EditableInvoiceLine,
 } from "../lib/invoice-authoring-model.ts"
-import { documentNotesMaxLength } from "../lib/invoice-notes-validation.ts"
 import { issuerIssuanceWarning } from "../lib/invoice-authoring-workflow.ts"
 import { knownResultNotice } from "../lib/operation-recovery-view.ts"
 import { proformaAuthoringPayload } from "../lib/proforma-authoring-payload.ts"
@@ -44,7 +43,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   const recovery = useAuthoringRecovery()
   const payload = proformaAuthoringPayload(form, lines)
   const readiness = proformaSaveReadiness({
-    form, lines, seriesOptions: input.proformaSeries,
+    form, lines, seriesOptions: input.proformaSeries, notesMaxLength: input.notesMaxLength,
     pending: recovery.pending, blocked: recovery.blocked,
   })
   const save = useProformaSave({
@@ -80,7 +79,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
       unconfirmedMessage: save.unconfirmedMessage,
       issuerWarning: issuerIssuanceWarning(input.issuer),
       notesIssue: readiness.notesIssue,
-      notesMaxLength: documentNotesMaxLength,
+      notesMaxLength: input.notesMaxLength,
       dueDateNote: readiness.dueDateNote,
       recoveryNotice: notice,
     },
