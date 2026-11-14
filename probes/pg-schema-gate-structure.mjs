@@ -148,10 +148,10 @@ export const checkStructure = async (admin, pools) => {
     assert.equal(byScope.invoicing.ok, false, "invoicing needs issuers, customers and the foundation")
     assert.equal(byScope.payments.ok, false, "payments needs issued_invoices and the foundation")
     assert.equal(byScope.documents.ok, false, "documents needs the foundation function")
-    assert.equal(byScope.documents.code, "42883", "missing qwbe_abort")
+    assert.equal(byScope.documents.code, "42883", "missing rfi_abort")
     assert.equal(byScope.connection.ok, true, "the e-Factura connection stands alone")
     assert.equal(byScope.submissions.ok, false, "e-Factura submissions need the foundation function")
-    assert.equal(byScope.submissions.code, "42883", "missing qwbe_abort")
+    assert.equal(byScope.submissions.code, "42883", "missing rfi_abort")
   })
 
   // ------------------------------------------------------ fault cases

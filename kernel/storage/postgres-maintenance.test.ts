@@ -215,13 +215,13 @@ void test("an edited trigger function body is reported as drift", async () => {
     assert.deepEqual(await schemaDrift(runtime.pool), [])
     // The foundation function, replaced behind the ledger's back.
     await runtime.pool.query(
-      "CREATE OR REPLACE FUNCTION qwbe_abort() RETURNS trigger LANGUAGE plpgsql AS $qwbe$"
-      + " BEGIN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='edited'; END $qwbe$",
+      "CREATE OR REPLACE FUNCTION rfi_abort() RETURNS trigger LANGUAGE plpgsql AS $rfi$"
+      + " BEGIN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='edited'; END $rfi$",
     )
     resetFingerprintCache()
     const drifted = await schemaDrift(runtime.pool)
     assert.ok(
-      drifted.some((name) => name.startsWith("function:qwbe_abort")),
+      drifted.some((name) => name.startsWith("function:rfi_abort")),
       `the function body should be reported as drift, got ${JSON.stringify(drifted)}`,
     )
   } finally {
