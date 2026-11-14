@@ -1,4 +1,5 @@
 import { Button } from "../ui/Button.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import type { CompanyLookupModel } from "../../hooks/use-company-lookup.ts"
 import { useCounties } from "../../hooks/use-reference-data.ts"
 import type { CompanyProposal } from "../../lib/company-lookup-model.ts"
@@ -23,17 +24,17 @@ export const CompanyProposalCard = ({ lookup, vat, disabled, onApply }: CompanyP
   const counties = useCounties()
   const { outcome } = lookup
   if (outcome.kind === "idle" || outcome.kind === "applied") return null
-  if (outcome.kind === "pending") return <p className="hint span-two" role="status">Se caută firma…</p>
-  if (outcome.kind === "not-found") return <p className="hint span-two" role="status">Nu am găsit firma.</p>
-  if (outcome.kind === "failed") return <p className="hint warning span-two" role="status">{outcome.message}</p>
+  if (outcome.kind === "pending") return <Hint className="col-span-full" role="status">Se caută firma…</Hint>
+  if (outcome.kind === "not-found") return <Hint className="col-span-full" role="status">Nu am găsit firma.</Hint>
+  if (outcome.kind === "failed") return <Hint tone="warning" className="col-span-full" role="status">{outcome.message}</Hint>
   const { proposal } = outcome
   const address = proposalAddressReference(proposal)
-  return <section className="span-two grid gap-2 rounded-invoice-control border border-invoice-border bg-invoice-primary-soft p-3"
+  return <section className="col-span-full grid gap-2 rounded-invoice-control border border-invoice-border bg-invoice-primary-soft p-3"
     aria-label="Firmă găsită">
-    <p className="m-0 font-bold text-invoice-ink" role="status">{proposalHeadline(proposal, counties)}</p>
-    {proposalWarnings(proposal).map((warning) => <p key={warning} className="hint warning">{warning}</p>)}
-    <p className="hint">{proposalVatLine(proposal, vat)}</p>
-    {address === undefined ? null : <p className="hint">{address}</p>}
+    <p className="m-0 font-bold text-invoice-ink in-data-[card]:leading-[1.6]" role="status">{proposalHeadline(proposal, counties)}</p>
+    {proposalWarnings(proposal).map((warning) => <Hint key={warning} tone="warning">{warning}</Hint>)}
+    <Hint>{proposalVatLine(proposal, vat)}</Hint>
+    {address === undefined ? null : <Hint>{address}</Hint>}
     <div>
       <Button size="sm" disabled={disabled} onClick={() => { onApply(proposal); lookup.applied(proposal) }}>
         Completează

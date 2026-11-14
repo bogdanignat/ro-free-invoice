@@ -2,6 +2,7 @@ import { useId, type ReactNode, type RefObject } from "react"
 
 import { Combobox } from "../ui/Combobox.tsx"
 import { Field } from "../ui/Field.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import type { CompanyLookupModel } from "../../hooks/use-company-lookup.ts"
 import { useCounties } from "../../hooks/use-reference-data.ts"
 import type { CompanySuggestion } from "../../lib/company-lookup-model.ts"
@@ -40,7 +41,7 @@ export const CompanyNameField = ({ lookup, inputRef, label, value, disabled, max
       aria-labelledby={labelId} suggest={lookup.nameSearch} options={lookup.suggestions} optionKey={suggestionKey}
       optionLabel={(suggestion) => suggestionLabel(suggestion, counties)} listLabel="Firme sugerate" onPick={lookup.pick} onClose={lookup.closeSuggestions}
       onChange={(event) => { onChange(event.currentTarget.value); lookup.typeName(event.currentTarget.value) }} />
-    {lookup.searchNote === undefined ? null : <span className="hint" role="status">{lookup.searchNote}</span>}
+    {lookup.searchNote === undefined ? null : <Hint as="span" role="status">{lookup.searchNote}</Hint>}
     {children}
   </Field>
 }

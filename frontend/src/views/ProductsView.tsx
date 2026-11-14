@@ -1,7 +1,9 @@
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
 import { Button } from "../components/ui/Button.tsx"
+import { Card } from "../components/ui/Card.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
+import { StatusNote } from "../components/ui/StatusNote.tsx"
 import { ProductPresetEditorSection } from "../components/registry/ProductPresetEditorSection.tsx"
 import { ProductPresetsRegistrySection } from "../components/registry/ProductPresetsRegistrySection.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"
@@ -29,19 +31,19 @@ export const ProductsView = () => {
       {load.kind === "error" ? <ErrorAlert error={load.error} onRetry={catalogue.retry} /> : null}
       {load.kind === "ready"
         ? <>
-          {catalogue.notice === undefined ? null : <p className="status-note" role="status">{catalogue.notice}</p>}
+          {catalogue.notice === undefined ? null : <StatusNote>{catalogue.notice}</StatusNote>}
           {catalogue.editing === undefined && catalogue.error !== null && catalogue.error !== undefined
             ? <ErrorAlert error={catalogue.error} />
             : null}
-          <div className="authoring-layout">
+          <div className="grid gap-6 grid-cols-[minmax(0,2.1fr)_minmax(15rem,1fr)] items-start stacked:grid-cols-[1fr]">
             <ProductPresetsRegistrySection rows={catalogue.rows} editingId={catalogue.editing?.id}
               disabled={catalogue.pending} hasMore={catalogue.hasMore} loadingMore={catalogue.loadingMore}
               onLoadMore={catalogue.loadMore}
               onEdit={(row) => { catalogue.startEdit(row.preset) }}
               onDelete={(row) => { catalogue.remove(row.preset) }} />
-            <div className="authoring-side">
+            <div className="grid gap-6 sticky top-6 stacked:static">
               {catalogue.form === undefined
-                ? <section className="card"><p className="setup-note">Alege un produs din listă ca să îl modifici, sau adaugă unul nou.</p></section>
+                ? <Card><p className="m-0 p-5 border-l-3 border-l-invoice-primary-hover rounded-invoice-control text-invoice-muted bg-invoice-secondary-surface leading-[1.6]">Alege un produs din listă ca să îl modifici, sau adaugă unul nou.</p></Card>
                 : <ProductPresetEditorSection form={catalogue.form} editingId={catalogue.editing?.id}
                   units={catalogue.units} vatOptions={catalogue.vatOptions} issue={catalogue.issue}
                   pending={catalogue.pending} error={catalogue.error}

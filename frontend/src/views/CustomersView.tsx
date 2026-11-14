@@ -2,8 +2,10 @@ import { CustomerEditorSection } from "../components/registry/CustomerEditorSect
 import { CustomersRegistrySection } from "../components/registry/CustomersRegistrySection.tsx"
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
 import { Button } from "../components/ui/Button.tsx"
+import { Card } from "../components/ui/Card.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
+import { StatusNote } from "../components/ui/StatusNote.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"
 import { useCustomerRegistry } from "../hooks/use-customer-registry.ts"
 
@@ -26,17 +28,17 @@ export const CustomersView = () => {
       {load.kind === "error" ? <ErrorAlert error={load.error} onRetry={registry.retry} /> : null}
       {load.kind === "ready"
         ? <>
-          {registry.notice === undefined ? null : <p className="status-note" role="status">{registry.notice}</p>}
+          {registry.notice === undefined ? null : <StatusNote>{registry.notice}</StatusNote>}
           {registry.editing === undefined && registry.error !== null && registry.error !== undefined
             ? <ErrorAlert error={registry.error} />
             : null}
-          <div className="authoring-layout">
+          <div className="grid gap-6 grid-cols-[minmax(0,2.1fr)_minmax(15rem,1fr)] items-start stacked:grid-cols-[1fr]">
             <CustomersRegistrySection customers={registry.customers} editingId={registry.editing?.id}
               disabled={registry.pending} hasMore={registry.hasMore} loadingMore={registry.loadingMore}
               onLoadMore={registry.loadMore} onEdit={registry.startEdit} onDelete={registry.remove} />
-            <div className="authoring-side">
+            <div className="grid gap-6 sticky top-6 stacked:static">
               {registry.form === undefined
-                ? <section className="card"><p className="setup-note">Alege un client din listă ca să îl modifici, sau adaugă unul nou.</p></section>
+                ? <Card><p className="m-0 p-5 border-l-3 border-l-invoice-primary-hover rounded-invoice-control text-invoice-muted bg-invoice-secondary-surface leading-[1.6]">Alege un client din listă ca să îl modifici, sau adaugă unul nou.</p></Card>
                 : <CustomerEditorSection form={registry.form} editingId={registry.editing?.id}
                   sectorRequired={registry.sectorRequired} issue={registry.issue} pending={registry.pending}
                   error={registry.error} onChange={registry.change}

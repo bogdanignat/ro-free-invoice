@@ -9,12 +9,17 @@ const TONES: Readonly<Record<HintTone, string>> = {
   warning: "text-invoice-danger-text font-invoice-emphasis",
 }
 
-/** A small line under a control or a section: help in the muted tone, a refusal in the warning one. */
-export const Hint = ({ tone = "neutral", id, role, className, children }: {
+/**
+ * A small line under a control or a section: help in the muted tone, a refusal in the warning one.
+ * `span` is for a line inside a label; only a paragraph took the legacy `.card p` line height.
+ */
+export const Hint = ({ tone = "neutral", as: Tag = "p", id, role, className, children }: {
   readonly tone?: HintTone
+  readonly as?: "p" | "span"
   readonly id?: string
   readonly role?: AriaRole
   /** Layout from outside (a grid span), never the look. */
   readonly className?: string
   readonly children: ReactNode
-}) => <p id={id} role={role} className={cx("m-0 text-[.78rem]", TONES[tone], className)}>{children}</p>
+}) => <Tag id={id} role={role}
+  className={cx("m-0 text-[.78rem]", TONES[tone], Tag === "p" && "in-data-[card]:leading-[1.6]", className)}>{children}</Tag>

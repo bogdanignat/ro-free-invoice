@@ -7,5 +7,5 @@
 @import "./dashboard.css" layer(components);
 @source "..";
 /* The legacy breakpoints are inclusive `max-width`; Tailwind's `max-*` is exclusive. */
-@custom-variant narrow (@media (max-width: 680px));
 @custom-variant stacked (@media (max-width: 900px));
+@custom-variant narrow (@media (max-width: 680px));

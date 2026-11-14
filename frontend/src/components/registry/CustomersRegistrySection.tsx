@@ -1,6 +1,9 @@
 import { Button } from "../ui/Button.tsx"
+import { Card } from "../ui/Card.tsx"
 import { EmptyState } from "../AsyncState.tsx"
 import { LoadMore } from "../LoadMore.tsx"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
+import { Table, Td, Th } from "../ui/Table.tsx"
 import { identifierLabel } from "../../lib/document-authoring-transitions.ts"
 import { orDash } from "../../lib/format.ts"
 import type { Customer } from "../../lib/draft-models.ts"
@@ -24,32 +27,28 @@ const addressLine = (customer: Customer): string => {
 
 /** The saved parties, as they are reused on a document. */
 export const CustomersRegistrySection = (props: CustomersRegistrySectionProps) =>
-  <section className="card">
-    <div className="section-heading">
-      <div>
-        <h2>Clienți salvați</h2>
-        <p>Documentele deja emise păstrează copia proprie a cumpărătorului: o modificare aici nu le schimbă.</p>
-      </div>
-      <span className="count">{props.customers.length}</span>
-    </div>
+  <Card>
+    <SectionHeading title="Clienți salvați"
+      description="Documentele deja emise păstrează copia proprie a cumpărătorului: o modificare aici nu le schimbă."
+      aside={<span className="px-[.65rem] py-[.3rem] rounded-invoice-control text-invoice-label bg-invoice-badge-surface text-[.8rem] font-bold whitespace-nowrap">{props.customers.length}</span>} />
     {props.customers.length === 0
       ? <EmptyState>Nu există încă clienți salvați.</EmptyState>
-      : <div className="table-wrap"><table>
+      : <Table>
         <thead><tr>
-          <th scope="col">Client</th><th scope="col">Identificator fiscal</th>
-          <th scope="col">Adresă</th><th scope="col" className="numeric">Termen</th>
-          <th scope="col"><span className="sr-only">Acțiuni</span></th>
+          <Th scope="col">Client</Th><Th scope="col">Identificator fiscal</Th>
+          <Th scope="col">Adresă</Th><Th scope="col" numeric>Termen</Th>
+          <Th scope="col"><span className="sr-only">Acțiuni</span></Th>
         </tr></thead>
         <tbody>
           {props.customers.map((customer) => <tr key={customer.id}>
-            <td data-label="Client">
-              <span className="party-name">{customer.name}</span>
+            <Td label="Client">
+              <span className="mb-[.35rem] text-invoice-ink font-bold">{customer.name}</span>
               <small>{customer.partyType === "company" ? "Persoană juridică" : "Persoană fizică"}{customer.vatRegistered ? " · plătitor de TVA" : ""}</small>
-            </td>
-            <td data-label="Identificator fiscal">{orDash(customer.fiscalIdentifier)}<small>{identifierLabel(customer.partyType)}</small></td>
-            <td data-label="Adresă">{addressLine(customer)}<small>{customer.address.county}{customer.address.postalCode === undefined ? "" : ` · ${customer.address.postalCode}`}</small></td>
-            <td data-label="Termen" className="numeric">{customer.defaultPaymentTermDays === undefined ? "—" : `${String(customer.defaultPaymentTermDays)} zile`}</td>
-            <td><div className="draft-item-actions">
+            </Td>
+            <Td label="Identificator fiscal">{orDash(customer.fiscalIdentifier)}<small>{identifierLabel(customer.partyType)}</small></Td>
+            <Td label="Adresă">{addressLine(customer)}<small>{customer.address.county}{customer.address.postalCode === undefined ? "" : ` · ${customer.address.postalCode}`}</small></Td>
+            <Td label="Termen" numeric>{customer.defaultPaymentTermDays === undefined ? "—" : `${String(customer.defaultPaymentTermDays)} zile`}</Td>
+            <Td><div className="flex gap-2 ml-auto">
               <Button variant="secondary" disabled={props.disabled}
                 aria-current={props.editingId === customer.id ? "true" : undefined}
                 onClick={() => { props.onEdit(customer) }}>
@@ -58,9 +57,9 @@ export const CustomersRegistrySection = (props: CustomersRegistrySectionProps) =
               <Button variant="danger" disabled={props.disabled} onClick={() => { props.onDelete(customer) }}>
                 Șterge<span className="sr-only"> {customer.name}</span>
               </Button>
-            </div></td>
+            </div></Td>
           </tr>)}
         </tbody>
-      </table></div>}
+      </Table>}
     <LoadMore visible={props.hasMore} pending={props.loadingMore} onClick={props.onLoadMore} />
-  </section>
+  </Card>

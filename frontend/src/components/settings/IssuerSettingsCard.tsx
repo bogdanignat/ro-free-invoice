@@ -1,5 +1,9 @@
 import { Button } from "../ui/Button.tsx"
+import { ButtonRow } from "../ui/ButtonRow.tsx"
+import { Card } from "../ui/Card.tsx"
+import { Divider } from "../ui/Divider.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
 import { StatusNote } from "../ui/StatusNote.tsx"
 import { IssuerAddressFields } from "./IssuerAddressFields.tsx"
 import { IssuerBrandingFields } from "./IssuerBrandingFields.tsx"
@@ -22,32 +26,30 @@ export const IssuerSettingsCard = ({ model }: { readonly model: IssuerSettingsMo
   const { form, issue, pending } = model
   useRefusedFieldFocus(ISSUER_FORM, issue?.field)
   const aria = registryFieldAria(ISSUER_FORM, issue?.field)
-  return <section className="card form-card" aria-labelledby="issuer-settings-title">
-    <div className="section-heading"><div>
-      <h2 id="issuer-settings-title">Date firmă</h2>
-      <p>Datele sunt copiate pe fiecare document în momentul emiterii.</p>
-    </div></div>
+  return <Card className="grid gap-5" aria-labelledby="issuer-settings-title">
+    <SectionHeading id="issuer-settings-title" title="Date firmă"
+      description="Datele sunt copiate pe fiecare document în momentul emiterii." />
     {model.notice === undefined ? null : <StatusNote>{model.notice}</StatusNote>}
     {model.warning === undefined ? null : <StatusNote tone="warning">{model.warning}</StatusNote>}
     {model.error === null || model.error === undefined ? null : <ErrorAlert error={model.error} />}
     <form onSubmit={(event) => { event.preventDefault(); model.submit() }}>
       <IssuerIdentityFields form={form} disabled={pending} issue={issue} aria={aria}
         onChange={model.change} onIdentifierChange={model.changeIdentifier} />
-      <hr />
+      <Divider />
       <IssuerAddressFields form={form} disabled={pending} issue={issue} aria={aria}
         sectorRequired={model.sectorRequired} onChange={model.change} onCountyChange={model.changeCounty} />
-      <hr />
+      <Divider />
       <IssuerBrandingFields form={form} disabled={pending} issue={issue} aria={aria}
         branding={model.branding} onChange={model.change} onClearBranding={model.clearBranding} />
-      <hr />
+      <Divider />
       <IssuerVatFields form={form} disabled={pending} issue={issue} aria={aria}
         vatStatus={model.vatStatus} onChange={model.change} onVatRegisteredChange={model.changeVatRegistered} />
       <IssuerVatHistory history={model.vatHistory} />
-      <div className="button-row">
+      <ButtonRow>
         <Button type="submit" disabled={pending || model.branding.pending}>
           {pending ? "Se salvează…" : "Salvează datele firmei"}
         </Button>
-      </div>
+      </ButtonRow>
     </form>
-  </section>
+  </Card>
 }

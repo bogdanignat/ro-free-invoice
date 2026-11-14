@@ -1,4 +1,5 @@
 import { Field } from "../ui/Field.tsx"
+import { FormGrid } from "../ui/FormGrid.tsx"
 import { FieldIssue } from "../registry/FieldIssue.tsx"
 import { Input } from "../ui/Input.tsx"
 import { useCounties, useTextLimits } from "../../hooks/use-reference-data.ts"
@@ -27,14 +28,14 @@ export const IssuerAddressFields = (props: IssuerAddressFieldsProps) => {
   const limits = useTextLimits()
   const counties = useCounties()
   const { form, disabled, issue, aria } = props
-  return <div className="form-grid">
+  return <FormGrid>
     <Field label="Țară"><Select value="RO" disabled><option value="RO">România (RO)</option></Select></Field>
     <Field label="Localitate" required>
       <Input required disabled={disabled} value={form.city} maxLength={limits?.city} {...aria("city")}
         onChange={(event) => { props.onChange({ city: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="city" form={ISSUER_FORM} />
     </Field>
-    <Field label="Stradă și număr" required className="span-two">
+    <Field label="Stradă și număr" required className="col-span-full">
       <Input required disabled={disabled} value={form.street} maxLength={limits?.street} {...aria("street")}
         onChange={(event) => { props.onChange({ street: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="street" form={ISSUER_FORM} />
@@ -61,5 +62,5 @@ export const IssuerAddressFields = (props: IssuerAddressFieldsProps) => {
       <Input disabled={disabled} value={form.postalCode} maxLength={limits?.postalCode}
         onChange={(event) => { props.onChange({ postalCode: event.currentTarget.value }) }} />
     </Field>
-  </div>
+  </FormGrid>
 }

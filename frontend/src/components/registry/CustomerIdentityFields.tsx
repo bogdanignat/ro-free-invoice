@@ -51,7 +51,8 @@ export const CustomerIdentityFields = (props: CustomerIdentityFieldsProps) => {
     <CompanyProposalCard lookup={lookup} vat="suggested" disabled={disabled}
       onApply={(proposal) => { props.onChange(customerFill(form, proposal)) }} />
     {company
-      ? <label className="checkbox-label"><input type="checkbox" checked={form.vatRegistered} disabled={disabled}
+      ? <label className="flex gap-2 items-center text-[.85rem] font-semibold">
+        <input className="w-auto min-h-0" type="checkbox" checked={form.vatRegistered} disabled={disabled}
         onChange={(event) => { props.onChange({ vatRegistered: event.currentTarget.checked }) }} /> Client înregistrat în scopuri de TVA</label>
       : null}
   </>

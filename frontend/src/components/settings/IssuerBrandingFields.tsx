@@ -1,7 +1,11 @@
 import { Button } from "../ui/Button.tsx"
 import { Field } from "../ui/Field.tsx"
 import { FieldIssue } from "../registry/FieldIssue.tsx"
+import { Fieldset } from "../ui/Fieldset.tsx"
+import { FormGrid } from "../ui/FormGrid.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import { Input } from "../ui/Input.tsx"
+import { StatusNote } from "../ui/StatusNote.tsx"
 import { ISSUER_BRAND_TEXT_MAX_CODE_POINTS } from "../../lib/issuer-branding.ts"
 import { ISSUER_FORM, registryFieldId, type RegistryFieldAria } from "../../lib/registry-fields.ts"
 import type { IssuerBrandingModel } from "../../hooks/use-issuer-branding.ts"
@@ -40,18 +44,18 @@ export const IssuerBrandingFields = (props: IssuerBrandingFieldsProps) => {
   const hintId = `${registryFieldId(ISSUER_FORM, "brandImage")}-hint`
   const refusedId = `${registryFieldId(ISSUER_FORM, "brandImage")}-refused`
   const refused = branding.imageIssue !== undefined
-  return <fieldset className="branding-fields">
-    <legend>Brand documente <span className="optional">opțional</span></legend>
-    <div className="form-grid">
-      <Field label="Text de brand" optional className="span-two">
+  return <Fieldset className="grid gap-[.8rem]"
+    legend={<>Brand documente <span className="text-invoice-muted font-invoice-subtle">opțional</span></>}>
+    <FormGrid>
+      <Field label="Text de brand" optional className="col-span-full">
         <Input disabled={disabled} value={props.form.brandText} {...aria("brandText")}
           maxLength={ISSUER_BRAND_TEXT_MAX_CODE_POINTS}
           onChange={(event) => { props.onChange({ brandText: event.currentTarget.value }) }} />
         <FieldIssue issue={issue} field="brandText" form={ISSUER_FORM} />
       </Field>
-    </div>
+    </FormGrid>
     <Field label="Siglă PNG sau JPEG" optional htmlFor={registryFieldId(ISSUER_FORM, "brandImage")}>
-      <input type="file" className="control" accept="image/png,image/jpeg" disabled={disabled} {...imageAria}
+      <Input type="file" accept="image/png,image/jpeg" disabled={disabled} {...imageAria}
         aria-invalid={refused ? true : imageAria["aria-invalid"]}
         aria-describedby={[hintId, imageAria["aria-describedby"], refused ? refusedId : undefined]
           .filter(Boolean).join(" ")}
@@ -60,24 +64,24 @@ export const IssuerBrandingFields = (props: IssuerBrandingFieldsProps) => {
           event.currentTarget.value = ""
         }} />
     </Field>
-    <p className="hint" id={hintId}>
+    <Hint id={hintId}>
       Maximum 256 KiB, 2048 px pe axă și 4 megapixeli.
-    </p>
+    </Hint>
     <FieldIssue issue={issue} field="brandImage" form={ISSUER_FORM} />
     {branding.imageIssue === undefined
       ? null
-      : <p className="hint warning" role="alert" id={refusedId}>{branding.imageIssue} <Button variant="secondary" size="sm"
-        onClick={branding.discardRefused}>Renunță la fișierul respins</Button></p>}
-    {branding.pending ? <p className="status-note" role="status">Se validează imaginea…</p> : null}
+      : <Hint tone="warning" role="alert" id={refusedId}>{branding.imageIssue} <Button variant="secondary" size="sm"
+        onClick={branding.discardRefused}>Renunță la fișierul respins</Button></Hint>}
+    {branding.pending ? <StatusNote>Se validează imaginea…</StatusNote> : null}
     {image === null
       ? null
-      : <div className="branding-preview">
-        <img src={image.previewUrl} alt="Sigla curentă" width={image.width} height={image.height} />
+      : <div className="flex flex-wrap gap-[.8rem] items-center p-[.8rem] border border-invoice-border rounded-invoice-control bg-invoice-secondary-surface">
+        <img className="max-w-[min(18rem,100%)] h-auto" src={image.previewUrl} alt="Sigla curentă" width={image.width} height={image.height} />
         <Button variant="secondary" size="sm" disabled={disabled} onClick={branding.remove}>Elimină sigla</Button>
       </div>}
     {props.form.brandText === "" && image === null
       ? null
       : <Button variant="danger" size="sm" disabled={disabled}
         onClick={props.onClearBranding}>Elimină tot brandingul</Button>}
-  </fieldset>
+  </Fieldset>
 }

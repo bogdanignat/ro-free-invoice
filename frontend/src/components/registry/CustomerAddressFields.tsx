@@ -35,7 +35,7 @@ export const CustomerAddressFields = (props: CustomerAddressFieldsProps) => {
         onChange={(event) => { props.onChange({ city: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="city" form={CUSTOMER_FORM} />
     </Field>
-    <Field label="Stradă și număr" required className="span-two">
+    <Field label="Stradă și număr" required className="col-span-full">
       <Input required disabled={disabled} value={form.street} maxLength={limits?.street} {...aria("street")}
         onChange={(event) => { props.onChange({ street: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="street" form={CUSTOMER_FORM} />
