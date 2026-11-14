@@ -38,7 +38,7 @@ void test("RFI_PLUGINS refuses an unknown name at startup, with the names it kno
 })
 
 void test("the optional plugins are exactly the declared units with required: false, and the selection covers each", async () => {
-  const manifest = JSON.parse(readFileSync(new URL("../qwbe-package.json", import.meta.url), "utf8")) as { cubes: ReadonlyArray<string> }
+  const manifest = JSON.parse(readFileSync(new URL("../cubes.json", import.meta.url), "utf8")) as { cubes: ReadonlyArray<string> }
   const units = await Promise.all(manifest.cubes.map(async (path) =>
     (await import(new URL(`../cubes/${path}/index.ts`, import.meta.url).href) as {
       cube: { manifest: { name: string, required: boolean } } }).cube.manifest))

@@ -4,7 +4,7 @@ import { cube as payments } from "../cubes/invoicing/payments/index.ts"
 
 /**
  * The plugins an installation may switch off. A test loads every unit
- * `qwbe-package.json` declares and holds this list equal to the ones whose
+ * `cubes.json` declares and holds this list equal to the ones whose
  * manifest says `required: false`.
  */
 export const optionalPlugins: ReadonlyArray<string> = [payments, efactura, companyLookup].map((cube) => cube.manifest.name)

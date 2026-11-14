@@ -1,9 +1,4 @@
-import { HttpApiGroup } from "@effect/platform"
-
-import { paymentsPermissions } from "./contracts/permissions.ts"
-
 const identity = "payments"
-const permissions = paymentsPermissions(identity)
 export const cube = {
   manifest: {
     name: identity,
@@ -11,10 +6,7 @@ export const cube = {
     summary: "Tenant-scoped invoice payment recording and settlement status",
     required: false,
     tables: ["invoice_payments", "payment_idempotency_records"],
-    requiresAuth: true,
-    permissions: [permissions.read, permissions.record].map((name) => ({ name, roles: ["admin"] })),
   },
-  create: () => ({ group: HttpApiGroup.make(identity), handlers: {} }),
 }
 
 export * from "./contracts/index.ts"

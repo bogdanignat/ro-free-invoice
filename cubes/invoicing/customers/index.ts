@@ -7,10 +7,7 @@ export const cube = {
     summary: "Saved customers of an organization: fiscal identity, default payment term and soft deletion",
     required: true,
     tables: ["customers"],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { createCustomerOperations } from "./application/customers.ts"

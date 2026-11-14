@@ -67,7 +67,7 @@ Usage: node probes/boundary-report.mjs [--json] [--root <path>] [--timeout <ms>]
 
 Scope
   Cruises exactly the roots, options and rule set of \`pnpm gate:boundaries\`
-  (cubes listed in qwbe-package.json plus kernel and frontend/src;
+  (cubes listed in cubes.json plus kernel and frontend/src;
   test files included; no tsconfig), using the dependency-cruiser installed in
   this project. Reports raw counts; it never reports gate success or failure.
 
@@ -90,7 +90,7 @@ Protocol (--json), schemaVersion ${schemaVersion}
   rules       [{ name, severity }] of the full rule set actually used
   roots       cruised roots, relative to the cruised repository
   areas       [{ id, folder, group }]; cube units listed in the root
-              qwbe-package.json plus ${nonCubeAreas.join(", ")}.
+              cubes.json plus ${nonCubeAreas.join(", ")}.
               group is the cube tree root for cube units and the first path
               segment otherwise. Assign a module to the area whose folder is its
               longest matching prefix, so a child cube owns its own files.

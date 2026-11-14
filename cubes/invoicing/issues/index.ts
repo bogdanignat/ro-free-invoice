@@ -7,10 +7,7 @@ export const cube = {
     summary: "Machine-readable validation issues: a closed code catalogue, its English templates and the constructors the domain uses",
     required: true,
     tables: [],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export * from "./domain/document-issues.ts"

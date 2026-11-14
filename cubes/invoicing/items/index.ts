@@ -7,10 +7,7 @@ export const cube = {
     summary: "Article code, GTIN (EAN) and unit-of-measure rules shared by the product nomenclature and every document line",
     required: true,
     tables: [],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { itemIdentifiers, normalizeItemCode, validateBarcode } from "./domain/item-identifiers.ts"

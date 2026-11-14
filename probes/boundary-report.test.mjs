@@ -43,14 +43,14 @@ test("refuses a root that is not a directory, saying which path", () => {
 test("names the cube tree, the root and the fix when the manifests cannot be read", async () => {
   const empty = await withFixture(() => {}, (root) => ({ root, result: runReport("--json", "--root", root) }))
   assertRefused(empty.result, 1, new RegExp(
-    `cannot read the cube tree: qwbe-package.json must be a regular file at the repository root \\(${empty.root}\\); fix qwbe-package.json`))
+    `cannot read the cube tree: cubes.json must be a regular file at the repository root \\(${empty.root}\\); fix cubes.json`))
 
   const broken = await withFixture((root) => {
     makeUnit(root, "cubes/invoicing")
-    writeFileSync(join(root, "qwbe-package.json"), "{")
+    writeFileSync(join(root, "cubes.json"), "{")
   }, (root) => runReport("--json", "--root", root))
   assertRefused(broken, 1,
-    /cannot read the cube tree: qwbe-package\.json is not valid JSON: .*; fix qwbe-package\.json or the cube it names, then rerun/)
+    /cannot read the cube tree: cubes\.json is not valid JSON: .*; fix cubes\.json or the cube it names, then rerun/)
 })
 
 test("leaves a failure outside the manifest unexpected, without the manifest advice", async () => {
@@ -58,7 +58,7 @@ test("leaves a failure outside the manifest unexpected, without the manifest adv
     makeUnit(root, "cubes/invoicing", 'throw new Error("cube index exploded")\n')
   }, (root) => runReport("--json", "--root", root))
   assertRefused(result, 1, /^boundary-report: unexpected failure: cube index exploded$/m)
-  assert.doesNotMatch(result.stderr, /qwbe-package\.json/)
+  assert.doesNotMatch(result.stderr, /cubes\.json/)
 })
 
 test("names the cap that stopped depcruise and the option that raises it", () => {

@@ -7,10 +7,7 @@ export const cube = {
     summary: "Full correction documents (storno) that reverse an issued invoice",
     required: true,
     tables: [],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { createCorrectionOperations } from "./application/corrections.ts"

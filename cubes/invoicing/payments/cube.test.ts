@@ -39,7 +39,7 @@ const service = (organizationId = "org-1", permissionsList: ReadonlyArray<string
   })
 }
 
-void test("publishes an authenticated payment cube", () => {
+void test("publishes payments as an optional plugin of invoicing", () => {
   assert.equal(cube.manifest.name, "payments")
   assert.equal(cube.manifest.parent, "invoicing")
   assert.equal(cube.manifest.required, false)

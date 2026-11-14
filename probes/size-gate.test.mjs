@@ -202,7 +202,7 @@ test("size gate CLI fails on an oversized file in each measured root, an oversiz
     symlinkSync(fileURLToPath(new URL("../node_modules", import.meta.url)), join(root, "node_modules"))
     const roots = ["kernel", "cubes", "frontend/src", "probes", "bin"]
     const config = { sizeFileRoots: roots, caps: { ...caps, maxCodeLinesPerFile: 1, maxCodeLinesPerUnit: 3 } }
-    write(root, "qwbe.config.json", JSON.stringify(config))
+    write(root, "gates.config.json", JSON.stringify(config))
     makeUnit(root, "cubes/invoicing")
     write(root, "cubes/invoicing/index.ts", "export const cube = 1\n")
     const sources = ["kernel/adapter.ts", "cubes/invoicing/domain.ts", "frontend/src/app/page.tsx", "probes/extra.mjs", "bin/tool.ts"]
@@ -220,7 +220,7 @@ test("size gate CLI fails on an oversized file in each measured root, an oversiz
     assert.match(overUnit.stderr, /Unit over cap: cubes\/invoicing has 5 code lines and 3 files; caps are 3 and 15[.]/)
     write(root, "cubes/invoicing/more.ts", "export const a = 1\n")
     assert.equal(run().status, 0)
-    write(root, "qwbe.config.json", JSON.stringify({ ...config, caps: { maxCharsPerFile: 6000 } }))
+    write(root, "gates.config.json", JSON.stringify({ ...config, caps: { maxCharsPerFile: 6000 } }))
     const staleCaps = run()
     assert.notEqual(staleCaps.status, 0)
     assert.match(staleCaps.stderr, /Invalid size cap maxCodeLinesPerFile/)
@@ -228,13 +228,13 @@ test("size gate CLI fails on an oversized file in each measured root, an oversiz
     assert.deepEqual(sizeFileRoots, roots)
     for (const stale of [withoutRoots, { ...withoutRoots, sizeFileRoot: roots }, { ...config, sizeFileRoots: [] },
       { ...config, sizeFileRoots: "kernel" }]) {
-      write(root, "qwbe.config.json", JSON.stringify(stale))
+      write(root, "gates.config.json", JSON.stringify(stale))
       const refused = run()
       assert.notEqual(refused.status, 0, JSON.stringify(stale))
       assert.match(refused.stderr, /Invalid sizeFileRoots: expected a non-empty list/)
       assert.doesNotMatch(refused.stdout, /Size gate passed/)
     }
-    write(root, "qwbe.config.json", JSON.stringify({ ...config, sizeFileRoots: ["missing"] }))
+    write(root, "gates.config.json", JSON.stringify({ ...config, sizeFileRoots: ["missing"] }))
     const invalid = run()
     assert.equal(invalid.status, 1)
     assert.match(invalid.stderr, /Invalid size source root/)

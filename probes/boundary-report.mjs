@@ -15,12 +15,12 @@ const NON_CUBE_AREAS = ["kernel", "frontend/src"]
 // Fingerprinted for audit: every input that can change the reported graph. No
 // timestamp is recorded anywhere, so an unchanged repository hashes identically.
 const SOURCES = [
+  "cubes.json",
   "dependency-cruiser.config.cjs",
   "probes/boundary-gate-lib.mjs",
   "probes/boundary-report.mjs",
   "probes/boundary-rules.mjs",
   "probes/source-tree.mjs",
-  "qwbe-package.json",
 ]
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..")
@@ -61,7 +61,7 @@ const depcruiseVersion = () => {
   return JSON.parse(readFileSync(manifest, "utf8")).version
 }
 
-// Only a manifest the inventory refuses gets the "fix qwbe-package.json" advice;
+// Only a manifest the inventory refuses gets the "fix cubes.json" advice;
 // anything else (a cube index.ts that throws, a bug here) surfaces unchanged.
 const gateInputs = async (root) => {
   try {
@@ -69,7 +69,7 @@ const gateInputs = async (root) => {
   } catch (error) {
     if (!(error instanceof PackageManifestError)) throw error
     return fail(1, `cannot read the cube tree: ${error.message} (${root}); `
-      + "fix qwbe-package.json or the cube it names, then rerun")
+      + "fix cubes.json or the cube it names, then rerun")
   }
 }
 

@@ -1,5 +1,3 @@
-import { efacturaPermissions } from "../connection/index.ts"
-
 /**
  * Reconciliation of `unknown` e-Factura submissions: the candidates ANAF lists
  * for the submission's CIF and window, linking an index that list shows, and
@@ -16,10 +14,7 @@ export const cube = {
     summary: "Manual reconciliation of unknown e-Factura submissions: ANAF's candidates, link, resubmit",
     required: true,
     tables: [],
-    requiresAuth: true,
-    permissions: [{ name: efacturaPermissions("efactura").reconcile, roles: ["admin"] }],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { MAX_LINK_PAGES, MAX_WINDOW_DAYS, OWN_UPLOAD_TYPES, isOwnUpload, listOutcome, listWindow, type ListWindow } from "./domain/listing.ts"

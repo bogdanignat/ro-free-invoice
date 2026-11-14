@@ -23,18 +23,18 @@ const directoriesBelow = (root) => {
   return found
 }
 
-// The package is described once, at the repository root, in the crm-pack form:
-// `{ name, kind: "plugin", summary, cubes: ["invoicing", "invoicing/payments", ...] }`,
+// The package is described once, at the repository root:
+// `{ summary, cubes: ["invoicing", "invoicing/payments", ...] }`,
 // every path relative to `cubes/`. Every gate reads its units from here, so the
 // inventory fails closed: a missing manifest, an empty list, a duplicate, a path
 // that escapes `cubes/` or crosses a symlink, and a cube on disk that the list
 // leaves out are all refused before any gate measures anything.
-export const PACKAGE_MANIFEST = "qwbe-package.json"
+export const PACKAGE_MANIFEST = "cubes.json"
 export const CUBES_DIRECTORY = "cubes"
 const CUBE_PATH = /^[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*$/
 
 // Thrown only for a manifest or cube tree that the inventory refuses, so a caller can
-// tell "fix qwbe-package.json" apart from a bug, which keeps its own type and stack.
+// tell "fix cubes.json" apart from a bug, which keeps its own type and stack.
 export class PackageManifestError extends Error {}
 
 const realEntry = (path, isKind) => {

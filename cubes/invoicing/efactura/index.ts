@@ -18,10 +18,7 @@ export const cube = {
     summary: "Deterministic UBL 2.1 / CIUS-RO rendering of issued fiscal documents",
     required: false,
     tables: [],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export * from "./contracts/document.ts"

@@ -13,10 +13,7 @@ export const cube = {
     summary: "Invoice draft authoring: buyer resolution, header dates, lines and totals before issuance",
     required: true,
     tables: [],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export type DraftOperations = DraftDocumentOperations & DraftLineOperations

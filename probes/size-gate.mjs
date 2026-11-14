@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 import { inspectSizes, sizeViolations } from "./size-gate-lib.mjs"
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..")
-const config = JSON.parse(readFileSync(join(root, "qwbe.config.json"), "utf8"))
+const config = JSON.parse(readFileSync(join(root, "gates.config.json"), "utf8"))
 // A missing, misspelled or empty list would measure only the cube units and pass.
 if (!Array.isArray(config.sizeFileRoots) || config.sizeFileRoots.length === 0) {
   throw new Error(`Invalid sizeFileRoots: expected a non-empty list, got ${JSON.stringify(config.sizeFileRoots)}`)

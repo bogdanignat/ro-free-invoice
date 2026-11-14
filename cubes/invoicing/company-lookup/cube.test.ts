@@ -3,7 +3,7 @@ import test from "node:test"
 
 import { Effect, Redacted } from "effect"
 
-import { DomainConflict, PermissionDenied, ResourceNotFound, ValidationFailure, cube as invoicing, invoicingPermissions } from "../index.ts"
+import { DomainConflict, PermissionDenied, ResourceNotFound, ValidationFailure, invoicingPermissions } from "../index.ts"
 import {
   ProviderFailure, companyLookupMigrations, companyLookupPermission, createCompanyLookupService, cube,
   type CompanyLookupProviders, type SettingsWrite, type StoredSettings,
@@ -47,18 +47,10 @@ const rig = (permissions: ReadonlyArray<string>, initial?: StoredSettings) => {
 const all = [lookupPermission, settingsPermission]
 const failure = <Value, Failure>(effect: Effect.Effect<Value, Failure>) => Effect.runPromise(Effect.flip(effect))
 
-void test("publishes an optional company-lookup plugin with its baseline and one permission", () => {
+void test("publishes an optional company-lookup plugin with its baseline", () => {
   assert.deepEqual([cube.manifest.name, cube.manifest.parent, cube.manifest.required], ["company-lookup", "invoicing", false])
   assert.deepEqual(cube.manifest.tables, ["company_lookup_settings"])
   assert.deepEqual(companyLookupMigrations.map(({ name }) => name), ["company-lookup-001-baseline"])
-  assert.deepEqual(cube.manifest.permissions.map(({ name }) => name), ["company-lookup:company.lookup"])
-})
-
-void test("company.lookup goes to exactly the roles that manage customers, drafts or settings", () => {
-  const invoicingNames = invoicingPermissions("invoicing")
-  const editing = new Set([invoicingNames.manageCustomers, invoicingNames.draftInvoices, invoicingNames.manageSettings])
-  const roles = new Set(invoicing.manifest.permissions.filter(({ name }) => editing.has(name)).flatMap(({ roles }) => roles))
-  assert.deepEqual([...new Set(cube.manifest.permissions.flatMap(({ roles }) => roles))].sort(), [...roles].sort())
 })
 
 void test("each operation refuses a caller without its permission", async () => {
