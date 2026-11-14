@@ -37,7 +37,6 @@ works, how to install and run it.
 - [Security model](#security-model)
 - [Repository layout](#repository-layout)
 - [Development](#development)
-- [Relation to QWBE](#relation-to-qwbe)
 - [Documents](#documents)
 - [License](#license)
 
@@ -134,6 +133,8 @@ a rewrite.
 - No email delivery. Delivery means PDF download.
 - No foreign issuers, foreign billing addresses or invoices in other currencies.
 - One organization per installation.
+- No accounting export yet; an export in the format accepted by SAGA is planned as a further
+  cube inside the same application.
 
 This repository is not legal or tax advice. Special VAT regimes, cross-border transactions,
 cash-register rules and sector-specific obligations must be validated with an accountant.
@@ -990,7 +991,8 @@ The rest of the model:
 ## Repository layout
 
 ```text
-qwbe-package.json            plugin pack manifest: invoicing and its eleven child cubes
+cubes.json                   inventory of the 20 units: invoicing, its child cubes and the plugins
+gates.config.json            size gate roots and caps
 cubes/invoicing/             core: domain model, VAT arithmetic, ports, contracts, migrations, service composition
 cubes/invoicing/parties/     component: CUI, CNP, counties and sectors shared by issuer and buyers
 cubes/invoicing/items/       component: article code and GTIN rules shared by products and document lines
@@ -1005,15 +1007,22 @@ cubes/invoicing/corrections/ component: correction documents (storno)
 cubes/invoicing/documents/   component: rendered PDFs and artifact recovery
 cubes/invoicing/payments/    plugin: payment records and derived invoice payment status
 cubes/invoicing/efactura/    plugin: RO e-Factura UBL builders, CIUS-RO limits, EN 16931 validation
+cubes/invoicing/efactura/connection/     ANAF OAuth connection: environment, token pair state, attempts
+cubes/invoicing/efactura/submissions/    ANAF submissions: states, answers, polling, call budgets
+cubes/invoicing/efactura/reconciliation/ manual reconciliation of unknown submissions
+cubes/invoicing/efactura/received/       invoices received through the SPV, their archives
+cubes/invoicing/efactura/received-ubl/   reading third-party UBL invoices and credit notes
 cubes/invoicing/company-lookup/ plugin: company lookup settings, CUI/name thresholds, ANAF and openapi.ro mapping
-kernel/                      host, never packaged; config.ts and failure-log.ts at its root
+kernel/                      host, not a cube; config.ts, plugins.ts and failure-log.ts at its root
 kernel/http/                 server, security headers, readiness, API docs
 kernel/auth/                 credentials, browser session, login throttle
 kernel/api/                  authenticated endpoints: HttpApi contract, schemas, handlers, branding normalizer
 kernel/storage/              PostgreSQL store, pool and transactions, row mappers, migration runner, schema fingerprint
 kernel/documents/            PDF renderer and layout, artifact store and recovery, bundled fonts
-kernel/efactura/             host mapping from issued documents to the e-Factura cube
+kernel/efactura/             host mapping from issued documents to the e-Factura cube; ANAF client, dispatch
 kernel/company-lookup/       ANAF and openapi.ro HTTP clients, the openapi.ro key cipher, the lookup cache
+kernel/crypto/               secrets at rest (AES-256-GCM with caller-owned associated data)
+kernel/outbound/             outbound HTTP: bounded reads, no redirects
 kernel/ops/                  CLI, backup and restore
 frontend/                    browser UI: Vite + TanStack Router (file routes in src/routes), built into
                              frontend/dist and served by the kernel from RFI_UI_DIR
@@ -1050,8 +1059,8 @@ scripts/verify-docker.sh down                    # stops both rigs; removes no v
 scripts/smoke-image.sh                           # the shipped image on its own compose project
 ```
 
-The gates keep the core inside the QWBE cube contract: no host or infrastructure imports
-from `cubes/`, no imports between separate cube trees, inside the invoicing tree a child
+The gates keep the architecture rules of [`FOUNDATION.md`](./FOUNDATION.md): no host or
+infrastructure imports from `cubes/`, no imports between separate cube trees, inside the invoicing tree a child
 enters a sibling or a child only through its `index.ts` (it may use its ancestors' modules),
 no required cube imports a plugin, size caps per file and per unit, a test next to every
 cube. A change that breaks a gate is not mergeable.
@@ -1084,25 +1093,13 @@ and MIT-licensed. Check the package's published license before adding it and rec
 in the change or pull-request notes. This is a review requirement; commercial packages,
 non-MIT packages and packages with unclear licensing are not accepted.
 
-## Relation to QWBE
-
-RO Free Invoice follows the package structure of the [QWBE](https://github.com/theZenNana/qwbe)
-platform: one plugin pack with `invoicing` as the main cube and `payments` and `efactura` as
-plugins. It keeps its own runtime, database, login and UI, and the QWBE mother installs
-nothing. A later integration would let the mother call this API from its backend under the
-contract in [`FOUNDATION.md`](./FOUNDATION.md) section 19; it is not implemented, and the
-kernel is the only way to run the product.
-
-RO CIUS XML export and ANAF e-Factura transport are in the `efactura` plugin. A further
-cube is planned inside the same application: an export in the format accepted by SAGA.
-
 ## Documents
 
 - [`docs/INSTALARE.md`](./docs/INSTALARE.md): ghidul de instalare și configurare în română.
 - [`PRODUCT.md`](./PRODUCT.md): product scope, legal boundary, capabilities, lifecycle,
   deployment, delivery phases, open decisions, references to Romanian legislation and ANAF.
-- [`FOUNDATION.md`](./FOUNDATION.md): architecture, host contracts, plugin pack, future
-  mother contract.
+- [`FOUNDATION.md`](./FOUNDATION.md): architecture, host contracts, unit inventory and
+  plugins, size and verification gates.
 - [`docs/LOCAL_DEVELOPMENT.md`](./docs/LOCAL_DEVELOPMENT.md): local setup, full route
   inventory, operational checks.
 - [`docs/RELEASE.md`](./docs/RELEASE.md): production bundle, install, upgrade, backup,

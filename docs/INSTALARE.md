@@ -46,7 +46,10 @@ Comenzile rulează din directorul repository-ului.
      cale și fără `/` la final;
    - `ORGANIZATION_ID`: id-ul intern al firmei (litere mici, cifre, cratimă, ex.
      `ro12345678`), ales o dată, înainte de primul start, și neschimbat apoi;
-   - `RFI_IMAGE=ro-free-invoice` și `IMAGE_TAG=local` rămân așa pentru imaginea de la pasul 5.
+   - `RFI_IMAGE=ro-free-invoice` și `IMAGE_TAG=local` rămân așa pentru imaginea de la pasul 5;
+   - `RFI_PGDATABASE` și `RFI_DATA_VOLUME` rămân la valorile din `.env.example` (le schimbă doar
+     `restore.sh`); `BACKUP_DIR`, cerut de scripturile din `scripts/production/`, e un director
+     absolut în afara checkout-ului, creat de tine (comanda e în `.env.example`).
 3. Alege intrarea HTTPS și scrie-o tot în `.env`, ca să nu repeți `-f`/`--profile`
    (restul ghidului presupune asta):
    - **a) Caddy-ul inclus:** `COMPOSE_FILE=compose.prod.yaml` și `COMPOSE_PROFILES=proxy`.

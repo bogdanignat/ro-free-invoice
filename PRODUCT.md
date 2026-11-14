@@ -3,7 +3,6 @@
 Status: product baseline
 Jurisdiction: Romania  
 Last researched: 2026-08-30  
-Mother alignment reviewed: 2026-09-02 against QWBE `a98d9ef` (historical, `FOUNDATION.md` section 18); current direction in `FOUNDATION.md` sections 1, 3 and 13
 Architecture companion: [`FOUNDATION.md`](./FOUNDATION.md)
 
 ## 1. Product direction
@@ -11,9 +10,9 @@ Architecture companion: [`FOUNDATION.md`](./FOUNDATION.md)
 RO Free Invoice is a self-hosted invoicing application that:
 
 - runs as a useful standalone product;
-- is shaped as one QWBE plugin pack, `invoicing` with `payments`, `efactura` and
-  `company-lookup` as optional plugins (`required: false`, active by default; `RFI_PLUGINS` switches them off
-  at startup, and a plugin that is off keeps its data), while the QWBE mother installs nothing;
+- has one main cube, `invoicing`, with `payments`, `efactura` and `company-lookup` as
+  optional plugins (`required: false`, active by default; `RFI_PLUGINS` chooses them at
+  startup, and a plugin that is off keeps its data);
 - is distributed primarily as versioned Docker images and a Docker Compose bundle;
 - issues and preserves Romanian invoices and submits them, and their stornos, to RO e-Factura (ANAF SPV) one by one through the `efactura` plugin;
 - treats issued invoices as immutable legal snapshots.
@@ -397,8 +396,8 @@ issued invoice
 ```
 
 A submission record keeps the XML and its hash, status, ANAF's messages and the
-response. `submitted` never means `accepted`. The in-memory QWBE event bus is not the
-source of truth for this workflow. Routes, states and the ANAF connection are in
+response. `submitted` never means `accepted`. The submission state is durable and lives in the
+database; no in-memory event is its source of truth. Routes, states and the ANAF connection are in
 [EFACTURA.md](docs/EFACTURA.md) and [ANAF.md](docs/ANAF.md); the CIUS version, codes and
 obligations must be revalidated against ANAF before each release.
 
@@ -433,13 +432,9 @@ Docker Compose
 ```
 
 PostgreSQL 16 is the kernel's persistence, in a container this bundle runs
-and on a volume it owns. It is an intentional deployment choice rather than
-convergence on the mother: the mother installs nothing, and invoicing data stays owned
-by this application. The same engine on both sides is not the same database — this
-bundle does not adopt the mother's schema-per-cube layout or its NOLOGIN role per cube,
-does not require a shared database topology, and does not store invoicing data in the
-mother's Postgres. A future mother could only call the API as an external client
-(`FOUNDATION.md` section 19); that is not implemented.
+and on a volume it owns: invoicing data stays owned by this application and is never
+shared with another one. It is chosen for relational tables with constraints and
+triggers, transactions and the immutability rules of issued documents.
 
 The database port is never published; the schema owner role (`rfi_owner`) owns the one
 `public` schema and `migrate` runs as it, while the application connects as `rfi_app`,
@@ -498,8 +493,8 @@ There is one canonical runtime context and one optional convenience tool:
 | Docker image + Compose bundle | Standalone self-hosted application |
 | npm CLI, later | Thin installer/operator wrapper around Docker and Compose |
 
-The plugin pack manifest (`qwbe-package.json`) describes the package structure for this
-repository's gates; it is not an artifact installed into a QWBE runtime.
+The unit inventory (`cubes.json`) describes the repository structure for its gates; it is
+not a distribution artifact.
 
 `npm install` is not the runtime deployment mechanism. Requiring Node and npm on a
 Docker host would duplicate the runtime contract. A later CLI may expose commands
@@ -557,7 +552,7 @@ are implemented. The e-Factura submission workflow is implemented.
 - create strict TypeScript, test, lint, size, and boundary gates;
 - define organization, identity, store, clock, ID, and rendering ports as `Effect` capabilities;
 - define observable domain failures as typed `Effect` failures;
-- create package allowlist and kernel composition root (every use-case gets an `Effect`-based HTTP endpoint);
+- create the unit inventory (`cubes.json`) and kernel composition root (every use-case gets an `Effect`-based HTTP endpoint);
 - add Docker build and Compose development baseline.
 
 ### Phase 1 — invoice core
@@ -585,8 +580,8 @@ are implemented. The e-Factura submission workflow is implemented.
 - versioned production Compose bundle and optional Caddy profile;
 - migration and restore drills;
 - security review and audit-log verification;
-- local package contract checks (`FOUNDATION.md` section 13); compatibility with the
-  `qwbe-core/package` checker is not claimed.
+- local package checks against the unit inventory (`FOUNDATION.md`, "Unit inventory and
+  plugins").
 
 ## 11. Open product decisions
 
@@ -610,24 +605,10 @@ The following decisions must be explicit before their relevant implementation:
    cookie scoped to `/api`, whose `Max-Age` is that 30-day limit. The browser keeps
    only the per-session CSRF token in memory. The Bearer API is off on the public listener
    unless `RFI_BEARER_API=on`; the CLI inside the container is the operator's interface.
-
-   Superseded decision, kept as history: for a while a Next.js App Router application
-   (`frontend/`) ran next to the first Vite UI and replaced it (cutover 2026-10-09). It
-   was a second service and a second image, and reached the kernel only through a
-   backend-for-frontend under `/api/qwbe/*` that held the session cookie, CSRF and
-   `Origin` checks, while the kernel stayed internal. It was removed: a server-rendering
-   framework bought nothing for a UI behind a login, and the second process doubled the
-   edge that had to be secured, the images to pin and the self-host steps. Its guards
-   moved into the kernel and the UI became a static Vite build the kernel serves.
 5. What retention policy and backup targets are promised to operators?
-6. Resolved: no mandatory dependency on `qwbe-core`; shapes are copied and declared
-   locally.
-7. Resolved: standalone owns its own database — PostgreSQL 16, SQLite before
-   it — and its own login. The mother installs and mounts nothing; invoicing
-   data does not move into its database, and no shared topology is adopted. A future
-   mother would call the API under `FOUNDATION.md` section 19, which is not implemented.
-8. Resolved: package shape is one plugin pack, a root `qwbe-package.json` with
-   `kind: "plugin"` listing every unit, without claiming `qwbe-core/package` compatibility.
+6. Resolved: the application owns its database (PostgreSQL 16) and its own login.
+7. Resolved: the units are listed in `cubes.json`; the plugins are the units with
+   `required: false`, chosen at startup with `RFI_PLUGINS`.
 
 ## 12. Primary references
 

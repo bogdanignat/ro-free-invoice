@@ -56,9 +56,8 @@ Persistence is a PostgreSQL 16 cluster in the `db` service — a container like
 everything else here, pinned by digest, on its own named volume, with the cluster
 initialised `--locale=C --encoding=UTF8` because the schema's indexes and keyset
 cursors are written against binary text ordering. Its port is not published; only the
-application network reaches it. PostgreSQL here is a kernel choice and the
-mother's Postgres is a different database: `FOUNDATION.md` section 18 explains why
-this still does not describe mounted operation.
+application network reaches it. The database belongs to this application alone
+(`FOUNDATION.md`, "Data ownership").
 
 Boot order is enforced by Compose, not by documentation: `db` healthy → `migrate`
 completes successfully → `app` starts. `app` never migrates: it takes the maintenance
