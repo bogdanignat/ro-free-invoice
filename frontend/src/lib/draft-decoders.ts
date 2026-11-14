@@ -65,7 +65,7 @@ const decodeLine: Decoder<DraftInvoice["lines"][number]> = (input) => {
   return line
 }
 
-const decodeVatBreakdown: Decoder<DraftInvoice["vatBreakdown"][number]> = (input) => {
+export const decodeVatBreakdown: Decoder<DraftInvoice["vatBreakdown"][number]> = (input) => {
   const value = object(input)
   const breakdown = {
     code: text(value.code, "code"),

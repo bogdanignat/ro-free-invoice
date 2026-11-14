@@ -8,6 +8,9 @@ import { IssuedInvoice } from "./schema-issuance.ts"
 
 export const draftEndpoints = {
   listDrafts: invoicingBase(validation(HttpApiEndpoint.get("listDrafts", "/drafts").setUrlParams(ListQuery).addSuccess(D.DraftInvoicePage))),
+  // `/drafts/:id` also takes POST (the 405 fallback), so this path matches both; the router prefers the static segment.
+  // Any other method here gets the static path's own 405, never getDraft with id "totals-preview" (pinned by the HTTP test).
+  previewDraftTotals: invoicingBase(notFound(validation(body(HttpApiEndpoint.post("previewDraftTotals", "/drafts/totals-preview").setPayload(D.TotalsPreviewInput).addSuccess(D.TotalsPreview))))),
   getDraft: invoicingBase(notFound(HttpApiEndpoint.get("getDraft")`/drafts/${id}`.addSuccess(D.DraftInvoice))),
   createDraft: invoicingBase(conflict(notFound(validation(idempotentBody(HttpApiEndpoint.post("createDraft", "/drafts").setPayload(D.DraftInput).addSuccess(D.DraftInvoice)))))),
   updateDraft: invoicingBase(conflict(notFound(validation(body(HttpApiEndpoint.put("updateDraft")`/drafts/${id}`.setPayload(D.UpdateDraftInput).addSuccess(D.DraftInvoice)))))),

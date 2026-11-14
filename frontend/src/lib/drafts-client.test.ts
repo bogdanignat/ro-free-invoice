@@ -139,3 +139,18 @@ void test("the vat catalogue is decoded with its canonical treatments", async ()
   assert.equal(calls[0]?.path, "/api/vat-regimes")
   assert.equal(catalogue.rates[0]?.code, "RO_NON_VAT")
 })
+
+void test("the totals preview posts the lines with the CSRF token and decodes the server's totals", async () => {
+  const breakdown = { code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null, vatBaseAmount: "100.00", vatAmount: "21.00" }
+  const answer = { lines: [{ totalExcludingVat: "100.00", vatAmount: "21.00", totalIncludingVat: "121.00" }], vatBreakdown: [breakdown],
+    totalExcludingVat: "100.00", vatTotal: "21.00", totalIncludingVat: "121.00" }
+  const { calls, transport } = recorder(() => answer)
+  const signal = new AbortController().signal
+  const body = { issueDate: "2026-01-01", lines: [{ quantity: "1", unitPrice: "100", vatRateCode: "RO_STANDARD" }] }
+  assert.deepEqual(await createDraftsClient(transport).previewDraftTotals("csrf-1", body, signal), answer)
+  const call = calls[0]
+  assert.deepEqual([call?.path, call?.options?.method, call?.options?.csrfToken, call?.options?.idempotencyKey, call?.options?.body, call?.options?.signal],
+    ["/api/drafts/totals-preview", "POST", "csrf-1", undefined, body, signal])
+  const { transport: broken } = recorder(() => ({ ...answer, vatTotal: 21 }))
+  await assert.rejects(createDraftsClient(broken).previewDraftTotals("csrf-1", body))
+})

@@ -12,6 +12,8 @@ export const draftHandlers = (use: UseServices, status: EFacturaStatusView) => (
   listDrafts: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "listDrafts", ({ urlParams }) =>
     sourceFilter(urlParams).pipe(Effect.flatMap((source) => use((s) => s.invoicing.listDrafts(source, urlParams))),
       Effect.mapError(errors("ValidationFailure")))),
+  previewDraftTotals: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "previewDraftTotals", ({ payload }) =>
+    use((s) => s.invoicing.previewDraftTotals(payload)).pipe(Effect.mapError(errors("ValidationFailure", "ResourceNotFound")))),
   getDraft: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "getDraft", ({ path }) =>
     use((s) => s.invoicing.getDraft(path.id)).pipe(Effect.mapError(errors("ResourceNotFound")))),
   createDraft: HttpApiBuilder.handler(applicationHttpApi, "invoicing", "createDraft", ({ payload, headers }) =>

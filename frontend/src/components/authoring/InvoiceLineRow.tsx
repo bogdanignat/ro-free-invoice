@@ -1,5 +1,7 @@
 import type { EditableInvoiceLine } from "../../lib/invoice-authoring-model.ts"
 import type { ProductPreset, UnitOfMeasure, VatCatalogue } from "../../lib/draft-models.ts"
+import type { LineTotals } from "../../lib/draft-totals-preview.ts"
+import { AUTHORING_CURRENCY } from "../../lib/document-authoring-form-model.ts"
 import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
 import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
@@ -16,6 +18,8 @@ import { LineIdentifierField } from "./LineIdentifierField.tsx"
 interface InvoiceLineRowProps {
   readonly line: EditableInvoiceLine
   readonly index: number
+  /** The server's preview for this line; absent while it is incomplete or not answered yet. */
+  readonly totals: LineTotals | undefined
   readonly productPresets: ReadonlyArray<ProductPreset>
   readonly vatRates: ReadonlyArray<VatCatalogue["rates"][number]>
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
@@ -26,7 +30,7 @@ interface InvoiceLineRowProps {
 }
 
 const presetKey = (preset: ProductPreset): string => preset.id
-const presetLabel = (preset: ProductPreset): string => `${preset.code} — ${preset.description} — ${money(preset.unitPrice, "RON")}`
+const presetLabel = (preset: ProductPreset): string => `${preset.code} — ${preset.description} — ${money(preset.unitPrice, AUTHORING_CURRENCY)}`
 
 /** One line of the document: preset prefill, the copied code and EAN (editable, may be cleared), amounts, unit and the VAT code resolved on the document date. */
 export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
@@ -75,6 +79,9 @@ export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
         </Select>
       </Field>
     </div>
+    {props.totals === undefined ? null : <p className="hint">
+      Total linie: {money(props.totals.totalIncludingVat, AUTHORING_CURRENCY)} cu TVA ({money(props.totals.totalExcludingVat, AUTHORING_CURRENCY)} fără TVA)
+    </p>}
     <div className="line-actions">
       <Button className="danger small" aria-label={`Șterge linia ${lineNumber}: ${line.description || "linie fără descriere"}`}
         disabled={pending} onClick={() => { props.onDelete(line) }}>Șterge linia</Button>

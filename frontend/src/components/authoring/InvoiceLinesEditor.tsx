@@ -1,11 +1,14 @@
 import type { EditableInvoiceLine } from "../../lib/invoice-authoring-model.ts"
 import type { ProductPreset, UnitOfMeasure, VatCatalogue } from "../../lib/draft-models.ts"
+import type { LineTotals } from "../../lib/draft-totals-preview.ts"
 import { InvoiceLineRow } from "./InvoiceLineRow.tsx"
 import { Button } from "../Button.tsx"
 import { useFocusAfterRender } from "../../hooks/use-focus-after-render.ts"
 
 interface InvoiceLinesEditorProps {
   readonly lines: ReadonlyArray<EditableInvoiceLine>
+  /** The server's preview per line key; the proforma editor shows none. */
+  readonly lineTotals?: ReadonlyMap<string, LineTotals>
   readonly productPresets: ReadonlyArray<ProductPreset>
   readonly presetsHasMore: boolean
   readonly presetsLoadingMore: boolean
@@ -38,7 +41,7 @@ export const InvoiceLinesEditor = (props: InvoiceLinesEditorProps) => {
       </p>
       : null}
     <div className="line-editor-list">
-      {props.lines.map((line, index) => <InvoiceLineRow key={line.key} line={line} index={index}
+      {props.lines.map((line, index) => <InvoiceLineRow key={line.key} line={line} index={index} totals={props.lineTotals?.get(line.key)}
         productPresets={props.productPresets} vatRates={props.vatRates} unitOfMeasures={props.unitOfMeasures}
         pending={props.pending} onChange={props.onChange} onApplyPreset={props.onApplyPreset} onDelete={props.onDelete}
       />)}

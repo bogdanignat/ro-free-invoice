@@ -740,7 +740,7 @@ The server disposes its Effect handler on shutdown.
 | Series | `GET`, `POST /api/document-series`, `PUT /api/document-series/:documentType/:series/archived` |
 | Customers | `GET`, `POST /api/customers`, `GET`, `PUT`, `DELETE /api/customers/:id` |
 | Product presets | `GET`, `POST /api/product-presets`, `PUT`, `DELETE /api/product-presets/:id` |
-| Drafts | `GET`, `POST /api/drafts`, `GET`, `PUT`, `DELETE /api/drafts/:id`, lines under `/api/drafts/:id/lines` |
+| Drafts | `GET`, `POST /api/drafts`, `GET`, `PUT`, `DELETE /api/drafts/:id`, lines under `/api/drafts/:id/lines`, `POST /api/drafts/totals-preview` |
 | Issue | `POST /api/invoices`, `POST /api/drafts/:id/issue` |
 | Invoices | `GET /api/invoices`, `GET /api/invoices/:id`, `POST`, `GET /api/invoices/:id/pdf` |
 | Invoice register | `GET /api/invoice-register` — paged invoices and storno documents |

@@ -23,7 +23,7 @@ const inventory = [
   "GET /api/unit-of-measures", "GET /api/vat-regimes",
   "GET /api/customers", "GET /api/customers/:id", "POST /api/customers", "PUT /api/customers/:id", "DELETE /api/customers/:id",
   "GET /api/product-presets", "POST /api/product-presets", "PUT /api/product-presets/:id", "DELETE /api/product-presets/:id",
-  "GET /api/drafts", "GET /api/drafts/:id", "POST /api/drafts", "PUT /api/drafts/:id", "DELETE /api/drafts/:id",
+  "GET /api/drafts", "POST /api/drafts/totals-preview", "GET /api/drafts/:id", "POST /api/drafts", "PUT /api/drafts/:id", "DELETE /api/drafts/:id",
   "POST /api/drafts/:draftId/lines", "PUT /api/drafts/:draftId/lines/:lineId", "DELETE /api/drafts/:draftId/lines/:lineId",
   "POST /api/drafts/:draftId/issue", "GET /api/invoices/:invoiceId/payments", "POST /api/invoices/:invoiceId/payments", "POST /api/invoices/:invoiceId/payments/:paymentId/reversal",
   "POST /api/invoices/:invoiceId/corrections", "GET /api/invoices/:invoiceId/corrections", "GET /api/corrections/:id",
@@ -48,15 +48,15 @@ const efacturaRoutes = ["GET /api/invoices/:id/efactura.xml", "GET /api/correcti
 const companyLookupRoutes = ["GET /api/settings/company-lookup", "PUT /api/settings/company-lookup",
   "GET /api/company-lookup/availability", "POST /api/company-lookup/lookup", "POST /api/company-lookup/search"]
 
-void test("the contract with every plugin on exposes exactly the current 76 operations", () => {
+void test("the contract with every plugin on exposes exactly the current 77 operations", () => {
   const applicationRoutes: Array<{ readonly method: string, readonly operationId: string, readonly path: string }> = []
   HttpApi.reflect(activeHttpApi(allPlugins), { onGroup() {}, onEndpoint({ endpoint }) {
     applicationRoutes.push({ method: endpoint.method, operationId: endpoint.name, path: endpoint.path })
   } })
-  assert.equal(operationNames.length, 76)
-  assert.equal(new Set(operationNames).size, 76)
-  assert.equal(applicationRoutes.length, 76)
-  assert.equal(new Set(applicationRoutes.map((route) => route.operationId)).size, 76)
+  assert.equal(operationNames.length, 77)
+  assert.equal(new Set(operationNames).size, 77)
+  assert.equal(applicationRoutes.length, 77)
+  assert.equal(new Set(applicationRoutes.map((route) => route.operationId)).size, 77)
   assert.ok(operationNames.includes("listVatRegimes"))
   assert.deepEqual(applicationRoutes.map((route) => `${route.method} ${route.path}`).sort(), inventory)
   assert.equal(applicationRoutes.some((route) => route.path === "/api"), false)
@@ -312,6 +312,9 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
   // Creating a draft is idempotent like issuing one, so it answers 409 too:
   // a reused key, or a key whose draft was deleted.
   for (const path of ["/api/drafts", "/api/invoices", "/api/proformas"]) expectStatuses("post", path, ["404", "409", "413"])
+  // The totals preview writes nothing: no Idempotency-Key, no 409; a missing issuer is a 404 as on save.
+  expectStatuses("post", "/api/drafts/totals-preview", ["404", "413"])
+  assert.equal(spec.paths["/api/drafts/totals-preview"]?.post?.parameters.some((parameter) => parameter.name === "idempotency-key"), false)
   for (const [method, path] of [
     ["delete", "/api/customers/{id}"], ["put", "/api/drafts/{id}"], ["delete", "/api/drafts/{id}"],
     ["post", "/api/drafts/{draftId}/lines"], ["put", "/api/drafts/{draftId}/lines/{lineId}"],

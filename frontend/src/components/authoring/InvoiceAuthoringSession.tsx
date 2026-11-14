@@ -1,6 +1,7 @@
 import { AppLink } from "../ui/AppLink.tsx"
 import type { InvoiceAuthoringSessionInput } from "../../hooks/invoice-authoring-session-types.ts"
 import { useInvoiceAuthoringSession } from "../../hooks/use-invoice-authoring-session.ts"
+import { useTotalsPreview } from "../../hooks/use-totals-preview.ts"
 import { InvoiceAuthoringHeader } from "./InvoiceAuthoringHeader.tsx"
 import { InvoiceLinesEditor } from "./InvoiceLinesEditor.tsx"
 import { InvoiceTotals } from "./InvoiceTotals.tsx"
@@ -11,13 +12,14 @@ import { ErrorAlert } from "../AsyncState.tsx"
 
 /**
  * The whole authoring form around one session view-model: header and buyer,
- * notes, lines, then the server's totals and the actions. The component only
- * renders what the session hook computed; save, issuance and deletion all live
- * behind its actions.
+ * notes, lines, then the server's preview of the totals and the actions. The
+ * component only renders what the session hook computed; save, issuance and
+ * deletion all live behind its actions.
  */
 export const InvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput) => {
   const session = useInvoiceAuthoringSession(input)
   const { actions, document, feedback, status } = session
+  const totals = useTotalsPreview(document.form.issueDate, document.form.supplyDate, document.lines)
   return <>
     {feedback.backgroundErrors.map((issue, index) => <ErrorAlert key={`${issue.error.message}-${String(index)}`} error={issue.error} onRetry={issue.retry} />)}
     {feedback.mutationError === null || feedback.mutationError === undefined ? null : <ErrorAlert error={feedback.mutationError} />}
@@ -57,7 +59,7 @@ export const InvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput) => 
           </p>
         </section>
         <InvoiceLinesEditor
-          lines={document.lines} productPresets={document.productPresets}
+          lines={document.lines} lineTotals={totals.lineTotals} productPresets={document.productPresets}
           presetsHasMore={document.presetsHasMore} presetsLoadingMore={document.presetsLoadingMore}
           onPresetsLoadMore={document.presetsLoadMore}
           vatRates={document.vatRates} unitOfMeasures={document.unitOfMeasures} pending={status.pending}
@@ -65,7 +67,7 @@ export const InvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput) => 
         />
       </div>
       <div className="authoring-side">
-        <InvoiceTotals draft={document.draft} />
+        <InvoiceTotals preview={totals} dueDate={document.form.dueDate} />
         <AuthoringActions session={session} />
       </div>
     </form>
