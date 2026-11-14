@@ -33,6 +33,12 @@
   --color-invoice-badge-surface: #eef2ef;
   --color-invoice-storno-text: #6f2424;
   --color-invoice-storno-surface: #fdeceb;
+  --text-invoice-label: .76rem;
+  --text-invoice-caption: .72rem;
+  --font-weight-invoice-label: 750;
+  --font-weight-invoice-emphasis: 650;
+  --font-weight-invoice-subtle: 550;
+  --tracking-invoice-caps: .08em;
   --radius-invoice-control: .625rem;
   --radius-invoice-container: .75rem;
   --radius-invoice-panel: 1rem;

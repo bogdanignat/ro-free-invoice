@@ -1,13 +1,8 @@
-:root { font-family: var(--font-invoice-sans); color: var(--color-invoice-ink); background: var(--color-invoice-canvas); font-synthesis: none; }
-* { box-sizing: border-box; }
-html { min-width: 320px; background: var(--color-invoice-canvas); }
-body { min-height: 100vh; margin: 0; }
-button, input { font: inherit; }
 input.control, select.control, textarea.control { width: 100%; min-height: 2.65rem; padding: .65rem .75rem; border: 1px solid var(--color-invoice-control-border); border-radius: var(--radius-invoice-control); color: var(--color-invoice-ink); background: var(--color-invoice-surface); }
 select.control { appearance: auto; }
 textarea.control { min-height: 5rem; resize: vertical; }
 input.control:hover, select.control:hover, textarea.control:hover { border-color: var(--color-invoice-control-border-hover); }
-.button:focus-visible, input:focus-visible, input.control:focus-visible, select.control:focus-visible, textarea.control:focus-visible, a:focus-visible { outline: 3px solid var(--color-invoice-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-invoice-primary); }
+.button:focus-visible, input.control:focus-visible, select.control:focus-visible, textarea.control:focus-visible { outline: 3px solid var(--color-invoice-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-invoice-primary); }
 .field { display: grid; gap: .42rem; color: var(--color-invoice-label); font-size: .76rem; font-weight: 750; }
 .field-label .optional, .optional { color: var(--color-invoice-muted); font-weight: 550; }
 .field-label .required, .required { color: var(--color-invoice-primary-hover); font-weight: 700; }
@@ -61,7 +56,6 @@ input.control:hover, select.control:hover, textarea.control:hover { border-color
   .authoring-layout { grid-template-columns: 1fr; }
   .authoring-side { position: static; }
 }
-a { color: inherit; }
 .skip-link { position: fixed; z-index: 20; top: 1rem; left: 1rem; padding: .7rem 1rem; border-radius: var(--radius-invoice-control); color: var(--color-invoice-on-primary); background: var(--color-invoice-primary); transform: translateY(-180%); }
 .skip-link:focus { transform: translateY(0); }
 .shell { display: grid; grid-template-columns: 238px minmax(0, 1fr); min-height: 100vh; }
@@ -80,8 +74,6 @@ a { color: inherit; }
 .sidebar-foot button:disabled { cursor: wait; opacity: .65; }
 .status-dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; background: var(--color-invoice-connected); box-shadow: var(--shadow-invoice-connected); }
 .locked .sidebar nav, .locked .sidebar-foot { visibility: hidden; }
-main { min-width: 0; padding: 3rem clamp(1.25rem, 4vw, 4.5rem) 5rem; }
-#app { width: min(1280px, 100%); margin: 0 auto; }
 .page-header { margin-bottom: 2rem; }
 .page-header h1 { margin: .15rem 0 0; font-family: var(--font-invoice-display); font-size: clamp(2rem, 3vw, 3rem); font-weight: 500; letter-spacing: -.035em; }
 .eyebrow { margin: 0; color: var(--color-invoice-primary-hover); font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
@@ -90,14 +82,10 @@ main { min-width: 0; padding: 3rem clamp(1.25rem, 4vw, 4.5rem) 5rem; }
 .card p, .unlock-card > p { color: var(--color-invoice-muted); line-height: 1.6; }
 .unlock-card { width: min(430px, 100%); margin: 5vh auto 0; padding: 2rem; }
 .unlock-icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--radius-invoice-container); color: var(--color-invoice-primary); background: var(--color-invoice-primary-soft); font-size: 1.6rem; }
-form { display: grid; gap: 1.1rem; }
-label { display: grid; gap: .42rem; color: var(--color-invoice-label); font-size: .76rem; font-weight: 750; }
-input { width: 100%; min-height: 2.65rem; padding: .65rem .75rem; border: 1px solid var(--color-invoice-control-border); border-radius: var(--radius-invoice-control); color: var(--color-invoice-ink); background: var(--color-invoice-surface); }
-input:hover { border-color: var(--color-invoice-control-border-hover); }
 .button { min-height: 2.55rem; padding: .65rem 1rem; border: 1px solid transparent; border-radius: var(--radius-invoice-control); color: var(--color-invoice-on-primary); background: var(--color-invoice-primary); cursor: pointer; font-weight: 750; text-decoration: none; }
 .button:hover { background: var(--color-invoice-primary-hover); }
 .button:disabled { cursor: not-allowed; opacity: .45; }
-.button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--color-invoice-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-invoice-primary); }
+.button:focus-visible { outline: 3px solid var(--color-invoice-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-invoice-primary); }
 .sidebar a:focus-visible, .sidebar-foot button:focus-visible { outline: 3px solid var(--color-invoice-focus); outline-offset: 2px; box-shadow: none; }
 .alert { margin-bottom: 1rem; padding: .85rem 1rem; border-left: 3px solid var(--color-invoice-danger); border-radius: var(--radius-invoice-control); color: var(--color-invoice-danger-text); background: var(--color-invoice-danger-soft); font-size: .82rem; }
 .alert p { margin: .25rem 0 0; }
@@ -122,11 +110,7 @@ input:hover { border-color: var(--color-invoice-control-border-hover); }
 .custom-range label { min-width: 10.5rem; }
 .custom-range .hint { flex-basis: 100%; }
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: .89rem; }
-th, td { padding: .7rem .75rem; border-bottom: 1px solid var(--color-invoice-border); text-align: left; vertical-align: top; }
-th { color: var(--color-invoice-label); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; }
-td small { display: block; margin-top: .2rem; color: var(--color-invoice-muted); font-size: .76rem; }
 .badge { display: inline-block; padding: .2rem .55rem; border-radius: 999px; background: var(--color-invoice-badge-surface); font-size: .74rem; font-weight: 700; }
 .badge.storno { margin-top: .25rem; color: var(--color-invoice-storno-text); background: var(--color-invoice-storno-surface); }
 .badge.muted { color: var(--color-invoice-muted); background: var(--color-invoice-badge-surface); }
@@ -151,7 +135,6 @@ td small { display: block; margin-top: .2rem; color: var(--color-invoice-muted);
 .document-origin { margin: 0; font-size: .85rem; }
 .document-notes p { margin: 0; }
 .spinner { width: 2rem; height: 2rem; border: 3px solid var(--color-invoice-border); border-top-color: var(--color-invoice-primary); border-radius: 50%; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 /* Settings: the issuer profile, its brand, and the field guide in a native dialog. */
 .form-card { display: grid; gap: 1.25rem; }
 .form-card hr { width: 100%; height: 1px; margin: 0; border: 0; background: var(--color-invoice-border); }
