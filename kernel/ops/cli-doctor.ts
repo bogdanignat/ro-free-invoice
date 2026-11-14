@@ -34,7 +34,7 @@ export interface DoctorReport {
   readonly extraSchemas: ReadonlyArray<string>
   /**
    * Extensions besides `plpgsql`. The schema needs none, but CREATE on the database lets
-   * `qwbe_app` install a trusted one, whose objects land in `public` without a new schema.
+   * `rfi_app` install a trusted one, whose objects land in `public` without a new schema.
    */
   readonly extraExtensions: ReadonlyArray<string>
   readonly organizationId: string | null

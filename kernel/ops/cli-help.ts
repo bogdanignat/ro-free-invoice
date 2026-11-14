@@ -22,7 +22,7 @@ backup writes a pg_dump of the database plus the DATA_DIR artifacts to a .tar.gz
 the database and writes only the archive, and repeating it produces the same contents; it takes the maintenance
 barrier EXCLUSIVE, so it refuses while serve is running.
 restore is a dry-run by default. --apply restores the artifacts into DATA_DIR and executes the archived
-database.sql through psql as the schema owner role (qwbe_owner), NOSUPERUSER, so only an archive you trust
+database.sql through psql as the schema owner role (rfi_owner), NOSUPERUSER, so only an archive you trust
 may be applied. A database.sql not wrapped whole in pg_dump's \\restrict ... \\unrestrict is refused, by the
 dry run and by backup-inspect too, so psql runs none of its backslash meta-commands.
 It takes the same barrier EXCLUSIVE and needs an EMPTY target database: create a fresh one,

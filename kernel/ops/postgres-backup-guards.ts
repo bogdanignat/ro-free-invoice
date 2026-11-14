@@ -91,7 +91,7 @@ export const assertSinglePublicSchema = async (client: PoolClient): Promise<void
 }
 
 /**
- * The user schemas besides `public`, by name. `qwbe_app` may create one (it has CREATE on
+ * The user schemas besides `public`, by name. `rfi_app` may create one (it has CREATE on
  * the database for the drift replay), and one left behind makes every backup refuse, so
  * `doctor` lists them too.
  */

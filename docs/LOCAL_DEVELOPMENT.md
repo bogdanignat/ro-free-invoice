@@ -33,7 +33,7 @@ its ledger explains; see README, "Schema and migrations".
 `scripts/init-secrets.sh` creates the six secret files once and keeps them on every
 later run. The database has three roles, one password each (README, [Database
 access](../README.md#database-access)): `postgres`, the superuser, for `db-init`, restore
-and the test rig; `qwbe_owner`, the schema owner, for `migrate`; `qwbe_app`, DML only, for
+and the test rig; `rfi_owner`, the schema owner, for `migrate`; `rfi_app`, DML only, for
 `app`. Before every `migrate`, `db-init` applies `deploy/postgres/grants.sql` and sets the
 two role passwords from their files. Never regenerate `.local/pg-superuser-password` after
 the cluster exists (PostgreSQL keeps the first password and `db-init` then fails with
@@ -327,24 +327,24 @@ docker compose run --rm --no-deps app node bin/ro-free-invoice.ts backup --outpu
 docker compose run --rm --no-deps -v $(pwd)/.local/backup:/backup app node bin/ro-free-invoice.ts backup --output /backup/rfi-backup.tar.gz --json
 
 # Restore — into a FRESH, empty database AND a fresh artifact volume, never the live
-# `qwbe_invoicing` and `/data`: restore deletes nothing, so it refuses a populated
+# `rfi_dev` and `/data`: restore deletes nothing, so it refuses a populated
 # target, the dry-run included. The archive comes from the host directory above.
-# Owned by qwbe_owner, with the grants in place before anything is restored into it.
+# Owned by rfi_owner, with the grants in place before anything is restored into it.
 docker compose exec db psql -U postgres -d postgres \
-  -c "CREATE DATABASE ro_free_invoice_restored OWNER qwbe_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
-docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored db-init
-docker volume create ro-free-invoice-data-restored
+  -c "CREATE DATABASE rfi_dev_restored OWNER rfi_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
+docker compose run --rm --no-deps -e PGDATABASE=rfi_dev_restored db-init
+docker volume create rfi-dev-data-restored
 # Dry-run restore — validates the whole archive and reports the target, writing nothing.
-# In `migrate`: database.sql runs as the schema owner (qwbe_owner), staging on the staging volume.
-docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored \
-  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-qwbe-invoicing-backup-staging}:/var/backups/staging \
-  -v ro-free-invoice-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
+# In `migrate`: database.sql runs as the schema owner (rfi_owner), staging on the staging volume.
+docker compose run --rm --no-deps -e PGDATABASE=rfi_dev_restored \
+  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-rfi-dev-backup-staging}:/var/backups/staging \
+  -v rfi-dev-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
   node bin/ro-free-invoice.ts restore --input /backup/rfi-backup.tar.gz --json
 
 # Apply restore; outside development it also requires --confirm-production
-docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored \
-  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-qwbe-invoicing-backup-staging}:/var/backups/staging \
-  -v ro-free-invoice-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
+docker compose run --rm --no-deps -e PGDATABASE=rfi_dev_restored \
+  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-rfi-dev-backup-staging}:/var/backups/staging \
+  -v rfi-dev-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
   node bin/ro-free-invoice.ts restore --input /backup/rfi-backup.tar.gz --apply --json
 
 docker compose start app
@@ -376,7 +376,7 @@ Artifacts are copied first and the SQL goes in last as one
 `psql --single-transaction` transaction, so the commit is the only point after which
 rows can reference PDFs. A failure before it leaves an empty database.
 
-`database.sql` is **executed** by `psql` as the schema owner role (`qwbe_owner`), and the
+`database.sql` is **executed** by `psql` as the schema owner role (`rfi_owner`), and the
 archive's checksums live inside the archive: they prove integrity, never authenticity. Its
 backslash meta-commands are not: a dump that pg_dump's `\restrict <key>` ... `\unrestrict <key>`
 does not wrap whole is refused (dry run, `--apply` and `backup-inspect`), so psql runs it in

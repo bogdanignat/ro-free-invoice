@@ -9,10 +9,8 @@
 # that gets reused where it should not be.
 #
 # The three database roles of the shipped stacks (deploy/postgres/grants.sql): `postgres`,
-# the superuser, only for `db-init`; qwbe_owner, the schema owner, for `migrate`; qwbe_app,
-# DML only, for `app`. A preview cluster created with the old `qwbe_preview` superuser is
-# not converted; its volumes stay under the old project name and go with
-# `docker compose -p qwbe-invoicing-preview -f compose.preview.yaml --profile preview down -v`.
+# the superuser, only for `db-init`; rfi_owner, the schema owner, for `migrate`; rfi_app,
+# DML only, for `app`.
 #
 #   install -d -m 700 .local && umask 077
 #   for name in api-token pg-superuser-password pg-owner-password pg-app-password company-lookup-key; do
@@ -87,7 +85,7 @@ services:
     command: [node, bin/ro-free-invoice.ts, migrate, --apply, --json]
     environment:
       <<: *postgres-environment
-      PGUSER: qwbe_owner
+      PGUSER: rfi_owner
       PGPASSWORD_FILE: /run/secrets/pg_owner_password
       NODE_ENV: development
       DATA_DIR: /data
@@ -111,7 +109,7 @@ services:
       dockerfile: Dockerfile
     environment:
       <<: *postgres-environment
-      PGUSER: qwbe_app
+      PGUSER: rfi_app
       PGPASSWORD_FILE: /run/secrets/pg_app_password
       NODE_ENV: development
       HOST: 0.0.0.0
@@ -153,9 +151,9 @@ secrets:
   pg_superuser_password:
     file: ${PREVIEW_PG_SUPERUSER_PASSWORD_PATH:?Set a separate synthetic preview PostgreSQL superuser password file}
   pg_owner_password:
-    file: ${PREVIEW_PG_OWNER_PASSWORD_PATH:?Set a separate synthetic preview qwbe_owner password file}
+    file: ${PREVIEW_PG_OWNER_PASSWORD_PATH:?Set a separate synthetic preview rfi_owner password file}
   pg_app_password:
-    file: ${PREVIEW_PG_APP_PASSWORD_PATH:?Set a separate synthetic preview qwbe_app password file}
+    file: ${PREVIEW_PG_APP_PASSWORD_PATH:?Set a separate synthetic preview rfi_app password file}
   preview_company_lookup_key:
     file: ${PREVIEW_COMPANY_LOOKUP_KEY_PATH:?Set a separate synthetic preview company lookup master key file}
 

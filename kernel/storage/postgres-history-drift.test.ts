@@ -267,7 +267,7 @@ void test("readiness destroys the connection when the drift replay could not be 
     // its own uncommitted schema; a destroyed one forces a fresh backend, where
     // the transaction died with the session.
     const { rows } = await runtime.pool.query<{ readonly scratch: string }>(
-      "SELECT count(*) AS scratch FROM information_schema.schemata WHERE schema_name LIKE 'qwbe\\_drift\\_%'",
+      "SELECT count(*) AS scratch FROM information_schema.schemata WHERE schema_name LIKE 'rfi\\_drift\\_%'",
     )
     assert.equal(rows[0]?.scratch, "0", "an aborted replay must not survive on a recycled connection")
     await poolIsClean(runtime)

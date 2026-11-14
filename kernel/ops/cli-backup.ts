@@ -40,7 +40,7 @@ export const runRestore = async (command: CommandOf<"restore">, { config, settin
       pool: runtime.pool, settings: config.pgSettings, dataDirectory: config.dataDirectory,
       organizationId: config.organizationId,
     }
-    // `database.sql` is executed by `psql` as the schema owner role (qwbe_owner), NOSUPERUSER, and
+    // `database.sql` is executed by `psql` as the schema owner role (rfi_owner), NOSUPERUSER, and
     // the manifest digests live inside the same archive as the file they
     // describe: they prove integrity, never authenticity. So the trust boundary
     // is stated before the write, on stderr — `--json` consumers keep a clean

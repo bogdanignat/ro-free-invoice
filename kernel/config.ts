@@ -90,7 +90,7 @@ const postgresSettings = (environment: NodeJS.ProcessEnv, nodeEnvironment: strin
   host: environment.PGHOST ?? "db",
   port: boundedPort(environment.PGPORT, "PGPORT", "5432"),
   database: environment.PGDATABASE ?? "ro_free_invoice",
-  user: environment.PGUSER ?? "qwbe_app",
+  user: environment.PGUSER ?? "rfi_app",
   password: secretFrom(environment.PGPASSWORD_FILE, nodeEnvironment),
 })
 

@@ -198,9 +198,9 @@ void test("drift is empty on a freshly migrated database and the replay leaves n
     const applied = await appliedOrder(runtime.pool)
     assert.ok(applied.length > 0, "the ledger should list the applied migrations")
     assert.deepEqual(await schemaDrift(runtime.pool), [])
-    // The scratch schema was rolled back: no qwbe_drift_* schema survives.
+    // The scratch schema was rolled back: no rfi_drift_* schema survives.
     const { rows } = await runtime.pool.query<{ readonly count: string }>(
-      "SELECT count(*) AS count FROM pg_namespace WHERE nspname LIKE 'qwbe_drift_%'",
+      "SELECT count(*) AS count FROM pg_namespace WHERE nspname LIKE 'rfi_drift_%'",
     )
     assert.equal(rows[0]?.count, "0")
   } finally {

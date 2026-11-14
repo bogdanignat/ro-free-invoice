@@ -328,7 +328,7 @@ read-only root filesystem and a bounded `tmpfs` on `/tmp`; named volumes
 reachable only on the application network; the application publishes none either, except
 on `127.0.0.1` with `compose.loopback.yaml`; the API token and the three database passwords
 come from file-based secrets and are never in the image, the environment or the logs; the
-application connects as `qwbe_app`, which cannot change the schema or switch off a trigger,
+application connects as `rfi_app`, which cannot change the schema or switch off a trigger,
 and `migrate` as the schema owner, neither a superuser ([Database access](#database-access));
 `migrate` waits for `db-init`, `app` for `db` being healthy and `migrate` completing
 successfully; the health check hits `/health/ready`; `PUBLIC_ORIGIN`, `IMAGE_TAG` and the
@@ -338,8 +338,8 @@ For a local development setup with Docker Compose see
 [`docs/LOCAL_DEVELOPMENT.md`](./docs/LOCAL_DEVELOPMENT.md). For a bare-metal run without
 Docker: `pnpm install`, `deploy/postgres/grants.sql` run by a superuser on a PostgreSQL 16
 database that already exists (then `ALTER ROLE ... PASSWORD` for both roles), then
-`node bin/ro-free-invoice.ts migrate --apply` as `qwbe_owner` and
-`node bin/ro-free-invoice.ts serve` as `qwbe_app`, with the variables below set.
+`node bin/ro-free-invoice.ts migrate --apply` as `rfi_owner` and
+`node bin/ro-free-invoice.ts serve` as `rfi_app`, with the variables below set.
 
 ## Database access
 
@@ -349,19 +349,19 @@ start ([`deploy/postgres/grants.sql`](./deploy/postgres/grants.sql)):
 | Role | Used by | Rights |
 |---|---|---|
 | `postgres` | `db` (sets it when it creates the cluster), `db-init`, `scripts/production/restore.sh`, the test rig | the cluster's superuser; never the application |
-| `qwbe_owner` | `migrate`, `restore` | owns the database and its `public` schema (DDL and DML there); NOSUPERUSER |
-| `qwbe_app` | `app` (`serve`, `backup`, `doctor`) | DML on the tables, the sequences and the functions; CREATE on the database, for the drift replay's scratch schema (below). It cannot create anything in `public`, switch off a trigger (`ALTER TABLE ... DISABLE TRIGGER`, `session_replication_role`) or reach the server (`COPY ... TO PROGRAM`, `pg_read_file`, `ALTER SYSTEM`) |
+| `rfi_owner` | `migrate`, `restore` | owns the database and its `public` schema (DDL and DML there); NOSUPERUSER |
+| `rfi_app` | `app` (`serve`, `backup`, `doctor`) | DML on the tables, the sequences and the functions; CREATE on the database, for the drift replay's scratch schema (below). It cannot create anything in `public`, switch off a trigger (`ALTER TABLE ... DISABLE TRIGGER`, `session_replication_role`) or reach the server (`COPY ... TO PROGRAM`, `pg_read_file`, `ALTER SYSTEM`) |
 
 Before every `migrate`, the one-off `db-init` service runs
 [`deploy/postgres/db-init.sh`](./deploy/postgres/db-init.sh) on the active database, as
-the superuser: it creates the two roles when missing, makes `qwbe_owner` the owner of the
+the superuser: it creates the two roles when missing, makes `rfi_owner` the owner of the
 database, applies the grants and sets both role passwords from their files. It is
 idempotent. It runs as root in the postgres image because only root can read the 0600
 secret files there. The files are Docker secrets: the superuser's into `db`, all three
 into `db-init`, the owner's into `migrate`, the application's into `app`. None of them goes
 into `.env` or an environment variable.
 
-CREATE on the database is the one right of `qwbe_app` beyond DML. Readiness and `doctor`
+CREATE on the database is the one right of `rfi_app` beyond DML. Readiness and `doctor`
 replay the migrations into a scratch schema and roll it back, and that needs a real schema:
 in `pg_temp` the functions its triggers call are not found. The same right lets whoever
 controls the application's connection (an SQL injection, say) create and keep a schema of
@@ -419,9 +419,9 @@ You do not need a password for this. The port is not published and, inside the `
 container, `psql` connects over the local socket without one:
 
 ```bash
-# Development (compose.yaml): the database is qwbe_invoicing.
-docker compose exec db psql -U postgres -d qwbe_invoicing
-#   qwbe_invoicing=# SET ROLE qwbe_app;   -- to see exactly what the application may do
+# Development (compose.yaml): the database is rfi_dev.
+docker compose exec db psql -U postgres -d rfi_dev
+#   rfi_dev=# SET ROLE rfi_app;   -- to see exactly what the application may do
 ```
 
 In production the database is the `RFI_PGDATABASE` of `.env` (`ro_free_invoice` at install,
@@ -429,11 +429,11 @@ another one after `scripts/production/restore.sh`), on the stack of
 `docker compose -f compose.prod.yaml`.
 
 A password is needed only by a client outside the container (for example a GUI client
-through a port you publish yourself): connect as `qwbe_app`, with `.local/pg-app-password`.
+through a port you publish yourself): connect as `rfi_app`, with `.local/pg-app-password`.
 
 ### Rotate them, keeping the data
 
-`qwbe_owner` and `qwbe_app`: stop `app`, write the new file, then recreate the stack;
+`rfi_owner` and `rfi_app`: stop `app`, write the new file, then recreate the stack;
 `db-init` sets the new password before `migrate` and `app` connect with it.
 
 ```bash
@@ -468,7 +468,7 @@ replaces the file.
 In production run the same steps with `-f compose.prod.yaml` (and `--profile proxy` if you
 run Caddy) on every `docker compose` command and the paths from `PG_SUPERUSER_PASSWORD_PATH`,
 `PG_OWNER_PASSWORD_PATH` and `PG_APP_PASSWORD_PATH`; the same applies to looking at the data
-above. For `qwbe_app`:
+above. For `rfi_app`:
 
 ```bash
 cd /opt/ro-free-invoice
@@ -504,7 +504,7 @@ Everything is configured through environment variables, read once at startup.
 | `PGHOST` | `db` | PostgreSQL host |
 | `PGPORT` | `5432` | PostgreSQL port |
 | `PGDATABASE` | `ro_free_invoice` | the one database this installation owns |
-| `PGUSER` | `qwbe_app` | the database role; the Compose files set `qwbe_owner` for `migrate` and `qwbe_app` for `app` ([Database access](#database-access)) |
+| `PGUSER` | `rfi_app` | the database role; the Compose files set `rfi_owner` for `migrate` and `rfi_app` for `app` ([Database access](#database-access)) |
 | `PGPASSWORD_FILE` | none | path to the file holding that role's password; required outside development, never read from `PGPASSWORD` |
 | `NODE_ENV` | `production` | unset means `production`: `PGPASSWORD_FILE`, `PUBLIC_ORIGIN` and `RFI_UI_DIR` are required to serve, cookies are `Secure` and destructive CLI operations need `--confirm-production`. Local runs set `development` explicitly (`compose.yaml` does) |
 | `ORGANIZATION_ID` | none (`local-organization` in the Compose files) | the internal, stable id of the company this installation serves, e.g. `hint` or `ro12345678`; every record is scoped to it, the ANAF tokens included. Set it in production. Not a secret, and printed on no invoice, PDF or XML. Only an empty value is refused; use lowercase letters, digits and hyphens, no spaces. Chosen once, before the first start, and never changed: records under the old id would no longer be found, and a restore needs the same id |
@@ -525,13 +525,13 @@ Variables used only by the Compose files, in `.env`:
 | `APP_LOOPBACK_PORT` | host port on `127.0.0.1` for a reverse proxy already on the host; required by `compose.loopback.yaml`, unused otherwise |
 | `AUTH_TOKEN_PATH` | host path of the token file mounted as the secret |
 | `APP_DOMAIN` | local development only: the Warden domain in `compose.yaml`, default `invoice.test` |
-| `DATA_VOLUME_NAME` | name of the data volume in `compose.yaml`, default `qwbe-invoicing-data` (kept from before the rename) |
+| `DATA_VOLUME_NAME` | name of the data volume in `compose.yaml`, default `rfi-dev-data` |
 | `PG_SUPERUSER_PASSWORD_PATH` | host path of the `postgres` superuser's password file, mounted into `db` and `db-init` only (required with no fallback in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-superuser-password`; the preview uses `PREVIEW_PG_SUPERUSER_PASSWORD_PATH`) |
-| `PG_OWNER_PASSWORD_PATH` | host path of `qwbe_owner`'s password file, mounted into `db-init` and `migrate` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-owner-password`; the preview uses `PREVIEW_PG_OWNER_PASSWORD_PATH`) |
-| `PG_APP_PASSWORD_PATH` | host path of `qwbe_app`'s password file, mounted into `db-init` and `app` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-app-password`; the preview uses `PREVIEW_PG_APP_PASSWORD_PATH`) |
+| `PG_OWNER_PASSWORD_PATH` | host path of `rfi_owner`'s password file, mounted into `db-init` and `migrate` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-owner-password`; the preview uses `PREVIEW_PG_OWNER_PASSWORD_PATH`) |
+| `PG_APP_PASSWORD_PATH` | host path of `rfi_app`'s password file, mounted into `db-init` and `app` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-app-password`; the preview uses `PREVIEW_PG_APP_PASSWORD_PATH`) |
 | `COMPANY_LOOKUP_KEY_PATH` | host path of the company-lookup master key file, mounted as a secret into the application (required with no fallback in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/company-lookup-key`; the preview uses `PREVIEW_COMPANY_LOOKUP_KEY_PATH`) |
-| `PG_VOLUME_NAME` | name of the cluster volume in `compose.yaml`, default `qwbe-invoicing-postgres` |
-| `BACKUP_STAGING_VOLUME_NAME` | name of the `backup`/`restore` staging volume in `compose.yaml`, default `qwbe-invoicing-backup-staging` |
+| `PG_VOLUME_NAME` | name of the cluster volume in `compose.yaml`, default `rfi-dev-postgres` |
+| `BACKUP_STAGING_VOLUME_NAME` | name of the `backup`/`restore` staging volume in `compose.yaml`, default `rfi-dev-backup-staging` |
 
 ## e-Factura with ANAF
 
@@ -625,7 +625,7 @@ applied migrations recorded. A backup whose database references a PDF missing fr
 
 `restore --input <archive>` is a dry-run that verifies the whole archive and reports the
 target. `restore --input <archive> --apply` writes the artifacts and executes
-`database.sql` through `psql` **as the schema owner role (`qwbe_owner`, NOSUPERUSER)**, so
+`database.sql` through `psql` **as the schema owner role (`rfi_owner`, NOSUPERUSER)**, so
 it runs in the `migrate` service, and only an archive you trust may be applied: the
 manifest digests prove integrity, never authenticity. A hostile archive still gets the
 owner's rights on that one database, but not a shell: `psql --file` would also run backslash
@@ -635,7 +635,7 @@ matching `\unrestrict <key>` is its last line. In between psql refuses every met
 Anything else is refused before the target is touched, by the dry run, by `--apply` and by
 `backup-inspect` alike.
 
-It requires an empty target database: create a fresh one `OWNER qwbe_owner` as `postgres`,
+It requires an empty target database: create a fresh one `OWNER rfi_owner` as `postgres`,
 run `db-init` on it (`run --rm --no-deps -e PGDATABASE=<new> db-init`) and restore into
 that; nothing is ever dropped. Outside development it also requires `--confirm-production`.
 `restore` keeps the archive's schema as it was; an archive older than the image is then
@@ -649,35 +649,6 @@ backup strategy.
 
 From a checkout of `main`, `scripts/production/deploy.sh` does the upgrade with its
 backup, rollback and restore decision ([`docs/RELEASE.md`](./docs/RELEASE.md), "Upgrade").
-
-An `.env` from an earlier release needs three new keys first (see `.env.example`):
-`RFI_PGDATABASE` (the current database, `ro_free_invoice`) and `RFI_DATA_VOLUME`
-(the current data volume, `ro-free-invoice-data`), which `compose.prod.yaml` now
-requires, and `BACKUP_DIR` (an absolute directory outside the checkout), which the
-scripts require. The three database password paths replace `PG_PASSWORD_PATH`
-([Database access](#database-access)).
-
-A cluster created before them has `qwbe` as its superuser and is not converted: `db-init`
-stops with `password authentication failed for user "postgres"`, the `db` log adds
-`Role "postgres" does not exist`, and `migrate` and `app` do not start. During development
-it is recreated:
-
-1. If the data matters, back it up **before** pulling the new release, with the old
-   checkout still in place ([Data, backup and restore](#data-backup-and-restore)): the new
-   Compose files log in as `qwbe_app`, which the old cluster does not have.
-2. Pull the new release, then in `.env` replace the `PG_PASSWORD_PATH` line with:
-   ```bash
-   PG_SUPERUSER_PASSWORD_PATH=./.local/pg-superuser-password
-   PG_OWNER_PASSWORD_PATH=./.local/pg-owner-password
-   PG_APP_PASSWORD_PATH=./.local/pg-app-password
-   ```
-   (absolute paths outside the checkout in production, as in `.env.example`).
-3. `scripts/init-secrets.sh` creates the three new files and keeps the others.
-4. `docker compose down -v` deletes the old cluster, the PDFs and the backup staging.
-   The old `pg-password` file is no longer read; delete it.
-5. `docker compose up -d --build`, then `docker compose ps -a`: `db-init` and `migrate`
-   exited 0 and `app` is healthy. `doctor --json` confirms it. A backup from step 1 is
-   restored as described in [Data, backup and restore](#data-backup-and-restore).
 
 By hand:
 
@@ -829,8 +800,8 @@ commit the lock with it. A migration:
   data (an upgrade runs only the new ones);
 - never qualifies an object with `public.`: drift is computed by replaying the applied
   history in a scratch schema;
-- needs no special privilege and has no external effect: it runs as `qwbe_owner`, and
-  the drift replay runs it again as `qwbe_app`;
+- needs no special privilege and has no external effect: it runs as `rfi_owner`, and
+  the drift replay runs it again as `rfi_app`;
 - depends only on its own scope and the scopes before it: a new install runs the scopes
   in order, so an earlier scope cannot use an object a later one creates.
 
@@ -1065,7 +1036,7 @@ TanStack Query, Tailwind CSS 4; pnpm.
 Every storage, API, HTTP, auth, ops and probe test talks to a live PostgreSQL 16 server,
 so the suite does not run on the host. It runs in the pinned verifier container, on the
 project's own `db` (started when it is down, never stopped), in throwaway databases named
-`rfi_t_<run>_…` that are dropped again; `qwbe_invoicing` is never used:
+`rfi_t_<run>_…` that are dropped again; `rfi_dev` is never used:
 
 ```bash
 scripts/verify-docker.sh install                 # dependencies into the named volumes, frozen

@@ -20,8 +20,8 @@ name: ro-free-invoice
 # Before the first `up`, create the six secret files (`scripts/init-secrets.sh` does it,
 # from the paths in .env); this file mounts five, compose.anaf.yaml the ANAF token key.
 # Three database roles, one password each (deploy/postgres/grants.sql): `postgres`, the
-# superuser, only for `db-init` and restore; qwbe_owner, the schema owner, for `migrate`
-# and restore; qwbe_app, DML only, for `app`.
+# superuser, only for `db-init` and restore; rfi_owner, the schema owner, for `migrate`
+# and restore; rfi_app, DML only, for `app`.
 # They are never in this file, never in the image and never in an environment variable.
 # The company-lookup key encrypts the openapi.ro key at rest;
 # it is never rotated in place: a new one makes the stored openapi.ro key unreadable
@@ -121,7 +121,7 @@ services:
       # PGPASSWORD: an environment variable travels into every child process and into
       # `docker inspect`. Outside development `kernel/config.ts` refuses to boot when
       # the file is missing or empty, so this is fail-closed rather than best effort.
-      PGUSER: qwbe_owner
+      PGUSER: rfi_owner
       PGPASSWORD_FILE: /run/secrets/pg_owner_password
       NODE_ENV: production
       DATA_DIR: /data
@@ -153,7 +153,7 @@ services:
       <<: *postgres-environment
       # DML only, NOSUPERUSER: no DDL in `public`, no trigger switch, no server program
       # (deploy/postgres/grants.sql). Its own secret file, read as `migrate` reads its.
-      PGUSER: qwbe_app
+      PGUSER: rfi_app
       PGPASSWORD_FILE: /run/secrets/pg_app_password
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -262,9 +262,9 @@ secrets:
   pg_superuser_password:
     file: ${PG_SUPERUSER_PASSWORD_PATH:?Set PG_SUPERUSER_PASSWORD_PATH to the operator-created PostgreSQL superuser password file}
   pg_owner_password:
-    file: ${PG_OWNER_PASSWORD_PATH:?Set PG_OWNER_PASSWORD_PATH to the operator-created qwbe_owner password file}
+    file: ${PG_OWNER_PASSWORD_PATH:?Set PG_OWNER_PASSWORD_PATH to the operator-created rfi_owner password file}
   pg_app_password:
-    file: ${PG_APP_PASSWORD_PATH:?Set PG_APP_PASSWORD_PATH to the operator-created qwbe_app password file}
+    file: ${PG_APP_PASSWORD_PATH:?Set PG_APP_PASSWORD_PATH to the operator-created rfi_app password file}
   company_lookup_key:
     file: ${COMPANY_LOOKUP_KEY_PATH:?Set COMPANY_LOOKUP_KEY_PATH to the operator-created company lookup master key file}
 

@@ -293,8 +293,8 @@ Two consequences explain why mounted persistence is outside the direction:
 - the dialect in the cube's migrations is a choice of this repository's kernel and must be treated as such, not as inherited design. That dialect is now PostgreSQL 16 (named CHECK constraints, trigger functions, regex predicates in place of `GLOB`, folded expression indexes in place of `NOCASE`); before it, it was SQLite's (`STRICT`, `GLOB`). Neither was ever a mother concept.
 
 This app therefore stays standalone and owns its own database. It is now
-PostgreSQL 16, owned by this repository's kernel: the schema owner role (`qwbe_owner`) owns
-the `public` schema `migrate` builds, and the application connects as `qwbe_app`, DML only
+PostgreSQL 16, owned by this repository's kernel: the schema owner role (`rfi_owner`) owns
+the `public` schema `migrate` builds, and the application connects as `rfi_app`, DML only
 (`deploy/postgres/grants.sql`). That is not the mother's topology.
 
 For the first invoicing slice, likely owned concepts include:

@@ -1,6 +1,6 @@
 #!/bin/sh
 # The `db-init` service (compose.yaml, compose.prod.yaml, compose.preview.yaml): grants.sql on PGDATABASE as the
-# `postgres` superuser, then the passwords of qwbe_owner and qwbe_app from their secrets,
+# `postgres` superuser, then the passwords of rfi_owner and rfi_app from their secrets,
 # in one transaction. It runs as root in the postgres image because only root can read the
 # operator's 0600 secret files there; the entrypoint's initdb scripts run as `postgres`.
 # Idempotent, so it runs before every `migrate` and on a restore's new database.
@@ -23,8 +23,8 @@ printf '%s\n' \
   '\set owner_password `cat /run/secrets/pg_owner_password`' \
   '\set app_password `cat /run/secrets/pg_app_password`' \
   'SET LOCAL log_min_error_statement = PANIC;' \
-  "ALTER ROLE qwbe_owner PASSWORD :'owner_password';" \
-  "ALTER ROLE qwbe_app PASSWORD :'app_password';" \
+  "ALTER ROLE rfi_owner PASSWORD :'owner_password';" \
+  "ALTER ROLE rfi_app PASSWORD :'app_password';" \
   | psql --no-psqlrc --quiet --single-transaction --set=ON_ERROR_STOP=1 --set=VERBOSITY=terse \
     --host="${PGHOST:?}" --username=postgres --dbname="${PGDATABASE:?}" \
     --file="$(dirname "$0")/grants.sql" --file=-

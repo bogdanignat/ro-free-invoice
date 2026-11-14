@@ -80,6 +80,12 @@ void test("development: app owns the Warden route and derives PUBLIC_ORIGIN from
   assert.match(app, /loadbalancer\.server\.port: "3000"/u)
   assert.match(app, /RFI_BEARER_API: \$\{RFI_BEARER_API:-off\}/u)
   assert.doesNotMatch(app, /ports:/u)
+  // Same project name as compose.prod.yaml: only these names keep dev off an installation's volumes.
+  for (const [volume, variable, name] of [["invoicing-data", "DATA_VOLUME_NAME", "rfi-dev-data"],
+    ["invoicing-postgres", "PG_VOLUME_NAME", "rfi-dev-postgres"],
+    ["invoicing-backup-staging", "BACKUP_STAGING_VOLUME_NAME", "rfi-dev-backup-staging"]]) {
+    assert.match(compose, new RegExp(`^ {2}${volume}:\\n {4}name: \\$\\{${variable}:-${name}\\}$`, "mu"), volume)
+  }
 })
 
 void test("vite dev reaches the kernel on loopback only, with the dev server as its origin", () => {
@@ -135,7 +141,7 @@ void test("production: every service drops its capabilities, Caddy is pinned, th
     "RFI_TRUSTED_PROXY defaults to the same subnets, and an empty value in .env still trusts nobody")
 })
 
-void test("database roles: the superuser password reaches db and db-init only, migrate is qwbe_owner, app is qwbe_app", () => {
+void test("database roles: the superuser password reaches db and db-init only, migrate is rfi_owner, app is rfi_app", () => {
   for (const name of shippedCompose) {
     const compose = code(name)
     const secrets = (service) => mountedSecrets(serviceBlock(compose, service)).filter((secret) => secret.startsWith("pg_"))
@@ -144,10 +150,10 @@ void test("database roles: the superuser password reaches db and db-init only, m
     assert.deepEqual(secrets("db-init"), ["pg_superuser_password", "pg_owner_password", "pg_app_password"], `${name} db-init`)
     assert.match(serviceBlock(compose, "db-init"), /depends_on:\n {6}db:\n {8}condition: service_healthy\n/u, name)
     const migrate = serviceBlock(compose, "migrate")
-    assert.match(migrate, /PGUSER: qwbe_owner\n {6}PGPASSWORD_FILE: \/run\/secrets\/pg_owner_password\n/u, name)
+    assert.match(migrate, /PGUSER: rfi_owner\n {6}PGPASSWORD_FILE: \/run\/secrets\/pg_owner_password\n/u, name)
     assert.match(migrate, /db-init:\n {8}condition: service_completed_successfully\n/u, `${name}: migrate waits for the roles`)
     assert.deepEqual(secrets("migrate"), ["pg_owner_password"], name)
-    assert.match(serviceBlock(compose, "app"), /PGUSER: qwbe_app\n {6}PGPASSWORD_FILE: \/run\/secrets\/pg_app_password\n/u, name)
+    assert.match(serviceBlock(compose, "app"), /PGUSER: rfi_app\n {6}PGPASSWORD_FILE: \/run\/secrets\/pg_app_password\n/u, name)
     assert.deepEqual(secrets("app"), ["pg_app_password"], name)
   }
 })
@@ -188,7 +194,7 @@ void test("preview is opt-in, loopback-only on app, and isolates storage and cre
   for (const secret of ["AUTH_TOKEN", "PG_SUPERUSER_PASSWORD", "PG_OWNER_PASSWORD", "PG_APP_PASSWORD", "COMPANY_LOOKUP_KEY"]) {
     assert.match(compose, new RegExp(`\\$\\{PREVIEW_${secret}_PATH:\\?`, "u"), secret)
   }
-  assert.doesNotMatch(compose, /external:|name:.*invoicing-data|AUTH_TOKEN_PATH:-|\$\{PG_|network_mode: host|warden/u, "the preview never reads the development passwords")
+  assert.doesNotMatch(compose, /external:|name:.*rfi-dev-|_VOLUME_NAME|AUTH_TOKEN_PATH:-|\$\{PG_|network_mode: host|warden/u, "the preview never reads the development passwords")
 })
 
 void test("the test rigs leave PUBLIC_ORIGIN to the fixtures and carry no Next build", () => {
