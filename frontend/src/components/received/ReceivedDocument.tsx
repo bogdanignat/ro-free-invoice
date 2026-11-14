@@ -12,7 +12,7 @@ export const ReceivedDocument = ({ view }: { readonly view: ReceivedDocumentView
   </header>
   {view.warnings.length === 0
     ? null
-    : <div className="grid gap-2">{view.warnings.map((warning) => <StatusNote key={warning} warning>{warning}</StatusNote>)}</div>}
+    : <div className="grid gap-2">{view.warnings.map((warning) => <StatusNote key={warning} tone="warning">{warning}</StatusNote>)}</div>}
   <div className="parties">
     {view.parties.map((party) => <section key={party.heading}>
       <h3>{party.heading}</h3>

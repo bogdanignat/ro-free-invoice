@@ -1,5 +1,5 @@
 import { AppLink } from "./ui/AppLink.tsx"
-import { Button } from "./Button.tsx"
+import { Button, buttonClass } from "./ui/Button.tsx"
 import { Field } from "./ui/Field.tsx"
 import { Select } from "./ui/Select.tsx"
 import type { ProformaConversionModel } from "../hooks/use-proforma-conversion.ts"
@@ -58,7 +58,7 @@ export const ProformaConversionSection = ({ conversion }: { readonly conversion:
           >
             {conversion.pending ? "Operație în curs…" : "Emite factura"}
           </Button>
-          <Button className="secondary" disabled={!conversion.canCreateDraft} onClick={conversion.createDraft}>
+          <Button variant="secondary" disabled={!conversion.canCreateDraft} onClick={conversion.createDraft}>
             Creează draft de factură
           </Button>
         </div>
@@ -67,7 +67,7 @@ export const ProformaConversionSection = ({ conversion }: { readonly conversion:
         <p className="conversion-state">
           <span className={`badge ${outcome.status.tone}`}>{outcome.status.label}</span>
         </p>
-        <AppLink className="button secondary" href={outcome.href}>{outcome.label}</AppLink>
+        <AppLink className={buttonClass({ variant: "secondary" })} href={outcome.href}>{outcome.label}</AppLink>
       </>}
   </section>
 }

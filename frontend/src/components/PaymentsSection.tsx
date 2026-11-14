@@ -1,4 +1,4 @@
-import { Button } from "./Button.tsx"
+import { Button } from "./ui/Button.tsx"
 import { EmptyState, ErrorAlert, Loading } from "./AsyncState.tsx"
 import { Field } from "./ui/Field.tsx"
 import { Input } from "./ui/Input.tsx"
@@ -53,7 +53,7 @@ export const PaymentsSection = ({ payments }: { readonly payments: InvoicePaymen
               </div>
               {row.canReverse
                 ? <div className="draft-item-actions">
-                  <Button className="secondary small" aria-label={row.reverseLabel} disabled={payments.pending} onClick={() => { payments.reverse(row.id) }}>
+                  <Button variant="secondary" size="sm" aria-label={row.reverseLabel} disabled={payments.pending} onClick={() => { payments.reverse(row.id) }}>
                     Anulează
                   </Button>
                 </div>

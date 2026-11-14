@@ -1,5 +1,13 @@
 import { AppLink } from "./ui/AppLink.tsx"
+import { Badge } from "./ui/Badge.tsx"
 import type { InvoiceRegisterPresentationRow } from "../lib/invoice-register-projection.ts"
+import type { SpvUrgency } from "../lib/spv-status.ts"
+
+const DEADLINE_CLASS: Readonly<Record<SpvUrgency, string>> = {
+  ok: "text-invoice-muted",
+  imminent: "font-bold text-invoice-danger-text",
+  overdue: "font-bold text-invoice-danger-text",
+}
 
 interface InvoiceRegisterTableProps {
   readonly rows: ReadonlyArray<InvoiceRegisterPresentationRow>
@@ -32,8 +40,8 @@ export const InvoiceRegisterTable = ({ rows, eFactura }: InvoiceRegisterTablePro
           <td data-label="Scadență">{row.dueDate}</td>
           <td data-label="Total" className="numeric">{row.total}</td>
           {eFactura ? <td data-label="e-Factura">
-            <span className={row.statusClass}>{row.status}</span>
-            {row.deadline === null ? null : <small className={row.deadline.className}>{row.deadline.text}</small>}
+            <Badge tone={row.statusTone}>{row.status}</Badge>
+            {row.deadline === null ? null : <small className={DEADLINE_CLASS[row.deadline.urgency]}>{row.deadline.text}</small>}
           </td> : null}
         </tr>)}
       </tbody>

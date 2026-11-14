@@ -6,7 +6,7 @@ import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
 import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { Combobox } from "../ui/Combobox.tsx"
 import { useProductPresetSearch } from "../../hooks/use-registry-search.ts"
 import { UnitOfMeasureOptions } from "../UnitOfMeasureOptions.tsx"
@@ -84,7 +84,7 @@ export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
       Total linie: {money(props.totals.totalIncludingVat, AUTHORING_CURRENCY)} cu TVA ({money(props.totals.totalExcludingVat, AUTHORING_CURRENCY)} fără TVA)
     </p>}
     <div className="line-actions">
-      <Button className="danger small" aria-label={`Șterge linia ${lineNumber}: ${line.description || "linie fără descriere"}`}
+      <Button variant="danger" size="sm" aria-label={`Șterge linia ${lineNumber}: ${line.description || "linie fără descriere"}`}
         disabled={pending} onClick={() => { props.onDelete(line) }}>Șterge linia</Button>
     </div>
   </fieldset>

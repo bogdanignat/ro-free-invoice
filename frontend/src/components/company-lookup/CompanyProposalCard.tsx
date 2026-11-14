@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import type { CompanyLookupModel } from "../../hooks/use-company-lookup.ts"
 import { useCounties } from "../../hooks/use-reference-data.ts"
 import type { CompanyProposal } from "../../lib/company-lookup-model.ts"
@@ -35,7 +35,7 @@ export const CompanyProposalCard = ({ lookup, vat, disabled, onApply }: CompanyP
     <p className="hint">{proposalVatLine(proposal, vat)}</p>
     {address === undefined ? null : <p className="hint">{address}</p>}
     <div>
-      <Button className="small" disabled={disabled} onClick={() => { onApply(proposal); lookup.applied(proposal) }}>
+      <Button size="sm" disabled={disabled} onClick={() => { onApply(proposal); lookup.applied(proposal) }}>
         Completează
       </Button>
     </div>

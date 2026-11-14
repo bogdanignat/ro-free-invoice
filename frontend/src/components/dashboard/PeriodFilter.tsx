@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { DateRangeFields } from "../DateRangeFields.tsx"
 import { ChoiceGroup } from "../ui/ChoiceGroup.tsx"
 import type { DashboardFiltersModel } from "../../hooks/use-dashboard-filters.ts"
@@ -15,7 +15,7 @@ export const PeriodFilter = ({ filters }: { readonly filters: DashboardFiltersMo
     {filters.periodChoice === "custom"
       ? <form className="custom-range" noValidate onSubmit={(event) => { event.preventDefault(); filters.applyCustom() }}>
         <DateRangeFields range={filters.customRange} error={filters.customError} onEdit={filters.editCustom} required>
-          <Button type="submit" className="secondary">Aplică intervalul</Button>
+          <Button type="submit" variant="secondary">Aplică intervalul</Button>
         </DateRangeFields>
       </form>
       : null}

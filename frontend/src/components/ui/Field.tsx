@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 
+import { cx } from "./cx.ts"
+
 interface FieldProps {
   /** The label text; markers like "obligatorie" are stated by the caller as part of it or via the flags. */
   readonly label: ReactNode
@@ -22,11 +24,11 @@ interface FieldProps {
  * reads the same everywhere the authoring form is built.
  */
 export const Field = ({ label, required = false, optional = false, children, className, htmlFor, labelId }: FieldProps) =>
-  <label className={["field", className].filter(Boolean).join(" ")} htmlFor={htmlFor}>
-    <span className="field-label" id={labelId}>
+  <label className={cx("grid gap-[.42rem] text-invoice-label text-invoice-field font-invoice-label", className)} htmlFor={htmlFor}>
+    <span id={labelId}>
       {label}
-      {optional ? <span className="optional"> opțional</span> : null}
-      {required ? <span className="required"> obligatoriu</span> : null}
+      {optional ? <span className="text-invoice-muted font-invoice-subtle"> opțional</span> : null}
+      {required ? <span className="text-invoice-primary-hover font-bold"> obligatoriu</span> : null}
     </span>
     {children}
   </label>

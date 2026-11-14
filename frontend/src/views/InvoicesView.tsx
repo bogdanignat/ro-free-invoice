@@ -1,4 +1,5 @@
 import { AppLink } from "../components/ui/AppLink.tsx"
+import { buttonClass } from "../components/ui/Button.tsx"
 import { ErrorAlert } from "../components/AsyncState.tsx"
 import { DraftsSection } from "../components/DraftsSection.tsx"
 import { Page } from "../components/Page.tsx"
@@ -15,7 +16,7 @@ export const InvoicesView = () => {
   const drafts = useDrafts()
   return <PrivateScreen shell={shell}>
     <Page title="Registru de facturi" eyebrow="Documente emise"
-      actions={<AppLink className="button" href="/invoices/new">Factură nouă</AppLink>}>
+      actions={<AppLink className={buttonClass()} href="/invoices/new">Factură nouă</AppLink>}>
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}
       <div className="section-stack">
         <section className="card">

@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { DocumentSeriesTable } from "./DocumentSeriesTable.tsx"
 import { ErrorAlert, Loading } from "../AsyncState.tsx"
 import { Field } from "../ui/Field.tsx"
@@ -48,7 +48,7 @@ export const DocumentSeriesCard = ({ model }: { readonly model: DocumentSeriesMo
       </div>
       <p className="hint">Folosește 1–20 de caractere: litere mari, cifre, „_” sau „-”. O serie arhivată nu primește documente noi.</p>
       <div className="button-row">
-        <Button className="secondary" type="submit" disabled={model.pending || load.kind !== "ready"}>
+        <Button variant="secondary" type="submit" disabled={model.pending || load.kind !== "ready"}>
           {model.pending ? "Se adaugă…" : "Adaugă seria"}
         </Button>
       </div>

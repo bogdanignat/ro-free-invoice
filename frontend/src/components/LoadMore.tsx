@@ -1,4 +1,4 @@
-import { Button } from "./Button.tsx"
+import { Button } from "./ui/Button.tsx"
 
 interface LoadMoreProps {
   readonly visible: boolean
@@ -8,7 +8,7 @@ interface LoadMoreProps {
 
 export const LoadMore = ({ visible, pending, onClick }: LoadMoreProps) => visible
   ? <div className="load-more">
-    <Button className="secondary" disabled={pending} onClick={onClick}>
+    <Button variant="secondary" disabled={pending} onClick={onClick}>
       {pending ? "Se încarcă…" : "Încarcă mai multe"}
     </Button>
   </div>

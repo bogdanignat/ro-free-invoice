@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { SettingsHelpIdentity } from "./SettingsHelpIdentity.tsx"
 import { SettingsHelpVat } from "./SettingsHelpVat.tsx"
 import { useHelpDialog } from "../../hooks/use-help-dialog.ts"
@@ -17,7 +17,7 @@ import { useHelpDialog } from "../../hooks/use-help-dialog.ts"
 export const SettingsHelpDialog = () => {
   const [dialog, help] = useHelpDialog()
   return <>
-    <Button className="secondary" aria-haspopup="dialog" onClick={help.open}>
+    <Button variant="secondary" aria-haspopup="dialog" onClick={help.open}>
       <span aria-hidden="true">ⓘ</span> Ajutor pentru câmpuri
     </Button>
     <dialog ref={dialog} className="settings-help-dialog" aria-labelledby="settings-help-title"

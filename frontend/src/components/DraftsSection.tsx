@@ -1,5 +1,5 @@
 import { AppLink } from "./ui/AppLink.tsx"
-import { Button } from "./Button.tsx"
+import { Button, buttonClass } from "./ui/Button.tsx"
 import { EmptyState, ErrorAlert, Loading } from "./AsyncState.tsx"
 import { LoadMore } from "./LoadMore.tsx"
 import type { DraftsListModel } from "../hooks/use-drafts.ts"
@@ -36,9 +36,9 @@ export const DraftsSection = ({ drafts }: { readonly drafts: DraftsListModel }) 
               </small>
             </div>
             <div className="draft-item-actions">
-              <AppLink className="button secondary small" href={`/drafts/${encodeURIComponent(draft.id)}`}>Deschide</AppLink>
+              <AppLink className={buttonClass({ variant: "secondary", size: "sm" })} href={`/drafts/${encodeURIComponent(draft.id)}`}>Deschide</AppLink>
               {drafts.canDeleteDraft(draft)
-                ? <Button className="danger small" disabled={drafts.removalPending} onClick={() => { drafts.removeDraft(draft) }}>Șterge</Button>
+                ? <Button variant="danger" size="sm" disabled={drafts.removalPending} onClick={() => { drafts.removeDraft(draft) }}>Șterge</Button>
                 : null}
             </div>
           </div>)}

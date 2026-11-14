@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import { Button } from "./Button.tsx"
+import { Button } from "./ui/Button.tsx"
 import { ApiFailure } from "../lib/api-errors.ts"
 
 interface ErrorAlertProps {

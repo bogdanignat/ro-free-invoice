@@ -1,4 +1,5 @@
 import { AppLink } from "../components/ui/AppLink.tsx"
+import { buttonClass } from "../components/ui/Button.tsx"
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
@@ -26,7 +27,7 @@ export const InvoiceAuthoringView = ({ id }: InvoiceAuthoringViewProps) => {
     <Page
       title={page.kind === "ready" && page.initialDraft !== undefined ? `Draft ${page.initialDraft.series}` : "Factură nouă"}
       eyebrow="Document de lucru"
-      actions={<AppLink className="button secondary" href="/invoices">Înapoi la documente</AppLink>}
+      actions={<AppLink className={buttonClass({ variant: "secondary" })} href="/invoices">Înapoi la documente</AppLink>}
     >
       {page.kind === "loading" ? <Loading label="Se pregătește formularul…" />
         : page.kind === "error" ? <ErrorAlert error={page.error} onRetry={page.retry} />

@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { CustomerAddressFields } from "./CustomerAddressFields.tsx"
 import { CustomerIdentityFields } from "./CustomerIdentityFields.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
@@ -64,7 +64,7 @@ export const CustomerEditorSection = (props: CustomerEditorSectionProps) => {
       </div>
       <div className="button-row">
         <Button type="submit" disabled={pending}>{pending ? "Se salvează…" : "Salvează clientul"}</Button>
-        <Button className="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
+        <Button variant="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
       </div>
     </form>
   </section>

@@ -1,5 +1,5 @@
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
-import { Button } from "../components/Button.tsx"
+import { Button } from "../components/ui/Button.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
 import { ProductPresetEditorSection } from "../components/registry/ProductPresetEditorSection.tsx"

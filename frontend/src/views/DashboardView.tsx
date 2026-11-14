@@ -1,4 +1,5 @@
 import { AppLink } from "../components/ui/AppLink.tsx"
+import { buttonClass } from "../components/ui/Button.tsx"
 import { ErrorAlert } from "../components/AsyncState.tsx"
 import { PeriodSection } from "../components/dashboard/PeriodSection.tsx"
 import { SetupGapsCard } from "../components/dashboard/SetupGapsCard.tsx"
@@ -15,7 +16,7 @@ export const DashboardView = () => {
   const gaps = useSetupGaps()
   return <PrivateScreen shell={shell}>
     <Page title="Acasă" eyebrow="Tablou de bord"
-      actions={<AppLink className="button" href="/invoices/new">Factură nouă</AppLink>}>
+      actions={<AppLink className={buttonClass()} href="/invoices/new">Factură nouă</AppLink>}>
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}
       <div className="section-stack">
         <SetupGapsCard gaps={gaps} />

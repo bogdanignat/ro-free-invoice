@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { Field } from "../ui/Field.tsx"
 import { FieldIssue } from "../registry/FieldIssue.tsx"
 import { Input } from "../ui/Input.tsx"
@@ -66,18 +66,18 @@ export const IssuerBrandingFields = (props: IssuerBrandingFieldsProps) => {
     <FieldIssue issue={issue} field="brandImage" form={ISSUER_FORM} />
     {branding.imageIssue === undefined
       ? null
-      : <p className="hint warning" role="alert" id={refusedId}>{branding.imageIssue} <Button className="secondary small"
+      : <p className="hint warning" role="alert" id={refusedId}>{branding.imageIssue} <Button variant="secondary" size="sm"
         onClick={branding.discardRefused}>Renunță la fișierul respins</Button></p>}
     {branding.pending ? <p className="status-note" role="status">Se validează imaginea…</p> : null}
     {image === null
       ? null
       : <div className="branding-preview">
         <img src={image.previewUrl} alt="Sigla curentă" width={image.width} height={image.height} />
-        <Button className="secondary small" disabled={disabled} onClick={branding.remove}>Elimină sigla</Button>
+        <Button variant="secondary" size="sm" disabled={disabled} onClick={branding.remove}>Elimină sigla</Button>
       </div>}
     {props.form.brandText === "" && image === null
       ? null
-      : <Button className="danger small" disabled={disabled}
+      : <Button variant="danger" size="sm" disabled={disabled}
         onClick={props.onClearBranding}>Elimină tot brandingul</Button>}
   </fieldset>
 }

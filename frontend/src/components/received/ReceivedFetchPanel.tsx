@@ -1,5 +1,5 @@
 import { ErrorAlert } from "../AsyncState.tsx"
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { StatusNote } from "../ui/StatusNote.tsx"
 import type { ReceivedFetchModel } from "../../hooks/use-received-fetch.ts"
 
@@ -21,11 +21,11 @@ export const ReceivedFetchPanel = ({ model }: { readonly model: ReceivedFetchMod
     </div>
     {model.statusError === undefined ? null : <ErrorAlert error={model.statusError} onRetry={model.statusRetry} />}
     {coverage === undefined ? null : <p className="m-0">{coverage.text}</p>}
-    {coverage?.warning === undefined ? null : <StatusNote warning>{coverage.warning}</StatusNote>}
+    {coverage?.warning === undefined ? null : <StatusNote tone="warning">{coverage.warning}</StatusNote>}
     {progress === undefined
       ? null
       : <div className="grid gap-2">
-        <StatusNote warning={progress.tone === "warning"}>{progress.text}</StatusNote>
+        <StatusNote tone={progress.tone === "warning" ? "warning" : "info"}>{progress.text}</StatusNote>
         {progress.gap === undefined ? null : <p className="hint">{progress.gap}</p>}
         {progress.errors.length === 0 ? null : <ul className="m-0">{progress.errors.map((error, index) => <li key={`${String(index)}:${error}`}>{error}</li>)}</ul>}
       </div>}

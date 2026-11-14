@@ -4,7 +4,7 @@ import { vatTreatmentLabel } from "../../lib/vat-snapshots.ts"
 import type { TotalsPreview } from "../../lib/draft-totals-preview.ts"
 import { AUTHORING_CURRENCY } from "../../lib/document-authoring-form-model.ts"
 import type { TotalsCard, TotalsPreviewModel } from "../../hooks/use-totals-preview.ts"
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 
 const TotalsList = ({ totals, dueDate }: { readonly totals: TotalsPreview; readonly dueDate: string }) => <dl className="totals-list">
   <div><dt>Total fără TVA</dt><dd>{money(totals.totalExcludingVat, AUTHORING_CURRENCY)}</dd></div>
@@ -23,7 +23,7 @@ const CardBody = ({ card, dueDate, retry }: { readonly card: TotalsCard; readonl
     case "refused": return <p className="status-note warning">{card.message}</p>
     case "unavailable": return <p className="status-note warning">
       Totalurile nu au putut fi calculate acum.{" "}
-      <Button className="secondary small" onClick={retry}>Reîncearcă</Button>
+      <Button variant="secondary" size="sm" onClick={retry}>Reîncearcă</Button>
     </p>
     case "totals": return <TotalsList totals={card.totals} dueDate={dueDate} />
   }

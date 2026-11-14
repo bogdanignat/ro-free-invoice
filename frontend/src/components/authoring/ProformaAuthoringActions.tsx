@@ -1,5 +1,5 @@
 import type { ProformaAuthoringSession } from "../../hooks/proforma-authoring-session-types.ts"
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 
 /**
  * The single write this screen makes, next to what it will produce.
@@ -17,7 +17,7 @@ export const ProformaAuthoringActions = ({ session }: { readonly session: Profor
     </section>
     <section className="card authoring-section">
       <h2>Acțiuni proformă</h2>
-      <Button className="full-width" type="submit" disabled={!status.canSave}>
+      <Button fullWidth type="submit" disabled={!status.canSave}>
         {status.pending ? "Se salvează…" : "Salvează proforma"}
       </Button>
       <p className="hint">Proforma primește un număr la salvare și rămâne imuabilă. Nu este document fiscal și nu se trimite la e-Factura.</p>

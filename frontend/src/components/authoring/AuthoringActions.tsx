@@ -1,6 +1,6 @@
 import { AppLink } from "../ui/AppLink.tsx"
 import type { InvoiceAuthoringSession } from "../../hooks/invoice-authoring-session-types.ts"
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { ISSUE_BLOCK_REASONS_ID, IssueBlockReasons } from "./IssueBlockReasons.tsx"
 
 /**
@@ -13,19 +13,19 @@ export const AuthoringActions = ({ session }: { readonly session: InvoiceAuthori
   const { actions, feedback, status, draftDeletion } = session
   return <section className="card authoring-section">
     <h2>Acțiuni document</h2>
-    <Button className="secondary full-width" type="submit" disabled={status.pending || status.recoveryBlocked || !status.canSave}>
+    <Button variant="secondary" fullWidth type="submit" disabled={status.pending || status.recoveryBlocked || !status.canSave}>
       {status.savePending ? "Se salvează toate modificările…" : "Salvează draftul"}
     </Button>
     <p className="hint">Draftul este opțional și rămâne editabil.</p>
     <h2>Emitere factură</h2>
-    <Button className="full-width" disabled={!status.canIssueInvoice} onClick={(event) => {
+    <Button fullWidth disabled={!status.canIssueInvoice} onClick={(event) => {
       if (event.currentTarget.form?.reportValidity() !== false) actions.issueInvoice()
     }} aria-describedby={feedback.issueBlockReasons.length === 0 ? undefined : ISSUE_BLOCK_REASONS_ID}>
       {status.invoicePending ? "Se emite…" : "Emite factura"}
     </Button>
     <IssueBlockReasons reasons={feedback.issueBlockReasons} />
     {draftDeletion.kind === "hidden" ? null : draftDeletion.kind === "available"
-      ? <Button className="danger full-width" disabled={status.pending} onClick={actions.deleteDraft}>Șterge draftul</Button>
+      ? <Button variant="danger" fullWidth disabled={status.pending} onClick={actions.deleteDraft}>Șterge draftul</Button>
       : draftDeletion.kind === "derived"
         ? <p className="status-note">
           {draftDeletion.notice.message}{" "}

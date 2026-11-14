@@ -1,5 +1,5 @@
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
-import { Button } from "../components/Button.tsx"
+import { Button } from "../components/ui/Button.tsx"
 import { Page } from "../components/Page.tsx"
 import { SessionRecovery } from "../components/SessionRecovery.tsx"
 import { Shell } from "../components/Shell.tsx"

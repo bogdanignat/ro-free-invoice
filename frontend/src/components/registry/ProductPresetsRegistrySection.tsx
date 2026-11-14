@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { EmptyState } from "../AsyncState.tsx"
 import { LoadMore } from "../LoadMore.tsx"
 import { money } from "../../lib/money.ts"
@@ -51,12 +51,12 @@ export const ProductPresetsRegistrySection = (props: ProductPresetsRegistrySecti
             <td data-label="Preț unitar" className="numeric">{money(row.preset.unitPrice, "RON")}</td>
             <td data-label="TVA">{row.vatLabel}</td>
             <td><div className="draft-item-actions">
-              <Button className="secondary" disabled={props.disabled}
+              <Button variant="secondary" disabled={props.disabled}
                 aria-current={props.editingId === row.preset.id ? "true" : undefined}
                 onClick={() => { props.onEdit(row) }}>
                 Editează<span className="sr-only"> {row.preset.code} {row.preset.description}</span>
               </Button>
-              <Button className="danger" disabled={props.disabled} onClick={() => { props.onDelete(row) }}>
+              <Button variant="danger" disabled={props.disabled} onClick={() => { props.onDelete(row) }}>
                 Șterge<span className="sr-only"> {row.preset.code} {row.preset.description}</span>
               </Button>
             </div></td>

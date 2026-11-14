@@ -73,16 +73,15 @@ void test("each SPV group has a Romanian label and a tone; failed and unknown re
   const rows = (["not_sent", "in_progress", "accepted", "failed", "unknown"] as const)
     .map((state) => projectInvoiceRegisterRow({ ...invoice, spv: spvOf(state, null) }))
   assert.deepEqual(rows.map((row) => row.status), ["Netrimisă", "În curs", "Acceptată", "Respinsă", "Neclar"])
-  assert.deepEqual(rows.map((row) => row.statusClass), ["badge muted", "badge info", "badge positive",
-    "badge text-invoice-danger-text", "badge text-invoice-danger-text"])
+  assert.deepEqual(rows.map((row) => row.statusTone), ["muted", "info", "positive", "danger", "danger"])
 })
 
 void test("the deadline shows only while something is left to resolve, with a warning tone when overdue or imminent", () => {
   const note = (urgency: SpvUrgency | null) => projectInvoiceRegisterRow({ ...invoice, spv: spvOf("not_sent", urgency) }).deadline
   assert.equal(note(null), null)
-  assert.deepEqual(note("ok"), { text: "Termen SPV: 2026-02-10", className: "text-invoice-muted" })
-  assert.deepEqual(note("imminent"), { text: "Expiră SPV: 2026-02-10", className: "font-bold text-invoice-danger-text" })
-  assert.deepEqual(note("overdue"), { text: "Termen depășit SPV: 2026-02-10", className: "font-bold text-invoice-danger-text" })
+  assert.deepEqual(note("ok"), { text: "Termen SPV: 2026-02-10", urgency: "ok" })
+  assert.deepEqual(note("imminent"), { text: "Expiră SPV: 2026-02-10", urgency: "imminent" })
+  assert.deepEqual(note("overdue"), { text: "Termen depășit SPV: 2026-02-10", urgency: "overdue" })
   assert.equal(projectInvoiceRegisterRow(correction).deadline, null)
 })
 

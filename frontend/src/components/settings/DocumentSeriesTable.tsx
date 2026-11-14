@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { EmptyState } from "../AsyncState.tsx"
 import { DOCUMENT_TYPE_LABELS } from "../../lib/document-series-form.ts"
 import {
@@ -35,7 +35,7 @@ export const DocumentSeriesTable = ({ series, archiving, onToggleArchived }: {
                 <span className={item.archived ? "badge muted" : "badge positive"}>{seriesStateLabel(item)}</span>
               </td>
               <td data-label="Acțiune">
-                <Button className="secondary small" aria-label={archiveActionLabel(item, busy)} aria-busy={busy}
+                <Button variant="secondary" size="sm" aria-label={archiveActionLabel(item, busy)} aria-busy={busy}
                   onClick={() => { onToggleArchived(item) }}>
                   {busy ? "Se salvează…" : archiveActionText(item)}
                 </Button>

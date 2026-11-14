@@ -1,4 +1,5 @@
 import { AppLink } from "../ui/AppLink.tsx"
+import { buttonClass } from "../ui/Button.tsx"
 import { OperationRecoveryNotice } from "./OperationRecoveryNotice.tsx"
 import { useAuthoringRecovery } from "../../hooks/use-authoring-recovery.ts"
 import type { AuthoringRegistryHref } from "../../lib/invoice-authoring-model.ts"
@@ -33,7 +34,7 @@ export const LockedDraftReadonly = ({ title, notice, registryHref, registryLabel
           line and lands on the text above, so it sits in the same action row the
           rest of the app uses. */}
       <div className="page-actions">
-        <AppLink className="button secondary" href={registryHref}>{registryLabel}</AppLink>
+        <AppLink className={buttonClass({ variant: "secondary" })} href={registryHref}>{registryLabel}</AppLink>
       </div>
     </div>
   </>

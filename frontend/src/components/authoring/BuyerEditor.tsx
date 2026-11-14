@@ -1,6 +1,6 @@
 import { useId } from "react"
 
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { Combobox } from "../ui/Combobox.tsx"
 import { Field } from "../ui/Field.tsx"
 import { BuyerOneTimeFields } from "./BuyerOneTimeFields.tsx"
@@ -54,7 +54,7 @@ export const BuyerEditor = (props: BuyerEditorProps) => {
           {search.hint === undefined ? null : <span className="hint" role="status">{search.hint}</span>}
         </Field>}
       {props.customersHasMore
-        ? <p><Button className="secondary small" disabled={props.customersLoadingMore} onClick={props.onCustomersLoadMore}>
+        ? <p><Button variant="secondary" size="sm" disabled={props.customersLoadingMore} onClick={props.onCustomersLoadMore}>
           {props.customersLoadingMore ? "Se încarcă…" : "Încarcă mai mulți clienți"}
         </Button></p>
         : null}

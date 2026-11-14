@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { EmptyState, ErrorAlert } from "../AsyncState.tsx"
 import type { EFacturaReconciliationModel } from "../../hooks/use-efactura-reconciliation.ts"
 
@@ -14,8 +14,8 @@ export const EFacturaReconciliation = ({ model }: { readonly model: EFacturaReco
     <h3 id="efactura-reconcile-title" className="m-0">Reconciliere</h3>
     <p className="hint">Caută în lista ANAF încărcările acestui CIF din perioada trimiterii. Leagă doar mesajul pe care îl recunoști ca fiind acest document; dacă nu-l găsești, îl poți retrimite.</p>
     <div className="button-row">
-      <Button className="secondary" disabled={busy} onClick={model.search}>{model.searching ? "Se caută…" : "Caută la ANAF"}</Button>
-      <Button className="danger" disabled={busy} onClick={model.resubmit}>Retrimite</Button>
+      <Button variant="secondary" disabled={busy} onClick={model.search}>{model.searching ? "Se caută…" : "Caută la ANAF"}</Button>
+      <Button variant="danger" disabled={busy} onClick={model.resubmit}>Retrimite</Button>
     </div>
     {model.searchError === undefined ? null : <ErrorAlert error={model.searchError} />}
     {model.failure === undefined ? null : <ErrorAlert error={model.failure} />}
@@ -30,7 +30,7 @@ export const EFacturaReconciliation = ({ model }: { readonly model: EFacturaReco
               <small>{row.date} · {row.type}</small>
             </div>
             <div className="draft-item-actions">
-              <Button className="secondary small" disabled={busy || row.linked} onClick={() => { model.link(row.uploadIndex) }}>
+              <Button variant="secondary" size="sm" disabled={busy || row.linked} onClick={() => { model.link(row.uploadIndex) }}>
                 {row.linkLabel}
               </Button>
             </div>
@@ -52,6 +52,6 @@ const PageButton = ({ label, page, disabled, goTo }: {
   readonly page: number | undefined
   readonly disabled: boolean
   readonly goTo: (page: number) => void
-}) => <Button className="secondary small" disabled={disabled || page === undefined} onClick={() => { if (page !== undefined) goTo(page) }}>
+}) => <Button variant="secondary" size="sm" disabled={disabled || page === undefined} onClick={() => { if (page !== undefined) goTo(page) }}>
   {label}
 </Button>

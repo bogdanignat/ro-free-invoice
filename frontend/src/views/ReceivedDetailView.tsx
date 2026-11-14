@@ -11,7 +11,7 @@ import { useReceivedDetail, type ReceivedDetailModel } from "../hooks/use-receiv
 const ReceivedBody = ({ model }: { readonly model: ReceivedDetailModel }) => {
   if (model.view !== undefined) return <ReceivedDocument view={model.view} />
   if (model.unreadable !== undefined) {
-    return <StatusNote warning>Factura nu a putut fi citită: {model.unreadable} Poți descărca arhiva ZIP exact cum a trimis-o ANAF.</StatusNote>
+    return <StatusNote tone="warning">Factura nu a putut fi citită: {model.unreadable} Poți descărca arhiva ZIP exact cum a trimis-o ANAF.</StatusNote>
   }
   return model.isPending ? <Loading label="Se încarcă factura primită…" /> : <ErrorAlert error={model.error} onRetry={model.retry} />
 }

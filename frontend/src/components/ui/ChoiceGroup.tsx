@@ -18,10 +18,10 @@ interface ChoiceGroupProps<Value extends string> {
  */
 export const ChoiceGroup = <Value extends string>({ legend, choices, value, onChange }: ChoiceGroupProps<Value>) => {
   const name = useId()
-  return <fieldset className="filter-kinds">
-    <legend>{legend}</legend>
-    {choices.map((choice) => <label key={choice.value} className="filter-choice">
-      <input type="radio" name={name} value={choice.value} checked={value === choice.value}
+  return <fieldset className="flex flex-wrap gap-x-[.9rem] gap-y-1 items-center m-0 p-0 border-0">
+    <legend className="float-left pr-[.6rem] text-invoice-label text-invoice-field font-invoice-label">{legend}</legend>
+    {choices.map((choice) => <label key={choice.value} className="flex gap-[.35rem] items-center text-[.88rem] font-invoice-subtle">
+      <input className="w-auto min-h-0" type="radio" name={name} value={choice.value} checked={value === choice.value}
         onChange={() => { onChange(choice.value) }} />
       {choice.label}
     </label>)}

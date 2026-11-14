@@ -1,4 +1,5 @@
 import { AppLink } from "../components/ui/AppLink.tsx"
+import { buttonClass } from "../components/ui/Button.tsx"
 import { EmptyState, ErrorAlert, Loading } from "../components/AsyncState.tsx"
 import { LoadMore } from "../components/LoadMore.tsx"
 import { Page } from "../components/Page.tsx"
@@ -18,7 +19,7 @@ export const ProformasView = () => {
   const proformas = useProformas()
   return <PrivateScreen shell={shell}>
     <Page title="Proforme" eyebrow="Documente comerciale"
-      actions={<AppLink className="button" href="/proformas/new">Proformă nouă</AppLink>}>
+      actions={<AppLink className={buttonClass()} href="/proformas/new">Proformă nouă</AppLink>}>
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}
       {proformas.rows === undefined
         ? proformas.isPending

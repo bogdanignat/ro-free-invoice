@@ -37,16 +37,17 @@ export const spvLabel = (spv: SpvStatus | null): string => spv === null ? "—" 
 
 export interface SpvDeadlineNote {
   readonly text: string
-  readonly className: string
+  /** `ok` reads quietly; `imminent` and `overdue` need a person. */
+  readonly urgency: SpvUrgency
 }
 
 const noteText: Readonly<Record<SpvUrgency, string>> = { overdue: "Termen depășit", imminent: "Expiră", ok: "Termen" }
 
-/** The deadline, shown only while the document is still to resolve; a warning tone when overdue or about to expire. */
+/** The deadline, shown only while the document is still to resolve, with how close it is. */
 export const spvDeadlineNote = (spv: SpvStatus | null): SpvDeadlineNote | null => {
   if (spv === null || spv.urgency === null) return null
   return {
     text: `${noteText[spv.urgency]} SPV: ${spv.deadline}`,
-    className: spv.urgency === "ok" ? "text-invoice-muted" : "font-bold text-invoice-danger-text",
+    urgency: spv.urgency,
   }
 }

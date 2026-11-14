@@ -1,5 +1,5 @@
 import { ErrorAlert } from "./AsyncState.tsx"
-import { Button } from "./Button.tsx"
+import { Button } from "./ui/Button.tsx"
 import { Page } from "./Page.tsx"
 
 export const SessionRecovery = ({ error, onRetry }: { readonly error: unknown; readonly onRetry: () => void }) =>

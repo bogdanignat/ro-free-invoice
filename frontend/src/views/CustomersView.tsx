@@ -1,7 +1,7 @@
 import { CustomerEditorSection } from "../components/registry/CustomerEditorSection.tsx"
 import { CustomersRegistrySection } from "../components/registry/CustomersRegistrySection.tsx"
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
-import { Button } from "../components/Button.tsx"
+import { Button } from "../components/ui/Button.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"

@@ -2,7 +2,7 @@ import type { EditableInvoiceLine } from "../../lib/invoice-authoring-model.ts"
 import type { ProductPreset, UnitOfMeasure, VatCatalogue } from "../../lib/draft-models.ts"
 import type { LineTotals } from "../../lib/draft-totals-preview.ts"
 import { InvoiceLineRow } from "./InvoiceLineRow.tsx"
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { useFocusAfterRender } from "../../hooks/use-focus-after-render.ts"
 
 interface InvoiceLinesEditorProps {
@@ -30,12 +30,12 @@ export const InvoiceLinesEditor = (props: InvoiceLinesEditorProps) => {
   return <section className="card authoring-section">
     <div className="section-heading">
       <div><h2>Produse și servicii</h2><p>Alege un produs predefinit sau completează linia manual.</p></div>
-      <Button className="secondary small" disabled={props.pending} onClick={add}>Adaugă linie</Button>
+      <Button variant="secondary" size="sm" disabled={props.pending} onClick={add}>Adaugă linie</Button>
     </div>
     {props.presetsHasMore
       ? <p className="hint">
         Se afișează primele produse predefinite.{" "}
-        <Button className="secondary small" disabled={props.presetsLoadingMore} onClick={props.onPresetsLoadMore}>
+        <Button variant="secondary" size="sm" disabled={props.presetsLoadingMore} onClick={props.onPresetsLoadMore}>
           {props.presetsLoadingMore ? "Se încarcă…" : "Încarcă mai multe produse"}
         </Button>
       </p>
@@ -47,7 +47,7 @@ export const InvoiceLinesEditor = (props: InvoiceLinesEditorProps) => {
       />)}
     </div>
     {props.lines.length === 0
-      ? <Button className="secondary" disabled={props.pending} onClick={add}>Adaugă prima linie manuală</Button>
+      ? <Button variant="secondary" disabled={props.pending} onClick={add}>Adaugă prima linie manuală</Button>
       : null}
   </section>
 }

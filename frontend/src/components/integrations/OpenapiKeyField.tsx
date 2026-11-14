@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
 import type { OpenapiKeyEditor } from "../../hooks/use-company-lookup-settings.ts"
@@ -22,10 +22,10 @@ export const OpenapiKeyField = ({ settings, editor, disabled }: OpenapiKeyFieldP
   <h3>Cheia openapi.ro</h3>
   <p className="hint">{keyStatus(settings)}</p>
   {editor.editing ? <KeyForm editor={editor} disabled={disabled} /> : <div className="button-row">
-    <Button ref={replaceButton} className="secondary small" disabled={disabled} onClick={editor.startReplace}>
+    <Button ref={replaceButton} variant="secondary" size="sm" disabled={disabled} onClick={editor.startReplace}>
       Înlocuiește<span className="sr-only"> cheia openapi.ro</span>
     </Button>
-    <Button className="danger small" disabled={disabled} onClick={editor.clear}>
+    <Button variant="danger" size="sm" disabled={disabled} onClick={editor.clear}>
       Șterge<span className="sr-only"> cheia openapi.ro</span>
     </Button>
   </div>}
@@ -44,7 +44,7 @@ const KeyForm = ({ editor, disabled }: { readonly editor: OpenapiKeyEditor; read
     </Field>
     <p className="hint">Cheia se păstrează criptată pe server și nu mai poate fi afișată după salvare.</p>
     <div className="button-row">
-      <Button className="secondary" type="submit" disabled={disabled}>{disabled ? "Se salvează…" : "Salvează cheia"}</Button>
-      {editor.replacing ? <Button className="secondary" disabled={disabled} onClick={editor.cancelReplace}>Renunță</Button> : null}
+      <Button variant="secondary" type="submit" disabled={disabled}>{disabled ? "Se salvează…" : "Salvează cheia"}</Button>
+      {editor.replacing ? <Button variant="secondary" disabled={disabled} onClick={editor.cancelReplace}>Renunță</Button> : null}
     </div>
   </form>

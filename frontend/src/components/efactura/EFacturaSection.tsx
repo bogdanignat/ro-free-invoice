@@ -1,4 +1,5 @@
 import { ErrorAlert } from "../AsyncState.tsx"
+import { Badge } from "../ui/Badge.tsx"
 import { StatusNote } from "../ui/StatusNote.tsx"
 import { EFACTURA_REASON_ID } from "./EFacturaAction.tsx"
 import { EFacturaErrors } from "./EFacturaErrors.tsx"
@@ -24,7 +25,7 @@ export const EFacturaSection = ({ model }: { readonly model: EFacturaDocumentMod
         <p className="eyebrow">ANAF</p>
         <h2 id="efactura-section-title" ref={heading} tabIndex={-1}>e-Factura</h2>
       </div>
-      {view === undefined ? null : <span className={view.badgeClass}>{view.badgeLabel}</span>}
+      {view === undefined ? null : <Badge tone={view.badgeTone}>{view.badgeLabel}</Badge>}
     </div>
     {view === undefined
       ? model.isPending ? <p className="hint" role="status">Se încarcă starea e-Factura…</p> : <ErrorAlert error={model.error} onRetry={model.retry} />

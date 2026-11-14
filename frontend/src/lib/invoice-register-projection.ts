@@ -19,7 +19,7 @@ export interface InvoiceRegisterPresentationRow {
   readonly dueDate: string
   readonly total: string
   readonly status: string
-  readonly statusClass: string
+  readonly statusTone: BadgeTone
   /** The SPV deadline of a document still to resolve, with its tone; `null` when nothing is left to do. */
   readonly deadline: SpvDeadlineNote | null
   readonly originalInvoice: { readonly label: string; readonly href: string } | null
@@ -46,7 +46,7 @@ export const eFacturaStatusLabel = (status: EFacturaStatus): string => statusLab
 
 export type BadgeTone = "muted" | "info" | "positive" | "danger"
 
-/** The badge class of a status: what needs a person's attention reads in the danger colour. */
+/** The badge tone of a status: what needs a person's attention reads in the danger colour. */
 export const eFacturaStatusTone = (status: EFacturaStatus): BadgeTone => {
   if (status === "accepted") return "positive"
   if (status === "queued" || status === "processing") return "info"
@@ -59,9 +59,6 @@ const spvTone = (spv: SpvStatus | null): BadgeTone => {
   if (spv.state === "in_progress") return "info"
   return spv.state === "accepted" ? "positive" : "danger"
 }
-
-/** `.badge` paints its own background, so the danger tone only colours the text. */
-export const badgeClass = (tone: BadgeTone): string => tone === "danger" ? "badge text-invoice-danger-text" : `badge ${tone}`
 
 export const invoiceDetailHref = (id: string): string => `/invoices/${encodeURIComponent(id)}`
 export const correctionDetailHref = (id: string): string => `/corrections/${encodeURIComponent(id)}`
@@ -76,7 +73,7 @@ export const projectInvoiceRegisterRow = (row: InvoiceRegisterRow): InvoiceRegis
   dueDate: row.dueDate ?? "—",
   total: money(row.totalIncludingVat, row.currency),
   status: spvLabel(row.spv),
-  statusClass: badgeClass(spvTone(row.spv)),
+  statusTone: spvTone(row.spv),
   deadline: spvDeadlineNote(row.spv),
   originalInvoice: row.kind === "correction"
     ? {

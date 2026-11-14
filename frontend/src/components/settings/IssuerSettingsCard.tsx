@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
 import { StatusNote } from "../ui/StatusNote.tsx"
 import { IssuerAddressFields } from "./IssuerAddressFields.tsx"
@@ -28,7 +28,7 @@ export const IssuerSettingsCard = ({ model }: { readonly model: IssuerSettingsMo
       <p>Datele sunt copiate pe fiecare document în momentul emiterii.</p>
     </div></div>
     {model.notice === undefined ? null : <StatusNote>{model.notice}</StatusNote>}
-    {model.warning === undefined ? null : <StatusNote warning>{model.warning}</StatusNote>}
+    {model.warning === undefined ? null : <StatusNote tone="warning">{model.warning}</StatusNote>}
     {model.error === null || model.error === undefined ? null : <ErrorAlert error={model.error} />}
     <form onSubmit={(event) => { event.preventDefault(); model.submit() }}>
       <IssuerIdentityFields form={form} disabled={pending} issue={issue} aria={aria}

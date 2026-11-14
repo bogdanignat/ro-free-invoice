@@ -1,5 +1,5 @@
 import { AppLink } from "./ui/AppLink.tsx"
-import { Button } from "./Button.tsx"
+import { Button } from "./ui/Button.tsx"
 import { EmptyState, ErrorAlert, Loading } from "./AsyncState.tsx"
 import { Field } from "./ui/Field.tsx"
 import { Input } from "./ui/Input.tsx"
@@ -61,7 +61,7 @@ export const CorrectionsSection = ({ corrections }: { readonly corrections: Invo
               </div>
               <p className="hint">Se creează un document fiscal nou, imuabil, cu valorile facturii negate.</p>
               <div className="button-row">
-                <Button className="danger" type="submit" disabled={!corrections.canIssue}>
+                <Button variant="danger" type="submit" disabled={!corrections.canIssue}>
                   {corrections.pending ? "Se emite…" : "Emite storno integral"}
                 </Button>
               </div>

@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { UnitOfMeasureOptions } from "../UnitOfMeasureOptions.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
 import { Field } from "../ui/Field.tsx"
@@ -94,7 +94,7 @@ export const ProductPresetEditorSection = (props: ProductPresetEditorSectionProp
       </div>
       <div className="button-row">
         <Button type="submit" disabled={pending}>{pending ? "Se salvează…" : "Salvează produsul"}</Button>
-        <Button className="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
+        <Button variant="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
       </div>
     </form>
   </section>

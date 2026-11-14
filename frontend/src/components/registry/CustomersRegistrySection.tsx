@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import { EmptyState } from "../AsyncState.tsx"
 import { LoadMore } from "../LoadMore.tsx"
 import { identifierLabel } from "../../lib/document-authoring-transitions.ts"
@@ -50,12 +50,12 @@ export const CustomersRegistrySection = (props: CustomersRegistrySectionProps) =
             <td data-label="Adresă">{addressLine(customer)}<small>{customer.address.county}{customer.address.postalCode === undefined ? "" : ` · ${customer.address.postalCode}`}</small></td>
             <td data-label="Termen" className="numeric">{customer.defaultPaymentTermDays === undefined ? "—" : `${String(customer.defaultPaymentTermDays)} zile`}</td>
             <td><div className="draft-item-actions">
-              <Button className="secondary" disabled={props.disabled}
+              <Button variant="secondary" disabled={props.disabled}
                 aria-current={props.editingId === customer.id ? "true" : undefined}
                 onClick={() => { props.onEdit(customer) }}>
                 Editează<span className="sr-only"> {customer.name}</span>
               </Button>
-              <Button className="danger" disabled={props.disabled} onClick={() => { props.onDelete(customer) }}>
+              <Button variant="danger" disabled={props.disabled} onClick={() => { props.onDelete(customer) }}>
                 Șterge<span className="sr-only"> {customer.name}</span>
               </Button>
             </div></td>

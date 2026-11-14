@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "./Button.tsx"
 import { useConfirmDialog } from "../../hooks/use-confirm.ts"
 import type { ConfirmController } from "../../lib/confirm-controller.ts"
 
@@ -15,8 +15,8 @@ export const ConfirmDialog = ({ controller }: { readonly controller: ConfirmCont
     <h2 id="confirm-dialog-title" className="text-lg font-bold">Confirmare</h2>
     <p id="confirm-dialog-message" className="mt-3 whitespace-pre-line leading-relaxed">{request?.message}</p>
     <div className="mt-6 flex flex-wrap justify-end gap-3">
-      <Button ref={refuse} className="secondary" onClick={() => { answer(false) }}>Renunță</Button>
-      <Button className={request?.tone === "danger" ? "danger" : undefined} onClick={() => { answer(true) }}>
+      <Button ref={refuse} variant="secondary" onClick={() => { answer(false) }}>Renunță</Button>
+      <Button variant={request?.tone === "danger" ? "danger" : "primary"} onClick={() => { answer(true) }}>
         {request?.confirmLabel}
       </Button>
     </div>
