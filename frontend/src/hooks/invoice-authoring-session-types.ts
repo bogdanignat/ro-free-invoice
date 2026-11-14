@@ -1,4 +1,4 @@
-import type { BuyerSnapshot, Customer, DraftInvoice, Issuer, ProductPreset, UnitOfMeasure, VatCatalogue, VatRate } from "../lib/draft-models.ts"
+import type { BuyerSnapshot, Customer, DraftInvoice, Issuer, ProductPreset, UnitOfMeasure, VatRate } from "../lib/draft-models.ts"
 import type { SeriesChoice } from "../lib/draft-series.ts"
 import type { DraftDeletionState } from "../lib/invoice-authoring-workflow.ts"
 import type { RecoveryRecord } from "../lib/operation-recovery-types.ts"
@@ -23,7 +23,6 @@ export interface InvoiceAuthoringSessionInput {
   /** The draft's saved buyer, read when the draft opened without a due date (its payment term is proposed). */
   readonly draftBuyer: Customer | undefined
   readonly issuer: Issuer
-  readonly vatCatalogue: VatCatalogue
   readonly customers: ReadonlyArray<Customer>
   readonly customersHasMore: boolean
   readonly customersLoadingMore: boolean

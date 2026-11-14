@@ -1,9 +1,9 @@
-import { activeOn, configurationRegistration } from "./vat-defaults.ts"
+import { activeOn, periodOn } from "./vat-defaults.ts"
 import { fallbackVatRegistration, type FallbackVatRegistration } from "./issuer-vat-regime.ts"
 import {
   manualVatStatus, vatSelectionStatus, vatSettingsSelection, type VatSettingsSelection,
 } from "./issuer-settings-state.ts"
-import type { Issuer, VatConfiguration } from "./draft-models.ts"
+import type { Issuer, VatConfiguration, VatPeriod } from "./draft-models.ts"
 
 /**
  * The regime the settings form opens on, read against one single day.
@@ -18,11 +18,10 @@ import type { Issuer, VatConfiguration } from "./draft-models.ts"
  * as "neplătitoare" and overwritten with an Article 310 exemption by a save the
  * user made about something else entirely.
  *
- * So the snapshot is not read here at all. The regime is projected from the
- * stored configurations against the same `today` as everything else on the
- * screen — the same projection the backend performs — and the scheduled or
- * expired neighbour is the same fallback as before. Both halves now answer the
- * same question about the same day, by construction rather than by luck.
+ * So the snapshot is not read here at all. The regime is the server's timeline
+ * (`issuer.vatPeriods`) read on the same `today` as everything else on the
+ * screen, and the scheduled or expired neighbour is the same fallback as before.
+ * Both halves now answer the same question about the same day, by construction rather than by luck.
  *
  * What cannot be projected is not guessed. `kind: "unknown"` is a saved profile
  * whose configurations name no regime today and no neighbouring one either: the
@@ -47,7 +46,8 @@ export const UNKNOWN_VAT_CHOICE_REQUIRED = "Regimul TVA în vigoare nu poate fi 
   + "Bifează sau debifează explicit „Plătitoare de TVA” înainte de salvare."
 
 /**
- * The regime in force on `date`, from the configurations themselves.
+ * The regime in force on `date`: whether it is registered from the server's timeline,
+ * when it began from the configurations themselves.
  *
  * The period is dated by the earliest configuration still active, which is what
  * the backend reports as `currentVat.effectiveFrom`: the rates of one regime may
@@ -56,10 +56,11 @@ export const UNKNOWN_VAT_CHOICE_REQUIRED = "Regimul TVA în vigoare nu poate fi 
  */
 export const currentVatRegistration = (
   configurations: ReadonlyArray<VatConfiguration>,
+  periods: ReadonlyArray<VatPeriod>,
   date: string,
 ): VatSettingsSelection | undefined => {
   const active = configurations.filter((configuration) => activeOn(configuration, date))
-  const registered = configurationRegistration(active)
+  const registered = periodOn(periods, date)?.registered ?? undefined
   const effectiveFrom = [...active].map(({ effectiveFrom: from }) => from).sort()[0]
   return registered === undefined || effectiveFrom === undefined
     ? undefined
@@ -70,9 +71,9 @@ export const issuerVatBaseline = (issuer: Issuer | null, today: string): IssuerV
   if (issuer === null) {
     return { kind: "unsaved", selection: vatSettingsSelection(null, today), fallback: undefined }
   }
-  const current = currentVatRegistration(issuer.vatConfigurations, today)
+  const current = currentVatRegistration(issuer.vatConfigurations, issuer.vatPeriods, today)
   if (current !== undefined) return { kind: "known", selection: current, fallback: undefined }
-  const fallback = fallbackVatRegistration(issuer.vatConfigurations, today)
+  const fallback = fallbackVatRegistration(issuer.vatConfigurations, issuer.vatPeriods, today)
   return fallback === undefined
     ? { kind: "unknown", selection: vatSettingsSelection(null, today), fallback: undefined }
     : { kind: "known", selection: vatSettingsSelection(fallback, today), fallback }

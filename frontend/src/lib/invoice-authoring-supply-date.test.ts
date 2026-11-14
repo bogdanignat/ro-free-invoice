@@ -4,7 +4,8 @@ import test from "node:test"
 import { authoringDerived, savedDraftStaleLineIds } from "./invoice-authoring-derived.ts"
 import { newAuthoringForm, selectIssueDate } from "./document-authoring-transitions.ts"
 import { newEditableInvoiceLine } from "./invoice-authoring-model.ts"
-import type { DraftInvoice, Issuer, VatCatalogue, VatRate } from "./draft-models.ts"
+import { vatPeriod } from "./vat-periods.test-support.ts"
+import type { DraftInvoice, Issuer, VatRate } from "./draft-models.ts"
 
 const unit = { code: "C62", name: "unitate" }
 
@@ -14,21 +15,27 @@ const standard = (rate: string, from: string, to?: string): VatRate => ({
 })
 
 // The August 2025 change: 19% up to 31 July, 21% from 1 August.
-const catalogue: VatCatalogue = { rates: [standard("19.00", "2024-01-01", "2025-07-31"), standard("21.00", "2025-08-01")] }
+const before = standard("19.00", "2024-01-01", "2025-07-31")
+const after = standard("21.00", "2025-08-01")
 
 const issuer: Issuer = {
   organizationId: "org", name: "Beta", fiscalIdentifier: "321",
   address: { countryCode: "RO", city: "B", street: "s", county: "RO-B", sector: 1 },
   legalForm: "srl", tradeRegistryNumber: "J40/1/2020", iban: "RO00XXXX0000000000", bankName: "Banca",
   socialCapital: "100.00", defaultCurrency: "RON", defaultPaymentTermDays: 14,
-  vatConfigurations: [{ code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2024-01-01" }],
-  currentVat: null, vatPeriods: [], branding: null,
+  vatConfigurations: [
+    { code: "RO_STANDARD", rate: "19.00", vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2024-01-01", effectiveTo: "2025-07-31" },
+    { code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2025-08-01" },
+  ],
+  currentVat: null,
+  vatPeriods: [vatPeriod("2024-01-01", "2025-07-31", true, [before]), vatPeriod("2025-08-01", undefined, true, [after])],
+  branding: null,
 }
 
 const derivedFor = (supplyDate: string, issueDate = "2025-08-05") => authoringDerived({
   form: { ...newAuthoringForm(issuer, "FCT", false, issueDate), supplyDate },
   lines: [newEditableInvoiceLine("k1", "RO_STANDARD", unit)],
-  draft: undefined, workflowPending: false, issuer, vatCatalogue: catalogue,
+  draft: undefined, workflowPending: false, issuer,
   staleLineIds: () => [], invoiceSeries: ["FCT"],
 })
 
@@ -58,8 +65,8 @@ void test("a July supply invoiced in August takes the VAT date and the rates of 
 })
 
 void test("a saved draft's stale lines are judged on its supply date, or its issue date without one", () => {
-  assert.deepEqual(savedDraftStaleLineIds(draftOf("2025-07-20"), catalogue, issuer), ["line-21.00"])
-  assert.deepEqual(savedDraftStaleLineIds(draftOf(undefined), catalogue, issuer), ["line-19.00"])
+  assert.deepEqual(savedDraftStaleLineIds(draftOf("2025-07-20"), issuer), ["line-21.00"])
+  assert.deepEqual(savedDraftStaleLineIds(draftOf(undefined), issuer), ["line-19.00"])
 })
 
 void test("an issue date moved before the supply keeps the supply date and holds back save and issue", () => {

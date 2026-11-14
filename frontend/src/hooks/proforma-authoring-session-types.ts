@@ -1,6 +1,6 @@
 import type { BackgroundError } from "./invoice-authoring-session-types.ts"
 import type {
-  Customer, Issuer, ProductPreset, UnitOfMeasure, VatCatalogue, VatRate,
+  Customer, Issuer, ProductPreset, UnitOfMeasure, VatRate,
 } from "../lib/draft-models.ts"
 import type {
   BuyerMode, EditableInvoiceLine, InvoiceAuthoringForm, PartyType,
@@ -19,7 +19,6 @@ import type { RecoveryNoticeModel } from "../lib/operation-recovery-view.ts"
  */
 export interface ProformaAuthoringSessionInput {
   readonly issuer: Issuer
-  readonly vatCatalogue: VatCatalogue
   readonly customers: ReadonlyArray<Customer>
   readonly customersHasMore: boolean
   readonly customersLoadingMore: boolean

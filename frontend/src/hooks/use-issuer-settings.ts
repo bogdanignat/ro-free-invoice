@@ -82,9 +82,9 @@ export const useIssuerSettings = (): IssuerSettingsModel => {
   const issuer = issuerRead.data ?? null
   const editedBranding = useIssuerBranding(issuer?.branding ?? null, editGuard)
 
-  // The regime is read against the date in Bucharest, and derived from the stored
-  // configurations rather than the server's cached `currentVat`: one day, one
-  // answer, on both ends (`issuer-vat-baseline.ts`).
+  // The regime is the server's timeline (`issuer.vatPeriods`) read on the date in
+  // Bucharest, not the cached `currentVat`; the configurations give only its
+  // `effectiveFrom`. One day, one answer, on both ends (`issuer-vat-baseline.ts`).
   const today = todayIn(ORGANIZATION_TIME_ZONE)
   const baseline = issuerVatBaseline(issuer, today)
   const form = override ?? issuerFormOf(issuer, baseline.selection)
@@ -148,7 +148,7 @@ export const useIssuerSettings = (): IssuerSettingsModel => {
     vatStatus: issuerVatStatus(baseline, vatSelectionOf(form), vatChosen),
     vatHistory: vatQuery.data === undefined || issuer === null
       ? []
-      : vatRegistrationHistory(issuer.vatConfigurations, vatQuery.data),
+      : vatRegistrationHistory(issuer.vatConfigurations, issuer.vatPeriods, vatQuery.data),
     branding,
     pending: save.pending,
     error: save.error,

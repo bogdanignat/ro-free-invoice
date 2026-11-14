@@ -29,7 +29,7 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
   const [openedOn] = useState(() => todayIn(ORGANIZATION_TIME_ZONE))
   const [form, setForm] = useState(() => openingAuthoringForm(input, openedOn))
   const [lines, setLines] = useState(() => openingAuthoringLines(input, openedOn, crypto.randomUUID()))
-  const forcedUpdateLineIds = (currentDraft: DraftInvoice) => savedDraftStaleLineIds(currentDraft, input.vatCatalogue, input.issuer)
+  const forcedUpdateLineIds = (currentDraft: DraftInvoice) => savedDraftStaleLineIds(currentDraft, input.issuer)
   // An unresolved write from this tab blocks both saving and issuing until it
   // is replayed or the user states they checked the registry.
   const recovery = useAuthoringRecovery()
@@ -41,7 +41,7 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
   const workflowPending = draftWorkflow.pending
   const derived = authoringDerived({
     form, lines, draft, workflowPending,
-    issuer: input.issuer, vatCatalogue: input.vatCatalogue, staleLineIds: forcedUpdateLineIds, invoiceSeries: input.invoiceSeries,
+    issuer: input.issuer, staleLineIds: forcedUpdateLineIds, invoiceSeries: input.invoiceSeries,
   })
   const { payload, taxReadiness, dueDateRequired, vatRates, series, vatDate, dueDateIssue, supplyDateIssue } = derived
   // A save whose create outcome is unknown blocks every other write — most
@@ -65,7 +65,7 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
     issuanceKnownResult: invoiceIssuance.knownResult,
   })
   const editor = useInvoiceAuthoringEditorActions({
-    issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
+    issuer: input.issuer, unitOfMeasures: input.unitOfMeasures,
     customers: input.customers,
     vatDate, deriveDueDate: draft === undefined || draft.dueDate === null, setForm, setLines,
   })

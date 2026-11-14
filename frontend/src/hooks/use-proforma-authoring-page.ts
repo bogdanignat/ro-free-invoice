@@ -23,7 +23,6 @@ export type ProformaAuthoringPageState =
   | { readonly kind: "loading" }
   | { readonly kind: "error"; readonly error: Error; readonly retry: () => void }
   | { readonly kind: "issuer-required" }
-  | { readonly kind: "vat-catalogue-empty" }
   | { readonly kind: "proforma-series-required" }
   | { readonly kind: "unit-catalogue-empty" }
   | { readonly kind: "ready"; readonly session: ProformaAuthoringSessionInput }
@@ -33,9 +32,6 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
   const clients = useInvoicingClients()
   const enabled = status === "authenticated"
   const issuer = useQuery(issuerQuery(clients.reference, enabled))
-  const vatCatalogue = useQuery({
-    queryKey: ["vat-regimes"], enabled, queryFn: ({ signal }) => clients.reference.getVatCatalogue(signal),
-  })
   const series = useQuery(documentSeriesQuery(clients.reference, enabled))
   const units = useQuery({
     queryKey: ["unit-of-measures"], enabled, queryFn: ({ signal }) => clients.reference.listUnitOfMeasures(signal),
@@ -53,7 +49,6 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
   ].filter((issue): issue is BackgroundError => issue !== undefined)
   const state = proformaAuthoringPageState({
     issuer: { data: issuer.data, isPending: issuer.isPending, error: issuer.error },
-    vatCatalogue: { data: vatCatalogue.data, isPending: vatCatalogue.isPending, error: vatCatalogue.error },
     series: { data: series.data, isPending: series.isPending, error: series.error },
     units: { data: units.data, isPending: units.isPending, error: units.error },
     reference: { data: reference.data, isPending: reference.isPending, error: reference.error },
@@ -65,7 +60,6 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
   if (state.kind === "error") {
     const refetch: Readonly<Record<ProformaAuthoringResource, () => void>> = {
       issuer: () => { void issuer.refetch() },
-      "vat-catalogue": () => { void vatCatalogue.refetch() },
       series: () => { void series.refetch() },
       units: () => { void units.refetch() },
       reference: () => { void reference.refetch() },
@@ -81,7 +75,6 @@ export const useProformaAuthoringPage = (): ProformaAuthoringPageState => {
     kind: "ready",
     session: {
       issuer: state.issuer,
-      vatCatalogue: state.vatCatalogue,
       proformaSeries: state.proformaSeries,
       unitOfMeasures: state.unitOfMeasures,
       notesMaxLength: state.notesMaxLength,

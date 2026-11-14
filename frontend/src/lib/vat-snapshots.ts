@@ -1,6 +1,6 @@
 import { formatRate } from "./money.ts"
-import type { Issuer, VatCatalogue, VatCategoryCode } from "./draft-models.ts"
-import { issuerVatRegistrationOn, sameVatRate, vatRatesForIssuer } from "./vat-defaults.ts"
+import type { Issuer, VatCategoryCode } from "./draft-models.ts"
+import { periodOn, sameVatRate } from "./vat-defaults.ts"
 
 interface DraftTaxLine {
   readonly vatRateCode: string
@@ -13,10 +13,9 @@ interface SavedDraftTaxLine extends DraftTaxLine {
 export const hasStaleDraftTax = (
   issueDate: string,
   lines: ReadonlyArray<DraftTaxLine>,
-  catalogue: VatCatalogue,
   issuer: Issuer,
 ): boolean => {
-  const rates = vatRatesForIssuer(catalogue, issuer, issueDate)
+  const rates = periodOn(issuer.vatPeriods, issueDate)?.rates ?? []
   return lines.some((line) => !rates.some(({ code, rate }) =>
     code === line.vatRateCode && sameVatRate(rate, line.vatRate)))
 }
@@ -24,10 +23,9 @@ export const hasStaleDraftTax = (
 export const staleDraftLineIds = (
   issueDate: string,
   lines: ReadonlyArray<SavedDraftTaxLine>,
-  catalogue: VatCatalogue,
   issuer: Issuer,
 ): ReadonlyArray<string> => {
-  const rates = vatRatesForIssuer(catalogue, issuer, issueDate)
+  const rates = periodOn(issuer.vatPeriods, issueDate)?.rates ?? []
   return lines
     .filter((line) => !rates.some(({ code, rate }) =>
       code === line.vatRateCode && sameVatRate(rate, line.vatRate)))
@@ -39,7 +37,7 @@ export const issuerForIssueDate = (
   date: string,
 ): Issuer & { readonly vatRegistered: boolean } => ({
   ...issuer,
-  vatRegistered: issuerVatRegistrationOn(issuer, date) === true,
+  vatRegistered: periodOn(issuer.vatPeriods, date)?.registered === true,
 })
 
 /**

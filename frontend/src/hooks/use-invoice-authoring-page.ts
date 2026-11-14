@@ -34,11 +34,6 @@ export const useInvoiceAuthoringPage = (id: string | undefined): InvoiceAuthorin
   const clients = useInvoicingClients()
   const enabled = status === "authenticated"
   const issuer = useQuery(issuerQuery(clients.reference, enabled))
-  const vatCatalogue = useQuery({
-    queryKey: ["vat-regimes"],
-    enabled,
-    queryFn: ({ signal }) => clients.reference.getVatCatalogue(signal),
-  })
   const series = useQuery(documentSeriesQuery(clients.reference, enabled))
   const unitOfMeasures = useQuery({
     queryKey: ["unit-of-measures"],
@@ -80,12 +75,10 @@ export const useInvoiceAuthoringPage = (id: string | undefined): InvoiceAuthorin
     }
   }
   const issuerData = issuer.data
-  const catalogueData = vatCatalogue.data
   const seriesData = series.data
   const unitsData = unitOfMeasures.data
   const referenceData = reference.data
   const requiredPending = (issuerData === undefined && issuer.isPending)
-    || (catalogueData === undefined && vatCatalogue.isPending)
     || (seriesData === undefined && series.isPending)
     || (unitsData === undefined && unitOfMeasures.isPending)
     || (referenceData === undefined && reference.isPending)
@@ -93,21 +86,18 @@ export const useInvoiceAuthoringPage = (id: string | undefined): InvoiceAuthorin
   if (requiredPending) return { kind: "loading" }
   const blockingError = issuerData === undefined
     ? issuer.error
-    : catalogueData === undefined
-      ? vatCatalogue.error
-      : seriesData === undefined
-        ? series.error
-        : unitsData === undefined
-          ? unitOfMeasures.error
-          : referenceData === undefined
-            ? reference.error
-            : id !== undefined && draft.data === undefined
-              ? draft.error
-              : null
+    : seriesData === undefined
+      ? series.error
+      : unitsData === undefined
+        ? unitOfMeasures.error
+        : referenceData === undefined
+          ? reference.error
+          : id !== undefined && draft.data === undefined
+            ? draft.error
+            : null
   if (blockingError !== null) {
     const retry = () => {
       if (issuerData === undefined) void issuer.refetch()
-      if (catalogueData === undefined) void vatCatalogue.refetch()
       if (seriesData === undefined) void series.refetch()
       if (unitsData === undefined) void unitOfMeasures.refetch()
       if (referenceData === undefined) void reference.refetch()
@@ -116,7 +106,6 @@ export const useInvoiceAuthoringPage = (id: string | undefined): InvoiceAuthorin
     return { kind: "error", error: normalizedFailure(blockingError), retry }
   }
   if (issuerData == null) return { kind: "issuer-required" }
-  if (catalogueData === undefined) return { kind: "vat-catalogue-empty" }
   const seriesOptions = authoringSeriesOptions(seriesData ?? [], "invoice")
   // A saved draft still opens when no series is active: it can be read, edited or deleted, only not issued.
   if (seriesOptions.length === 0 && id === undefined) return { kind: "invoice-series-required" }
@@ -129,7 +118,6 @@ export const useInvoiceAuthoringPage = (id: string | undefined): InvoiceAuthorin
     sessionKey: draft.data?.id ?? "new",
     initialDraft: draft.data,
     issuer: issuerData,
-    vatCatalogue: catalogueData,
     customers: customers.items ?? [],
     customersHasMore: customers.hasMore,
     customersLoadingMore: customers.loadingMore,

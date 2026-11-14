@@ -5,7 +5,8 @@ import type { SetStateAction } from "react"
 
 import { createInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
 import { newAuthoringForm } from "../lib/document-authoring-transitions.ts"
-import type { Customer, Issuer, ProductPreset, VatCatalogue } from "../lib/draft-models.ts"
+import { vatPeriod } from "../lib/vat-periods.test-support.ts"
+import type { Customer, Issuer, ProductPreset, VatRate } from "../lib/draft-models.ts"
 import type { EditableInvoiceLine, InvoiceAuthoringForm } from "../lib/invoice-authoring-model.ts"
 
 /**
@@ -13,17 +14,21 @@ import type { EditableInvoiceLine, InvoiceAuthoringForm } from "../lib/invoice-a
  * may be on no loaded page, instead of looking an id up in the first page.
  */
 const unit = { code: "C62", name: "unitate" }
-const catalogue: VatCatalogue = { rates: [{
+const standard: VatRate = {
   code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null, kind: "standard",
   label: "TVA 21%", effectiveFrom: "2025-08-01",
-}] }
+}
+const reduced: VatRate = { ...standard, code: "RO_REDUCED", rate: "11.00", kind: "reduced", label: "TVA 11%" }
 const address = { countryCode: "RO", city: "B", street: "s", county: "RO-B", sector: 1 } as const
 const issuer: Issuer = {
   organizationId: "org", name: "Beta", fiscalIdentifier: "321", address,
   legalForm: "srl", tradeRegistryNumber: "J40/1/2020", iban: "RO00XXXX0000000000", bankName: "Banca",
   socialCapital: "100.00", defaultCurrency: "RON", defaultPaymentTermDays: 14,
-  vatConfigurations: [{ code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2024-01-01" }],
-  currentVat: null, vatPeriods: [], branding: null,
+  vatConfigurations: [
+    { code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2025-08-01" },
+    { code: "RO_REDUCED", rate: "11.00", vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2025-08-01" },
+  ],
+  currentVat: null, vatPeriods: [vatPeriod("2025-08-01", undefined, true, [standard, reduced])], branding: null,
 }
 const customer = (id: string, defaultPaymentTermDays?: number): Customer => ({
   id, organizationId: "org", partyType: "company", name: `Client ${id}`, fiscalIdentifier: "123", vatRegistered: false, address,
@@ -40,7 +45,7 @@ const editor = (chosenCustomer?: Customer) => {
   let lines: ReadonlyArray<EditableInvoiceLine> = []
   const remembered: Array<Customer> = []
   const actions = createInvoiceAuthoringEditorActions({
-    issuer, vatCatalogue: catalogue, unitOfMeasures: [unit], customers: firstPage, chosenCustomer,
+    issuer, unitOfMeasures: [unit], customers: firstPage, chosenCustomer,
     rememberCustomer: (picked) => { remembered.push(picked) },
     vatDate: "2026-01-10", deriveDueDate: true,
     setForm: (next: SetStateAction<InvoiceAuthoringForm>) => { form = typeof next === "function" ? next(form) : next },
@@ -85,4 +90,16 @@ void test("adding a line returns the key the new line carries, for the focus to 
   const screen = editor()
   const key = screen.actions.addLine()
   assert.deepEqual(screen.lines().map((line) => line.key), [key])
+})
+
+void test("a new line takes the period's default rate, a preset its preferred one only when the period offers it", () => {
+  const screen = editor()
+  const offered = screen.actions.addLine()
+  const absent = screen.actions.addLine()
+  const none = screen.actions.addLine()
+  assert.deepEqual(screen.lines().map((line) => line.vatRateCode), ["RO_STANDARD", "RO_STANDARD", "RO_STANDARD"])
+  screen.actions.choosePreset(offered, { ...preset, preferredVatRateCode: "RO_REDUCED" })
+  screen.actions.choosePreset(absent, { ...preset, preferredVatRateCode: "RO_SUPER_REDUCED" })
+  screen.actions.choosePreset(none, preset)
+  assert.deepEqual(screen.lines().map((line) => line.vatRateCode), ["RO_REDUCED", "RO_STANDARD", "RO_STANDARD"])
 })

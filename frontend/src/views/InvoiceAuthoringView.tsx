@@ -16,8 +16,8 @@ interface InvoiceAuthoringViewProps {
  * The authoring screen's frame: session, then prerequisites, then the form.
  *
  * Each missing prerequisite is its own state with its own explanation: what the
- * user sets up links to Setări; the VAT and unit catalogues come from the
- * server, so those say so instead.
+ * user sets up links to Setări; the unit catalogue comes from the server, so
+ * that one says so instead.
  */
 export const InvoiceAuthoringView = ({ id }: InvoiceAuthoringViewProps) => {
   const shell = useAuthenticatedShell()
@@ -31,7 +31,6 @@ export const InvoiceAuthoringView = ({ id }: InvoiceAuthoringViewProps) => {
       {page.kind === "loading" ? <Loading label="Se pregătește formularul…" />
         : page.kind === "error" ? <ErrorAlert error={page.error} onRetry={page.retry} />
         : page.kind === "issuer-required" ? <p className="setup-note">Datele firmei emitente nu sunt completate. Completează-le în <AppLink href="/settings">Setări</AppLink>, împreună cu o serie pentru facturi, apoi revino aici.</p>
-        : page.kind === "vat-catalogue-empty" ? <p className="setup-note">Catalogul de regimuri TVA nu a venit de la server; nu se completează din aplicație. Reîncarcă pagina, iar dacă problema rămâne, verifică instalarea serverului.</p>
         : page.kind === "invoice-series-required" ? <p className="setup-note">Nu există nicio serie activă pentru facturi. Adaug-o sau reactiveaz-o în <AppLink href="/settings">Setări</AppLink>, apoi revino aici.</p>
         : page.kind === "unit-catalogue-empty" ? <p className="setup-note">Catalogul de unități de măsură a venit gol de la server; nu se completează din aplicație. Reîncarcă pagina, iar dacă problema rămâne, verifică instalarea serverului.</p>
         : page.kind === "draft-missing" ? <p className="setup-note">Draftul cerut nu există sau nu mai este disponibil. <AppLink href="/invoices">Întoarce-te la registrul de facturi</AppLink>.</p>
@@ -43,7 +42,6 @@ export const InvoiceAuthoringView = ({ id }: InvoiceAuthoringViewProps) => {
           key={page.sessionKey}
           initialDraft={page.initialDraft}
           issuer={page.issuer}
-          vatCatalogue={page.vatCatalogue}
           customers={page.customers}
           customersHasMore={page.customersHasMore}
           customersLoadingMore={page.customersLoadingMore}

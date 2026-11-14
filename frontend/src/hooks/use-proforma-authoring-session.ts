@@ -16,7 +16,7 @@ import { knownResultNotice } from "../lib/operation-recovery-view.ts"
 import { proformaAuthoringPayload } from "../lib/proforma-authoring-payload.ts"
 import { proformaSaveReadiness } from "../lib/proforma-authoring-readiness.ts"
 import { countyRequiresSector } from "../lib/romanian-counties.ts"
-import { defaultVatCode, vatRatesForIssuer } from "../lib/vat-defaults.ts"
+import { periodOn } from "../lib/vat-defaults.ts"
 import { issuerForIssueDate } from "../lib/vat-snapshots.ts"
 
 /**
@@ -37,7 +37,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   ))
   const [lines, setLines] = useState<ReadonlyArray<EditableInvoiceLine>>(() => [newEditableInvoiceLine(
     crypto.randomUUID(),
-    defaultVatCode(input.vatCatalogue, input.issuer, openedOn),
+    periodOn(input.issuer.vatPeriods, openedOn)?.defaultCode ?? "",
     preferredUnitOfMeasure(input.unitOfMeasures),
   )])
   const recovery = useAuthoringRecovery()
@@ -55,7 +55,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   const knownNotice = knownResultNotice(save.knownResult)
   const notice = recovery.notice ?? knownNotice
   const editor = useInvoiceAuthoringEditorActions({
-    issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
+    issuer: input.issuer, unitOfMeasures: input.unitOfMeasures,
     customers: input.customers,
     vatDate: form.issueDate, deriveDueDate: true, setForm, setLines,
   })
@@ -69,7 +69,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
       buyerSectorRequired: countyRequiresSector(form.county), productPresets: input.productPresets,
       presetsHasMore: input.presetsHasMore, presetsLoadingMore: input.presetsLoadingMore,
       presetsLoadMore: input.presetsLoadMore,
-      vatRates: vatRatesForIssuer(input.vatCatalogue, input.issuer, form.issueDate),
+      vatRates: periodOn(input.issuer.vatPeriods, form.issueDate)?.rates ?? [],
     },
     feedback: {
       backgroundErrors: input.backgroundErrors,

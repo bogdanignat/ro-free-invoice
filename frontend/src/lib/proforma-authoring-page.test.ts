@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import { ApiFailure } from "./api-errors.ts"
-import type { DocumentSeries, Issuer, UnitOfMeasure, VatCatalogue } from "./draft-models.ts"
+import type { DocumentSeries, Issuer, UnitOfMeasure } from "./draft-models.ts"
 import { proformaAuthoringPageState, type ProformaAuthoringPageInput } from "./proforma-authoring-page.ts"
 import type { ResourceSnapshot } from "./async-resource.ts"
 import type { ReferenceData } from "./authoring-reference-decoders.ts"
@@ -19,13 +19,6 @@ const issuer: Issuer = {
   vatConfigurations: [], currentVat: null, vatPeriods: [], branding: null,
 }
 
-const vatCatalogue: VatCatalogue = {
-  rates: [{
-    code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null,
-    effectiveFrom: "2025-08-01", kind: "standard", label: "TVA 21%",
-  }],
-}
-
 const series: ReadonlyArray<DocumentSeries> = [
   { organizationId: "org", documentType: "proforma", series: "PRO", archived: false },
   { organizationId: "org", documentType: "invoice", series: "FCT", archived: false },
@@ -39,7 +32,7 @@ const reference: ReferenceData = {
 }
 
 const ready: ProformaAuthoringPageInput = {
-  issuer: answered<Issuer | null>(issuer), vatCatalogue: answered(vatCatalogue),
+  issuer: answered<Issuer | null>(issuer),
   series: answered(series), units: answered(units), reference: answered(reference),
 }
 
@@ -53,7 +46,7 @@ void test("every blocking read answered gives the form, with only the proforma s
 
 void test("a blocking read still in flight keeps the screen loading", () => {
   for (const partial of [
-    { issuer: pending<Issuer | null>() }, { vatCatalogue: pending<VatCatalogue>() },
+    { issuer: pending<Issuer | null>() },
     { series: pending<ReadonlyArray<DocumentSeries>>() }, { units: pending<ReadonlyArray<UnitOfMeasure>>() },
     { reference: pending<ReferenceData>() },
   ]) {
@@ -94,15 +87,12 @@ void test("a background refetch of data already held does not blank the form", (
   assert.equal(state.kind, "ready")
 })
 
-void test("the missing prerequisites are refused in order: issuer, then VAT, then series, then units", () => {
+void test("the missing prerequisites are refused in order: issuer, then series, then units", () => {
   const noIssuer = { ...ready, issuer: answered<Issuer | null>(null) }
 
   assert.equal(proformaAuthoringPageState(noIssuer).kind, "issuer-required")
   // The issuer wins even when the units are empty too: it is the first thing to set up.
   assert.equal(proformaAuthoringPageState({ ...noIssuer, units: answered<ReadonlyArray<UnitOfMeasure>>([]) }).kind, "issuer-required")
-  assert.equal(proformaAuthoringPageState({
-    ...ready, vatCatalogue: { data: undefined, isPending: false, error: null },
-  }).kind, "vat-catalogue-empty")
   assert.equal(proformaAuthoringPageState({ ...ready, units: answered<ReadonlyArray<UnitOfMeasure>>([]) }).kind, "unit-catalogue-empty")
   const noSeries = { ...ready, series: answered<ReadonlyArray<DocumentSeries>>([]) }
   assert.equal(proformaAuthoringPageState({ ...noSeries, units: answered<ReadonlyArray<UnitOfMeasure>>([]) }).kind, "proforma-series-required")

@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react"
 
-import type { Customer, Issuer, ProductPreset, UnitOfMeasure, VatCatalogue } from "../lib/draft-models.ts"
+import type { Customer, Issuer, ProductPreset, UnitOfMeasure } from "../lib/draft-models.ts"
 import { newEditableInvoiceLine, preferredUnitOfMeasure } from "../lib/invoice-authoring-model.ts"
 import type { BuyerMode, EditableInvoiceLine, InvoiceAuthoringForm, PartyType } from "../lib/invoice-authoring-model.ts"
 import {
@@ -8,11 +8,10 @@ import {
   selectIssueDate, selectSavedCustomer, selectedSavedCustomer, switchPartyType,
 } from "../lib/document-authoring-transitions.ts"
 import { choosePresetForLine } from "../lib/document-authoring-options.ts"
-import { defaultVatCode, presetVatCode } from "../lib/vat-defaults.ts"
+import { periodOn, presetVatCode } from "../lib/vat-defaults.ts"
 
 export interface EditorActionsInput {
   readonly issuer: Issuer
-  readonly vatCatalogue: VatCatalogue
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
   /** The unfiltered pages loaded for the screen; a customer found by search may be on none of them. */
   readonly customers: ReadonlyArray<Customer>
@@ -70,7 +69,7 @@ export const createInvoiceAuthoringEditorActions = (input: EditorActionsInput) =
       const key = crypto.randomUUID()
       input.setLines((current) => [...current, newEditableInvoiceLine(
         key,
-        defaultVatCode(input.vatCatalogue, input.issuer, input.vatDate),
+        periodOn(input.issuer.vatPeriods, input.vatDate)?.defaultCode ?? "",
         preferredUnitOfMeasure(input.unitOfMeasures),
       )])
       return key
@@ -81,7 +80,7 @@ export const createInvoiceAuthoringEditorActions = (input: EditorActionsInput) =
     choosePreset: (lineKey: string, preset: ProductPreset): void => {
       input.setLines((current) => choosePresetForLine(
         current, lineKey, preset,
-        presetVatCode(preset.preferredVatRateCode, input.vatCatalogue, input.issuer, input.vatDate),
+        presetVatCode(preset.preferredVatRateCode, periodOn(input.issuer.vatPeriods, input.vatDate)),
       ))
     },
   }

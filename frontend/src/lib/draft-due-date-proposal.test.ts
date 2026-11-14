@@ -70,7 +70,7 @@ void test("the proposal follows the issue date and the buyer until the user type
 
 void test("the authoring screen opens a draft without a due date on the proposal, and a new document as before", () => {
   const opening = {
-    issuer, vatCatalogue: { rates: [] }, customers: [alfa], invoiceSeries: ["FCT"], unitOfMeasures: [],
+    issuer, customers: [alfa], invoiceSeries: ["FCT"], unitOfMeasures: [],
   }
   // The buyer read by id gives its own term even when the loaded registry page does not hold it.
   const draftForm = openingAuthoringForm({ ...opening, customers: [], initialDraft: draftOf(), draftBuyer: alfa }, "2026-05-01")

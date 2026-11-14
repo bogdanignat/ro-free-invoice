@@ -1,4 +1,4 @@
-import type { AuthoringDocumentInput, DraftInvoice, Issuer, VatCatalogue, VatRate } from "./draft-models.ts"
+import type { AuthoringDocumentInput, DraftInvoice, Issuer, VatRate } from "./draft-models.ts"
 import type {
   AuthoringReadiness, AuthoringTaxReadiness, EditableInvoiceLine, InvoiceAuthoringForm,
 } from "./invoice-authoring-model.ts"
@@ -6,15 +6,15 @@ import { authoringDocumentPayload } from "./invoice-authoring-payload.ts"
 import { authoringReadiness, authoringTaxReadiness } from "./invoice-authoring-readiness.ts"
 import { positiveInvoiceRequiresDueDate } from "./invoice-positive-total.ts"
 import { knownResultNotice, type KnownWrite, type RecoveryNoticeModel } from "./operation-recovery-view.ts"
-import { vatRatesForIssuer } from "./vat-defaults.ts"
+import { periodOn } from "./vat-defaults.ts"
 import { staleDraftLineIds } from "./vat-snapshots.ts"
 import { draftSeriesState } from "./draft-series.ts"
 import { effectiveSupplyDate, invoiceSupplyDateIssue, lateIssueWarning } from "./supply-date.ts"
 import { invoiceDueDateIssue } from "./invoice-authoring-workflow.ts"
 
 /** A saved draft's lines whose frozen VAT no longer holds on the date that VAT follows. */
-export const savedDraftStaleLineIds = (draft: DraftInvoice, catalogue: VatCatalogue, issuer: Issuer): ReadonlyArray<string> =>
-  staleDraftLineIds(effectiveSupplyDate(draft), draft.lines, catalogue, issuer)
+export const savedDraftStaleLineIds = (draft: DraftInvoice, issuer: Issuer): ReadonlyArray<string> =>
+  staleDraftLineIds(effectiveSupplyDate(draft), draft.lines, issuer)
 
 /**
  * Everything the authoring screen can work out from the form, the lines and the
@@ -30,7 +30,6 @@ export interface AuthoringDerivedInput {
   readonly draft: DraftInvoice | undefined
   readonly workflowPending: boolean
   readonly issuer: Issuer
-  readonly vatCatalogue: VatCatalogue
   readonly staleLineIds: (draft: DraftInvoice) => ReadonlyArray<string>
   /** The active invoice series; a draft on an archived one cannot be issued. */
   readonly invoiceSeries: ReadonlyArray<string>
@@ -71,7 +70,7 @@ export const authoringDerived = (input: AuthoringDerivedInput): AuthoringDerived
   return {
     readiness,
     payload: authoringDocumentPayload(input.form, input.lines),
-    vatRates: vatRatesForIssuer(input.vatCatalogue, input.issuer, vatDate),
+    vatRates: periodOn(input.issuer.vatPeriods, vatDate)?.rates ?? [],
     staleTax,
     taxReadiness,
     dueDateRequired,
