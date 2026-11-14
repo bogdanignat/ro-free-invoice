@@ -4,7 +4,9 @@ import type { Pool, PoolClient } from "pg"
 
 import type { RuntimeConfig } from "../config.ts"
 import { artifactsDirectoryReady, ledgerReady, planMigrations, schemaDriftOnClient } from "../storage/migrations.ts"
+import { createQueryRuntime } from "../storage/postgres-pool.ts"
 import { ScratchNotRolledBack } from "../storage/postgres-schema-fingerprint.ts"
+import { print, type CommandContext, type CommandOf } from "./cli.ts"
 import { extraSchemas } from "./postgres-backup-guards.ts"
 
 /**
@@ -111,5 +113,16 @@ export const doctorReport = async (config: RuntimeConfig, pool: Pool): Promise<D
     authTokenReadable: readable(config.authTokenFile),
     nodeVersion: process.versions.node,
     ready: writable && ready,
+  }
+}
+
+export const runDoctor = async (command: CommandOf<"doctor">, { config, settings }: CommandContext) => {
+  const runtime = createQueryRuntime(settings)
+  try {
+    const report = await doctorReport(config, runtime.pool)
+    print(report, command.json)
+    if (!report.ready) process.exitCode = 1
+  } finally {
+    await runtime.close()
   }
 }

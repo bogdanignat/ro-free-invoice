@@ -371,30 +371,30 @@ Context sources: QWBE `core/src/kernel/scan.ts`, `core/src/kernel/manifest-valid
 
 Adopt the QWBE size policy from the first source file, with no inherited baseline debt.
 
-Current mother limits measure code characters after comments and blank lines are removed:
+Limits measure code lines after comments and blank lines are removed:
 
 | Limit | Value |
 |---|---:|
-| Maximum code characters per source file | 6,000 |
-| Maximum code characters per unit/cube | 40,000 |
+| Maximum code lines per source file | 200 |
+| Maximum code lines per unit/cube | 800 |
 | Maximum source files per unit/cube | 15 |
 
 Unit tests do not count toward size. They are governed by a separate mandatory test gate.
 
 Rules:
 
-- a file over 6,000 code characters is split by responsibility;
-- a unit over 40,000 code characters or 15 files is examined for a real child-cube boundary;
+- a file over 200 code lines is split by responsibility;
+- a unit over 800 code lines or 15 files is examined for a real child-cube boundary;
 - do not raise a cap merely to make a build green;
 - do not delete useful comments because comments are not counted;
 - do not create tiny pass-through modules only to manipulate the metric.
 
-The same 6,000-character file cap also covers production TypeScript/JavaScript in
-`kernel/` and `frontend/src/`, via `sizeFileRoots`. These are file-only roots, not
-fake cube units: the 40,000-character / 15-file unit caps still apply to each cube's own
-sources. Test/spec/test-support sources and ordinary build/dependency directories are
-not production measurements. Overlapping roots are deduplicated and invalid roots
-fail the gate. `bin/` and root tooling/config files are outside this extension.
+The same 200-line file cap covers production TypeScript/JavaScript in `kernel/`,
+`cubes/`, `frontend/src/`, `probes/` and `bin/`, via `sizeFileRoots`. These are
+file-only roots, not fake cube units: the 800-line / 15-file unit caps still apply to
+each cube's own sources. Test/spec/test-support sources and ordinary build/dependency
+directories are not production measurements. Overlapping roots are deduplicated and
+invalid roots or caps fail the gate. Root tooling/config files are outside this extension.
 
 Host adapters follow the existing domain ports rather than arbitrary file slices.
 `postgres-store.ts` owns transaction lifetime and composes same-connection adapters
@@ -585,7 +585,7 @@ ro-free-invoice/
 ```
 
 The e-Factura mappers stay in `kernel/efactura/` as a host adapter, because the `efactura`
-plugin's 40,000-character unit budget has no room for them (section 10); the PDF renderer
+plugin's unit budget had no room for them (section 10); the PDF renderer
 stays in `kernel/documents/` because it needs the filesystem and fonts. Kernel code depends only on the cubes' `index.ts` and `contracts/`;
 cube code never imports the kernel.
 
@@ -662,7 +662,7 @@ Reviewed on 2 September 2026 after the mother's `main` moved from `987e11b` to `
 | `usesBatch` raw-SQL capability (declared, outbox-exempt) | QWB-45 | Not usable as an escape: the application role has no `CREATE` on `public`, so it cannot run DDL on the live schema. |
 | Custom field values under the reserved `custom` key of a row body | QWB-46 | No impact on relational tables. `custom` becomes a reserved column name if the cube ever moves to the six-operation store. |
 | Installer strips a pack's top-level `frontend/`, `dist/`, `build/` | QWB-48 | No impact: the UI lives in `frontend/`, outside the packaged cubes. Future external-app integration remains unimplemented. |
-| Size caps unchanged at 6,000 / 40,000 / 15 | - | Aligned on 5 September 2026: `qwbe.config.json` is back at 6,000 / 40,000 / 15 after the cube was split into component cubes (registry, drafts, issuance, corrections) and the three files still over 6,000 were cut. Section 10. |
+| Size caps: 6,000 / 40,000 code characters / 15 files | T-2683 | Intentional divergence: `qwbe.config.json` measures code lines instead, 200 per file and 800 / 15 files per unit, with the file cap over `kernel`, `cubes`, `frontend/src`, `probes` and `bin`. Before T-2683 it was aligned at 6,000 / 40,000 / 15 (since 5 September 2026, after the cube was split into component cubes and the three files still over 6,000 were cut). Section 10. |
 
 Pre-existing gaps that the pull did not create but that a mounted install would hit first: `create()` returns `handlers: {}`, so the cube serves no HTTP surface under the mother (every endpoint lives in `kernel/api/api.ts`); `CurrentOrganization` is still a standalone-only contract (section 4); `qwbe-core` is still `0.0.0` and private (open decision 10).
 

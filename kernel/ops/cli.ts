@@ -1,5 +1,7 @@
 import { parseArgs } from "node:util"
 
+import type { RuntimeConfig } from "../config.ts"
+import type { PostgresSettings } from "../storage/postgres-pool.ts"
 import { GuardRefusal } from "./postgres-backup-guards.ts"
 import { ArchiveRejected } from "./postgres-backup-paths.ts"
 
@@ -20,6 +22,34 @@ export type Command =
   | { readonly name: "backup"; readonly output: string; readonly json: boolean }
   | { readonly name: "restore"; readonly input: string; readonly apply: boolean; readonly confirmProduction: boolean; readonly json: boolean }
   | { readonly name: "backup-inspect"; readonly input: string; readonly json: boolean }
+
+export type CommandOf<Name extends Command["name"]> = Extract<Command, { readonly name: Name }>
+
+/** What a command that reads the configuration is given by the entry point. */
+export interface CommandContext {
+  readonly config: RuntimeConfig
+  /** The pool settings, with the pool errors reported through `redact`. */
+  readonly settings: PostgresSettings
+  /** Every diagnostic this process prints goes through here. */
+  readonly redact: (text: string) => string
+}
+
+export const print = (value: unknown, json: boolean) => {
+  console.log(json ? JSON.stringify(value) : value)
+}
+
+/**
+ * The guard of every `--apply` that writes: outside development it also needs
+ * `--confirm-production`. Answers whether the command may go on.
+ */
+export const confirmedApply = (
+  name: string, command: { readonly apply: boolean; readonly confirmProduction: boolean }, config: RuntimeConfig,
+): boolean => {
+  if (!command.apply || config.nodeEnvironment === "development" || command.confirmProduction) return true
+  console.error(`${name} --apply outside development requires --confirm-production`)
+  process.exitCode = 2
+  return false
+}
 
 const boundedLimit = (value: string | undefined): number => {
   const limit = Number(value ?? "50")

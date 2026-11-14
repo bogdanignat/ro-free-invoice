@@ -7,7 +7,7 @@ import { join } from "node:path"
 import test from "node:test"
 
 import { listCube } from "./cube-fixture.test-support.mjs"
-import { inspectSizes, sizeViolations, stripCommentsAndBlankLines } from "./size-gate-lib.mjs"
+import { countCodeLines, inspectSizes, sizeViolations, stripCommentsAndBlankLines } from "./size-gate-lib.mjs"
 
 const fixture = () => mkdtempSync(join(tmpdir(), "rfi-size-gate-"))
 const write = (root, path, content) => {
@@ -63,16 +63,33 @@ test("counts a shebang as the code it is, slashes included", () => {
     "#!/usr/bin/env node // note\nconst x = 1")
 })
 
-test("rejects file, unit, and file-count cap violations", () => {
+test("counts code lines: comments and blank lines are not code", () => {
+  assert.equal(countCodeLines("/** Doc.\n * More.\n */\nconst x = 1 // note\n\n// only a comment\nconst y = 2\n"), 2)
+  assert.equal(countCodeLines("// nothing but a comment\n\n"), 0)
+  assert.equal(countCodeLines(""), 0)
+})
+
+const caps = { maxCodeLinesPerFile: 200, maxCodeLinesPerUnit: 800, maxFilesPerUnit: 15 }
+
+test("rejects a file over the line cap and a unit over the line or file-count cap", () => {
+  const file = { path: "cubes/invoicing/index.ts", lines: 201 }
+  const longUnit = { id: "cubes/invoicing", files: 2, lines: 801 }
+  const wideUnit = { id: "cubes/invoicing/payments", files: 16, lines: 10 }
   const measurement = {
-    files: [{ path: "cubes/invoicing/index.ts", code: 11, raw: 11 }],
-    units: [{ id: "cubes/invoicing", files: 2, code: 11, raw: 11 }],
+    files: [file, { path: "cubes/invoicing/payments/index.ts", lines: 200 }],
+    units: [longUnit, wideUnit, { id: "cubes/invoicing/catalog", files: 15, lines: 800 }],
   }
-  assert.deepEqual(sizeViolations(measurement, {
-    maxCharsPerFile: 10,
-    maxCharsPerUnit: 10,
-    maxFilesPerUnit: 1,
-  }), measurement)
+  assert.deepEqual(sizeViolations(measurement, caps), { files: [file], units: [longUnit, wideUnit] })
+})
+
+test("refuses a missing, misspelled or non-positive cap instead of passing everything", () => {
+  const measurement = { files: [{ path: "kernel/a.ts", lines: 9999 }], units: [] }
+  const { maxCodeLinesPerFile, ...withoutFileCap } = caps
+  assert.equal(maxCodeLinesPerFile, 200)
+  for (const invalid of [undefined, withoutFileCap, { ...withoutFileCap, maxCharsPerFile: 6000 },
+    { ...caps, maxCodeLinesPerUnit: 0 }, { ...caps, maxFilesPerUnit: "15" }, { ...caps, maxCodeLinesPerFile: 1.5 }]) {
+    assert.throws(() => sizeViolations(measurement, invalid), /Invalid size cap/)
+  }
 })
 
 test("measures nested cubes independently and excludes tests", async () => {
@@ -100,8 +117,8 @@ test("measures host and browser sources without treating them as cubes", async (
   try {
     makeUnit(root, "cubes/invoicing")
     write(root, "cubes/invoicing/index.ts", "export const cube = 1\n")
-    write(root, "kernel/api/new/handler.ts", "export const handler = 'over cap'\n")
-    write(root, "web/src/View.tsx", 'export const View = () => <a href="https://example.test">Link</a>\n')
+    write(root, "kernel/api/new/handler.ts", "export const handler = 'over cap'\nexport const second = 2\n")
+    write(root, "web/src/View.tsx", '// a comment is not code\n\nexport const View = () =>\n  <a href="https://example.test">Link</a>\n')
     write(root, "kernel/api/handler.test.ts", "test fixture")
     write(root, "kernel/api/handler.spec.ts", "test fixture")
     write(root, "kernel/api/handler.test-support.ts", "test fixture")
@@ -125,11 +142,10 @@ test("measures host and browser sources without treating them as cubes", async (
     assert.deepEqual(measurement.units.map(({ id, files }) => ({ id, files })), [
       { id: "cubes/invoicing", files: 1 },
     ])
-    const violations = sizeViolations(measurement, { maxCharsPerFile: 25, maxCharsPerUnit: 40000, maxFilesPerUnit: 15 })
+    const violations = sizeViolations(measurement, { ...caps, maxCodeLinesPerFile: 1 })
     assert.deepEqual(violations.files.map(({ path }) => path), ["kernel/api/new/handler.ts", "web/src/View.tsx"])
     assert.deepEqual(violations.units, [])
-    assert.equal(measurement.files.find(({ path }) => path.endsWith("View.tsx")).code,
-      'export const View = () => <a href="https://example.test">Link</a>'.length)
+    assert.equal(measurement.files.find(({ path }) => path.endsWith("View.tsx")).lines, 2)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -176,26 +192,48 @@ test("leaves out only the generated files named with a reason, and refuses stale
   }
 })
 
-test("size gate CLI fails on oversized host and frontend/src sources and invalid configured roots", () => {
+test("size gate CLI fails on an oversized file in each measured root, an oversized unit and invalid configuration", () => {
   const root = fixture()
   try {
     for (const name of ["size-gate.mjs", "size-gate-lib.mjs", "source-tree.mjs"]) {
-      write(root, `probes/${name}`, readFileSync(new URL(name, import.meta.url), "utf8"))
+      // Outside the measured roots, so the gate's own sources do not count against the fixture's caps.
+      write(root, `gate/${name}`, readFileSync(new URL(name, import.meta.url), "utf8"))
     }
     symlinkSync(fileURLToPath(new URL("../node_modules", import.meta.url)), join(root, "node_modules"))
-    const config = { sizeFileRoots: ["kernel", "frontend/src"], caps: { maxCharsPerFile: 10, maxCharsPerUnit: 40000, maxFilesPerUnit: 15 } }
+    const roots = ["kernel", "cubes", "frontend/src", "probes", "bin"]
+    const config = { sizeFileRoots: roots, caps: { ...caps, maxCodeLinesPerFile: 1, maxCodeLinesPerUnit: 3 } }
     write(root, "qwbe.config.json", JSON.stringify(config))
     makeUnit(root, "cubes/invoicing")
-    write(root, "kernel/adapter.ts", "export const adapter = 1\n")
-    write(root, "frontend/src/app/page.tsx", "export const Page = 1\n")
-    const run = () => spawnSync(process.execPath, [join(root, "probes/size-gate.mjs")], { encoding: "utf8" })
+    write(root, "cubes/invoicing/index.ts", "export const cube = 1\n")
+    const sources = ["kernel/adapter.ts", "cubes/invoicing/domain.ts", "frontend/src/app/page.tsx", "probes/extra.mjs", "bin/tool.ts"]
+    for (const path of sources) write(root, path, "// one comment\nexport const first = 1\n\nexport const second = 2\n")
+    const run = () => spawnSync(process.execPath, [join(root, "gate/size-gate.mjs")], { encoding: "utf8" })
     const overCap = run()
     assert.equal(overCap.status, 1)
-    assert.match(overCap.stderr, /File over cap: kernel\/adapter.ts/)
-    assert.match(overCap.stderr, /File over cap: frontend\/src\/app\/page.tsx/)
-    write(root, "kernel/adapter.ts", "const x=1")
-    write(root, "frontend/src/app/page.tsx", "const x=1")
+    for (const path of sources) assert.match(overCap.stderr, new RegExp(`File over cap: ${path} has 2 code lines; cap is 1[.]`))
+    assert.doesNotMatch(overCap.stderr, /Unit over cap/)
+    for (const path of sources) write(root, path, "export const x = 1 // one line\n")
     assert.equal(run().status, 0)
+    write(root, "cubes/invoicing/more.ts", "export const a = 1\nexport const b = 2\nexport const c = 3\n")
+    const overUnit = run()
+    assert.equal(overUnit.status, 1)
+    assert.match(overUnit.stderr, /Unit over cap: cubes\/invoicing has 5 code lines and 3 files; caps are 3 and 15[.]/)
+    write(root, "cubes/invoicing/more.ts", "export const a = 1\n")
+    assert.equal(run().status, 0)
+    write(root, "qwbe.config.json", JSON.stringify({ ...config, caps: { maxCharsPerFile: 6000 } }))
+    const staleCaps = run()
+    assert.notEqual(staleCaps.status, 0)
+    assert.match(staleCaps.stderr, /Invalid size cap maxCodeLinesPerFile/)
+    const { sizeFileRoots, ...withoutRoots } = config
+    assert.deepEqual(sizeFileRoots, roots)
+    for (const stale of [withoutRoots, { ...withoutRoots, sizeFileRoot: roots }, { ...config, sizeFileRoots: [] },
+      { ...config, sizeFileRoots: "kernel" }]) {
+      write(root, "qwbe.config.json", JSON.stringify(stale))
+      const refused = run()
+      assert.notEqual(refused.status, 0, JSON.stringify(stale))
+      assert.match(refused.stderr, /Invalid sizeFileRoots: expected a non-empty list/)
+      assert.doesNotMatch(refused.stdout, /Size gate passed/)
+    }
     write(root, "qwbe.config.json", JSON.stringify({ ...config, sizeFileRoots: ["missing"] }))
     const invalid = run()
     assert.equal(invalid.status, 1)

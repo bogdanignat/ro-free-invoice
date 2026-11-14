@@ -12,7 +12,7 @@ import { runShutdown, type ShutdownSteps } from "./shutdown.ts"
  * that succeeds; neither a rejecting `server.close(error)` nor a hung socket can
  * be produced from outside the process. The steps are parameters here, so the
  * failures are injected directly — no environment variable, no test-only branch
- * in production code, and the production wiring in `bin/ro-free-invoice.ts` is
+ * in production code, and the production wiring in `kernel/ops/cli-serve.ts` is
  * the same function with the real server, barrier and pools.
  *
  * The ORDER these cases pin is the safety property, and

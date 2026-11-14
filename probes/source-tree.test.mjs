@@ -116,7 +116,7 @@ test("every cube gate fails closed without the package manifest", async () => {
     for (const name of readdirSync(probes).filter((file) => file.endsWith(".mjs"))) {
       write(root, `probes/${name}`, readFileSync(join(probes, name), "utf8"))
     }
-    write(root, "qwbe.config.json", JSON.stringify({ sizeFileRoots: [], caps: { maxCharsPerFile: 1, maxCharsPerUnit: 1, maxFilesPerUnit: 1 } }))
+    write(root, "qwbe.config.json", JSON.stringify({ sizeFileRoots: ["probes"], caps: { maxCodeLinesPerFile: 1, maxCodeLinesPerUnit: 1, maxFilesPerUnit: 1 } }))
     copyFileSync(join(repositoryRoot, "dependency-cruiser.config.cjs"), join(root, "dependency-cruiser.config.cjs"))
     symlinkSync(join(repositoryRoot, "node_modules"), join(root, "node_modules"))
     twoCubes(root)

@@ -30,10 +30,11 @@ before building the image. `.github/workflows/verify.yaml` runs the same harness
 `main` and before every release: `release.yaml` calls it, and its `build` job has `needs: verify`, so a
 failed verification publishes nothing. The version is strict semver `X.Y.Z` (tag `vX.Y.Z`, or the
 `version` input of a manual dispatch); anything else fails the release. Actions are pinned to a commit
-SHA: updating one means a new SHA, resolved with `git ls-remote <repo-url> refs/tags/<tag>`. The size gate keeps the existing
-6,000-character file cap and the 40,000-character / 15-file cube caps; it also checks
-production source files under `kernel/` and `frontend/src/` without treating these
-trees as a cube. `bin/` and root tooling/config files are outside that file-only extension.
+SHA: updating one means a new SHA, resolved with `git ls-remote <repo-url> refs/tags/<tag>`. The size gate counts code lines
+(comments and blank lines left out): at most 200 per production source file, and 800 code
+lines / 15 files per cube. The file cap covers `kernel/`, `cubes/`, `frontend/src/`, `probes/`
+and `bin/` (`sizeFileRoots`) without treating these trees as cubes; a missing or empty root list
+fails the gate. Root tooling/config files are outside it.
 
 Host/UI refactors must also preserve the HTTP contract and runtime error/idempotency
 mapping, transaction behavior, session lifetime and PDF assets. Verify browser flows

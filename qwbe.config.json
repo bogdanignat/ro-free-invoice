@@ -1,7 +1,10 @@
 {
   "sizeFileRoots": [
     "kernel",
-    "frontend/src"
+    "cubes",
+    "frontend/src",
+    "probes",
+    "bin"
   ],
   "sizeGeneratedFiles": [
     {
@@ -10,8 +13,8 @@
     }
   ],
   "caps": {
-    "maxCharsPerFile": 6000,
-    "maxCharsPerUnit": 40000,
+    "maxCodeLinesPerFile": 200,
+    "maxCodeLinesPerUnit": 800,
     "maxFilesPerUnit": 15
   }
 }
