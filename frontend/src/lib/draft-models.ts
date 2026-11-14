@@ -94,6 +94,19 @@ export interface VatCatalogue {
 }
 
 /**
+ * One stretch of the issuer's VAT timeline, computed by the server
+ * (`cubes/invoicing/issuer/domain/vat-regime.ts`): every day of it has the same
+ * regime and rates. `registered: null` is a regime the server cannot name; it then offers no rate.
+ */
+export interface VatPeriod {
+  readonly effectiveFrom: string
+  readonly effectiveTo?: string
+  readonly registered: boolean | null
+  readonly rates: ReadonlyArray<VatRate>
+  readonly defaultCode: string | null
+}
+
+/**
  * The logo the backend stores, always re-encoded to PNG on the way in
  * (`kernel/api/branding-normalizer.ts`), which is why the answer names the
  * encoding it kept rather than the one that was uploaded.
@@ -136,6 +149,7 @@ export interface Issuer {
   readonly defaultPaymentTermDays: number
   readonly vatConfigurations: ReadonlyArray<VatConfiguration>
   readonly currentVat: VatRegistration | null
+  readonly vatPeriods: ReadonlyArray<VatPeriod>
   /** Always answered, `null` when the issuer has no brand at all: `kernel/api/schema-issuer.ts:51`. */
   readonly branding: IssuerBranding | null
 }

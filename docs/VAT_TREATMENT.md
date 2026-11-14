@@ -49,7 +49,10 @@ no additional checkbox or manual legal-basis selection (T-1370). VAT-registered 
 forbids that property, including an explicit null. The fiscal basis is stored
 as the complete configuration tuple (code/category/rate/reason). `currentVat` projects
 its basis from that validated tuple, not from the registration boolean or zero rate
-alone. Automatic UI generation is the product rule for the supported Article 310
+alone. `vatPeriods` is the issuer's whole timeline: a period starts at every boundary of its
+configurations and of the legal catalogue, and carries `registered` (`null` for an
+inconsistent regime), the `rates` both saving and issuance accept and `defaultCode`.
+Automatic UI generation is the product rule for the supported Article 310
 workflow, not an external verification of a company's fiscal status. Other
 non-registration grounds and E/Z/AE/other categories are unsupported. Client entry
 and prefix handling are unchanged; looking a company up by CUI is the `company-lookup`

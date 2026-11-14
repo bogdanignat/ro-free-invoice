@@ -5,7 +5,8 @@ import { ValidationFailure } from "../../contracts/failures.ts"
 import type { IssuerProfile } from "./issuer.ts"
 import { article310VatExemptionReason } from "../../domain/validation.ts"
 import { romanianVatRates, vatRatesOn } from "./vat-catalogue.ts"
-import { currentVatRegistration, scheduleVatRegistration, validateVatForIssuance } from "./vat-regime.ts"
+import { resolveVatConfiguration } from "./validation.ts"
+import { currentVatRegistration, scheduleVatRegistration, validateVatForIssuance, vatPeriods, type VatPeriod } from "./vat-regime.ts"
 
 const issuer = (vatConfigurations: IssuerProfile["vatConfigurations"]): IssuerProfile => ({
   organizationId: "org-1", name: "Exemplu", fiscalIdentifier: "12345674",
@@ -87,4 +88,86 @@ void test("requires explicit article 310 before same-state early return and reje
   assert.throws(() => { scheduleVatRegistration(nonVat, { registered: false, effectiveFrom: "2026-01-01" } as never) }, ValidationFailure)
   assert.throws(() => { scheduleVatRegistration([], { registered: true, effectiveFrom: "2025-08-01", nonVatBasis: "article_310" } as never) }, ValidationFailure)
   assert.throws(() => { currentVatRegistration([{ ...nonVat[0] as NonNullable<typeof nonVat[0]>, vatExemptionReason: null }], "2026-01-01") }, ValidationFailure)
+})
+
+const addDays = (date: string, days: number): string =>
+  new Date(Date.parse(`${date}T00:00:00.000Z`) + days * 86_400_000).toISOString().slice(0, 10)
+const pairsOf = (period: VatPeriod | undefined): ReadonlyArray<string> => (period?.rates ?? []).map(({ code, rate }) => `${code}/${rate}`)
+
+void test("VAT periods split the history at every regime and catalogue boundary and offer what saving and issuance accept", () => {
+  const nonVat = scheduleVatRegistration([], { registered: false, effectiveFrom: "2025-01-01", nonVatBasis: "article_310" })
+  const registered = scheduleVatRegistration(nonVat, { registered: true, effectiveFrom: "2025-06-01" })
+  const configurations = scheduleVatRegistration(registered, { registered: false, effectiveFrom: "2027-01-01", nonVatBasis: "article_310" })
+  const periods = vatPeriods(configurations)
+  assert.deepEqual(periods.map(({ effectiveFrom, effectiveTo, registered, defaultCode }) => ({ effectiveFrom, effectiveTo, registered, defaultCode })), [
+    { effectiveFrom: "2025-01-01", effectiveTo: "2025-05-31", registered: false, defaultCode: "RO_NON_VAT" },
+    { effectiveFrom: "2025-06-01", effectiveTo: "2025-07-31", registered: true, defaultCode: "RO_STANDARD" },
+    { effectiveFrom: "2025-08-01", effectiveTo: "2026-12-31", registered: true, defaultCode: "RO_STANDARD" },
+    { effectiveFrom: "2027-01-01", effectiveTo: undefined, registered: false, defaultCode: "RO_NON_VAT" },
+  ])
+  assert.deepEqual(periods.map(pairsOf), [
+    ["RO_NON_VAT/0.00"], ["RO_STANDARD/19.00", "RO_REDUCED/9.00", "RO_REDUCED_5/5.00"],
+    ["RO_STANDARD/21.00", "RO_REDUCED/11.00"], ["RO_NON_VAT/0.00"],
+  ])
+  const days = periods.flatMap(({ effectiveFrom, effectiveTo }) => [addDays(effectiveFrom, -1), effectiveFrom,
+    ...(effectiveTo === undefined ? ["2030-01-01"] : [effectiveTo, addDays(effectiveTo, 1)])])
+  for (const day of days) {
+    const period = periods.find((candidate) => candidate.effectiveFrom <= day && (candidate.effectiveTo ?? day) >= day)
+    assert.equal(period?.registered, currentVatRegistration(configurations, day)?.registered, day)
+    for (const { code, rate, vatCategoryCode, vatExemptionReason } of romanianVatRates) {
+      const line = { vatRateCode: code, vatRate: rate, vatCategoryCode, vatExemptionReason }
+      const accepted = (() => { try { validateVatForIssuance(issuer(configurations), day, [line]); return true } catch { return false } })()
+      assert.equal(accepted, pairsOf(period).includes(`${code}/${rate}`), `${day} ${code}/${rate}`)
+    }
+    for (const offered of period?.rates ?? []) {
+      const resolved = resolveVatConfiguration(issuer(configurations), offered.code, day)
+      assert.equal(`${resolved.code}/${resolved.rate}`, `${offered.code}/${offered.rate}`, day)
+    }
+  }
+})
+
+void test("VAT periods name an inconsistent regime instead of throwing, and an empty history has none", () => {
+  const configurations = [
+    { code: "RO_NON_VAT", rate: "0.00", ...notSubject, effectiveFrom: "2025-01-01" },
+    { code: "RO_STANDARD", rate: "21.00", ...taxable, effectiveFrom: "2025-08-01" },
+  ]
+  assert.throws(() => currentVatRegistration(configurations, "2025-08-01"), ValidationFailure)
+  assert.deepEqual(vatPeriods(configurations).map(({ effectiveFrom, effectiveTo, registered, rates, defaultCode }) =>
+    ({ effectiveFrom, effectiveTo, registered, rates, defaultCode })), [
+    { effectiveFrom: "2025-01-01", effectiveTo: "2025-07-31", registered: false, rates: [romanianVatRates.at(-1)], defaultCode: "RO_NON_VAT" },
+    { effectiveFrom: "2025-08-01", effectiveTo: undefined, registered: null, rates: [], defaultCode: null },
+  ])
+  const corrupted = [{ code: "RO_NON_VAT", rate: "0.00", ...notSubject, vatExemptionReason: null, effectiveFrom: "2025-01-01" }]
+  assert.deepEqual(vatPeriods(corrupted).map(({ registered, rates, defaultCode }) => ({ registered, rates, defaultCode })),
+    [{ registered: null, rates: [], defaultCode: null }, { registered: null, rates: [], defaultCode: null }])
+  assert.deepEqual(vatPeriods([]), [])
+})
+
+// Saving and issuance each accept more than the other: a rate is offered only where both do.
+void test("VAT periods offer a rate only when exactly one active configuration carries its catalogue pair", () => {
+  const stale = [{ code: "RO_STANDARD", rate: "19.00", ...taxable, effectiveFrom: "2025-01-01" }]
+  assert.deepEqual(vatPeriods(stale).map((period) => ({ effectiveFrom: period.effectiveFrom, effectiveTo: period.effectiveTo,
+    registered: period.registered, pairs: pairsOf(period), defaultCode: period.defaultCode })), [
+    { effectiveFrom: "2025-01-01", effectiveTo: "2025-07-31", registered: true, pairs: ["RO_STANDARD/19.00"], defaultCode: "RO_STANDARD" },
+    { effectiveFrom: "2025-08-01", effectiveTo: undefined, registered: true, pairs: [], defaultCode: null },
+  ])
+  assert.equal(resolveVatConfiguration(issuer(stale), "RO_STANDARD", "2025-08-01").rate, "19.00")
+  assert.doesNotThrow(() => { validateVatForIssuance(issuer(stale), "2025-08-01", [taxableLine("RO_STANDARD", "21.00")]) })
+  assert.doesNotThrow(() => { validateVatForIssuance(issuer(stale), "2025-07-31", [taxableLine("RO_REDUCED", "9.00")]) })
+
+  const duplicated = [
+    { code: "RO_STANDARD", rate: "21.00", ...taxable, effectiveFrom: "2025-08-01" },
+    { code: "RO_STANDARD", rate: "21.00", ...taxable, effectiveFrom: "2025-08-01" },
+    { code: "RO_REDUCED", rate: "11.00", ...taxable, effectiveFrom: "2025-08-01" },
+  ]
+  assert.deepEqual(vatPeriods(duplicated).map((period) => ({ pairs: pairsOf(period), defaultCode: period.defaultCode })),
+    [{ pairs: ["RO_REDUCED/11.00"], defaultCode: "RO_REDUCED" }])
+  assert.throws(() => resolveVatConfiguration(issuer(duplicated), "RO_STANDARD", "2025-08-01"), ValidationFailure)
+})
+
+void test("VAT periods hand out copies, so a caller cannot change the legal catalogue", () => {
+  const [period] = vatPeriods(scheduleVatRegistration([], { registered: true, effectiveFrom: "2025-08-01" }))
+  const offered = period?.rates[0] as { label: string }
+  offered.label = "changed"
+  assert.equal(romanianVatRates.find(({ code, rate }) => code === "RO_STANDARD" && rate === "21.00")?.label, "TVA standard 21%")
 })

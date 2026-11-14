@@ -32,7 +32,7 @@ const issuerWith = (
   address: { countryCode: "RO", city: "București", street: "Calea Victoriei 1", county: "RO-B", sector: 3 },
   legalForm: "srl", tradeRegistryNumber: "J40/1234/2020", iban: "RO49AAAA1B31007593840000",
   bankName: "Banca Test", socialCapital: "200.00", defaultCurrency: "RON", defaultPaymentTermDays: 15,
-  vatConfigurations: configurations, currentVat, branding: null,
+  vatConfigurations: configurations, currentVat, vatPeriods: [], branding: null,
 })
 
 void test("current VAT registration — reads the regime in force from the configurations themselves", () => {

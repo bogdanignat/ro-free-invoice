@@ -2,7 +2,7 @@ import { array, boolean, integer, nullableText, object, optionalText, text, type
 import { decodeAddress, decodeUnitOfMeasure, decodeVatCategoryCode } from "./document-snapshot-decoders.ts"
 import { decodeIssuerBranding } from "./branding-decoder.ts"
 import type {
-  DocumentSeries, Issuer, ProductPreset, VatCatalogue, VatConfiguration, VatRate, VatRegistration,
+  DocumentSeries, Issuer, ProductPreset, VatCatalogue, VatConfiguration, VatPeriod, VatRate, VatRegistration,
 } from "./draft-models.ts"
 import { canonicalVatTreatment } from "./draft-decoders.ts"
 import type { RomanianCounty } from "./romanian-counties.ts"
@@ -52,6 +52,7 @@ export const decodeIssuer: Decoder<Issuer> = (input) => {
     defaultPaymentTermDays: integer(value.defaultPaymentTermDays, "defaultPaymentTermDays"),
     vatConfigurations,
     currentVat,
+    vatPeriods: array(value.vatPeriods, decodeVatPeriod, "vatPeriods"),
     // Branding is decoded in `branding-decoder.ts`: the settings screen edits it,
     // and an answer that omits the field is a contract error, not a logo-less issuer.
     branding: decodeIssuerBranding(value.branding),
@@ -102,6 +103,21 @@ const decodeVatRate: Decoder<VatRate> = (input) => {
     throw new Error("invalid VAT kind code")
   }
   return { ...configuration, kind, label: text(value.label, "label") }
+}
+
+const decodeVatPeriod: Decoder<VatPeriod> = (input) => {
+  const value = object(input)
+  const effectiveFrom = text(value.effectiveFrom, "effectiveFrom")
+  const effectiveTo = optionalText(value.effectiveTo, "effectiveTo")
+  const registered = value.registered === null ? null : boolean(value.registered, "registered")
+  const rates = array(value.rates, decodeVatRate, "rates")
+  const defaultCode = nullableText(value.defaultCode, "defaultCode")
+  // The server offers no rate for a regime it cannot name, and its default is always one it offers.
+  if (registered === null && rates.length > 0) throw new Error("invalid VAT period rates")
+  if (defaultCode === null ? rates.length > 0 : !rates.some(({ code }) => code === defaultCode)) {
+    throw new Error("invalid VAT period defaultCode")
+  }
+  return { effectiveFrom, ...(effectiveTo === undefined ? {} : { effectiveTo }), registered, rates, defaultCode }
 }
 
 export const decodeVatCatalogue: Decoder<VatCatalogue> = (input) => {

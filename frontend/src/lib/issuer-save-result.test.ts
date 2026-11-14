@@ -9,7 +9,7 @@ const SAVED = {
   address: { countryCode: "RO", city: "Cluj-Napoca", street: "Str. Mică 1", county: "RO-CJ" },
   legalForm: "srl", tradeRegistryNumber: "J12/1234/2020", iban: "RO49AAAA1B31007593840000", bankName: "Banca Test",
   socialCapital: "200.00", defaultCurrency: "RON", defaultPaymentTermDays: 15,
-  vatConfigurations: [], currentVat: null, branding: null,
+  vatConfigurations: [], currentVat: null, vatPeriods: [], branding: null,
 }
 
 void test("the save answer keeps its warnings next to the profile", () => {

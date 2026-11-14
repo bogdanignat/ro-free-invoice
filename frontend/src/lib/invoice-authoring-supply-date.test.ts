@@ -22,7 +22,7 @@ const issuer: Issuer = {
   legalForm: "srl", tradeRegistryNumber: "J40/1/2020", iban: "RO00XXXX0000000000", bankName: "Banca",
   socialCapital: "100.00", defaultCurrency: "RON", defaultPaymentTermDays: 14,
   vatConfigurations: [{ code: "RO_STANDARD", rate: "21.00", vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2024-01-01" }],
-  currentVat: null, branding: null,
+  currentVat: null, vatPeriods: [], branding: null,
 }
 
 const derivedFor = (supplyDate: string, issueDate = "2025-08-05") => authoringDerived({

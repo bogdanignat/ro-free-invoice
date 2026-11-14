@@ -89,6 +89,14 @@ void test("requires host authentication and serves the complete invoice-core rou
     assert.equal((issuer.body as { fiscalIdentifier: string }).fiscalIdentifier, "12345674")
     assert.deepEqual((issuer.body as { currentVat: unknown }).currentVat,
       { registered: true, effectiveFrom: "2025-08-01" })
+    const taxable = { vatCategoryCode: "S", vatExemptionReason: null, effectiveFrom: "2025-08-01" }
+    const vatPeriods = [{ effectiveFrom: "2025-08-01", registered: true, defaultCode: "RO_STANDARD", rates: [
+      { code: "RO_STANDARD", rate: "21.00", kind: "standard", label: "TVA standard 21%", ...taxable },
+      { code: "RO_REDUCED", rate: "11.00", kind: "reduced", label: "TVA redus 11%", ...taxable },
+    ] }]
+    assert.deepEqual((issuer.body as { vatPeriods: unknown }).vatPeriods, vatPeriods)
+    const readIssuer = await handleApiRequest({ method: "GET", url: "/api/issuer", authorization, body: undefined }, runtime)
+    assert.deepEqual((readIssuer.body as { vatPeriods: unknown }).vatPeriods, vatPeriods)
     const canonicalIssuerDetails = {
       legalForm: "srl", tradeRegistryNumber: "J22/123/2020", iban: "RO49AAAA1B31007593840000",
       bankName: "Banca Română", socialCapital: "1000.00",
