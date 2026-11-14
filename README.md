@@ -849,8 +849,7 @@ domain and e-Factura keep two-decimal strings; the one conversion is
 `kernel/storage/postgres-money.ts`, without floating point. Quantities (four decimals)
 and VAT rates stay `TEXT`. The PDF and the UI show amounts to people as `6,600.00`
 (quantity `4,800.0000`, VAT rate `21`), through `kernel/documents/pdf-format.ts` and
-`frontend/src/lib/money.ts`; the machine format (API, XML, database, inputs) does not change. The historical probes (`probes/pg-schema-*.mjs`) and the
-SQLite captures in `kernel/parity/` describe the earlier TEXT money schema.
+`frontend/src/lib/money.ts`; the machine format (API, XML, database, inputs) does not change.
 
 Registries (`GET /api/customers`, `/api/product-presets`, `/api/drafts`, `/api/invoice-register`, `/api/invoices`, `/api/proformas`)
 are paged: the response is `{ "items": [...], "nextCursor": "..." | null }`, `?limit=` takes 1 to 200
@@ -1041,7 +1040,6 @@ kernel/documents/            PDF renderer and layout, artifact store and recover
 kernel/efactura/             host mapping from issued documents to the e-Factura cube
 kernel/company-lookup/       ANAF and openapi.ro HTTP clients, the openapi.ro key cipher, the lookup cache
 kernel/ops/                  CLI, backup and restore
-kernel/parity/               SQLite baseline fixtures read by the PostgreSQL schema gate
 frontend/                    browser UI: Vite + TanStack Router (file routes in src/routes), built into
                              frontend/dist and served by the kernel from RFI_UI_DIR
 bin/ro-free-invoice.ts        CLI entry point, also the container command
@@ -1096,11 +1094,7 @@ cube. A change that breaks a gate is not mergeable.
 | `compose.preview.yaml` | the image built from the checkout, on its own cluster, secrets and volumes, at `http://invoicing-preview.localhost:3181` | developer, opt-in (`--profile preview`) |
 | `compose.verify.yaml` | verification: `pnpm verify` in the pinned Node container, on the project's `db` | `scripts/verify-docker.sh verify` |
 | `compose.test.yaml` | the fast loop: `pnpm test` on the project's `db` | `scripts/verify-docker.sh test` |
-| `compose.pg-probe.yaml` | test rig: PostgreSQL 16 server probes (`scripts/pg16-probe.sh`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
-| `compose.pg-driver-probe.yaml` | test rig: the `pg` driver probe (`probes/pg-driver-probe.mjs`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
-| `compose.pg-schema-gate.yaml` | test rig: the schema gate (`probes/pg-schema-gate.mjs`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
-| `compose.pg-adapters.yaml` | test rig: the PostgreSQL adapter tests on a throwaway cluster of its own (`pnpm test` runs them too) | by hand; `pnpm verify` does not use it |
-| `compose.pg-backup.yaml` | test rig: the backup and restore tests (`pg_dump`, `psql`) on a throwaway cluster of its own (`pnpm test` runs them too) | by hand; `pnpm verify` does not use it |
+| `compose.pg-schema-gate.yaml` | test rig: the schema gate (`probes/pg-schema-gate.mjs`: migrations apply identically, object counts, every trigger refuses its write) on a throwaway cluster | by hand after a schema change; `pnpm verify` does not use it |
 
 ### UI theme and dependency policy
 

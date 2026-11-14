@@ -290,9 +290,9 @@ Each cube owns its tables and receives a store restricted to those tables. Since
 Two consequences explain why mounted persistence is outside the direction:
 
 - the cube role has no `CREATE` on its schema, so a directly mounted cube cannot run its own DDL, not even through the declared `usesBatch` raw-SQL capability introduced by QWB-45. Relational tables with constraints and triggers, which is what the invoicing migrations declare, have no legal creation path in mounted mode today;
-- the dialect in the cube's migrations is a choice of this repository's kernel and must be treated as such, not as inherited design. Since T-1480 that dialect is PostgreSQL 16 (named CHECK constraints, trigger functions, regex predicates in place of `GLOB`, folded expression indexes in place of `NOCASE`); before it, it was SQLite's (`STRICT`, `GLOB`). Neither was ever a mother concept.
+- the dialect in the cube's migrations is a choice of this repository's kernel and must be treated as such, not as inherited design. That dialect is now PostgreSQL 16 (named CHECK constraints, trigger functions, regex predicates in place of `GLOB`, folded expression indexes in place of `NOCASE`); before it, it was SQLite's (`STRICT`, `GLOB`). Neither was ever a mother concept.
 
-This app therefore stays standalone and owns its own database. Since T-1480 it is
+This app therefore stays standalone and owns its own database. It is now
 PostgreSQL 16, owned by this repository's kernel: the schema owner role (`qwbe_owner`) owns
 the `public` schema `migrate` builds, and the application connects as `qwbe_app`, DML only
 (`deploy/postgres/grants.sql`). That is not the mother's topology.
@@ -576,8 +576,7 @@ ro-free-invoice/
 │   ├── company-lookup/         ANAF and openapi.ro clients, lookup cache, openapi.ro key cipher
 │   ├── crypto/                 secrets at rest (AES-256-GCM with caller-owned associated data)
 │   ├── outbound/               outbound HTTP: bounded reads, no redirects, not_sent | ambiguous
-│   ├── ops/                    CLI, backup, restore
-│   └── parity/                 SQLite baseline fixtures for the PostgreSQL schema gate
+│   └── ops/                    CLI, backup, restore
 ├── frontend/                   browser UI: Vite + TanStack Router, built into frontend/dist and served by the kernel
 ├── bin/                        CLI entry point and container command
 ├── probes/                     package, persistence, gate, and decoupling checks
@@ -620,7 +619,7 @@ These are not solved by copying the mother prototype:
 1. Exact invoicing MVP and legal jurisdiction.
 2. Organization selection and authorization contract.
 3. Immutable issued-invoice model and numbering guarantees.
-4. Resolved: the application owns its persistence (PostgreSQL 16 since T-1480, SQLite
+4. Resolved: the application owns its persistence (PostgreSQL 16, SQLite
    before it) and the mother installs nothing. A connected mother would only call the API
    as an external client (section 19); invoicing data never moves into its database.
 5. Durable e-invoice submission workflow.
@@ -659,7 +658,7 @@ Reviewed on 2 September 2026 after the mother's `main` moved from `987e11b` to `
 | Shared package contract checker, `qwbe-core/package`, `docs/package-contract.md` | QWB-40 | Not run: the `kind: "cube"` shape is outside the plugin-pack layout the checker requires (one root `qwbe-package.json` with a `cubes` array). Own gates cover manifest shape, size, tests, boundaries, but not the `imports-internal` and `cube-builtins` rules the mother enforces. |
 | Per-cube field metadata, `version` drift gate, `fields`, `relations`, `searchable` | QWB-41 | Not applicable yet: the cube declares no `entity` and no HTTP handlers. Declare `version` once the cube serves an entity. |
 | External frontend auth: `QWBE_ALLOWED_ORIGINS`, CORS allowlist, httpOnly cookie through a proxy, 7-day token | QWB-42 | Aligned in spirit: this repository's kernel already keeps the token out of the browser behind an HttpOnly `SameSite=Strict` cookie. Session length differs (12 hours of inactivity, capped at 30 days, here; 7 days in the mother); not a contract. |
-| One Postgres, one schema per cube, NOLOGIN role per cube, QWBE mother kernel outbox, SQLite removed | QWB-43, QWB-44 | Intentionally separate: since T-1480 standalone persists in its own PostgreSQL 16 database, one `public` schema owned by the schema owner role (the application connects as a DML-only role), with relational tables and triggers. The schema-per-cube layout and the NOLOGIN role per cube are deliberately **not** adopted. Confirmed future mother integration is an external app/sidecar for installation/authentication, not direct persistence in mother Postgres; the integration is not implemented. |
+| One Postgres, one schema per cube, NOLOGIN role per cube, QWBE mother kernel outbox, SQLite removed | QWB-43, QWB-44 | Intentionally separate: standalone persists in its own PostgreSQL 16 database, one `public` schema owned by the schema owner role (the application connects as a DML-only role), with relational tables and triggers. The schema-per-cube layout and the NOLOGIN role per cube are deliberately **not** adopted. Confirmed future mother integration is an external app/sidecar for installation/authentication, not direct persistence in mother Postgres; the integration is not implemented. |
 | `usesBatch` raw-SQL capability (declared, outbox-exempt) | QWB-45 | Not usable as an escape: the application role has no `CREATE` on `public`, so it cannot run DDL on the live schema. |
 | Custom field values under the reserved `custom` key of a row body | QWB-46 | No impact on relational tables. `custom` becomes a reserved column name if the cube ever moves to the six-operation store. |
 | Installer strips a pack's top-level `frontend/`, `dist/`, `build/` | QWB-48 | No impact: the UI lives in `frontend/`, outside the packaged cubes. Future external-app integration remains unimplemented. |

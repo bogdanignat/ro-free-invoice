@@ -1,5 +1,5 @@
 /**
- * The reject half of the parity matrix: one case per translated trigger, plus
+ * The reject half of the behaviour matrix: one case per trigger, plus
  * the constraint invariants the triggers do not cover.
  *
  * Every case names the trigger it exercises, so the list can be compared with
@@ -256,7 +256,33 @@ export const triggerRejections = [
     "received e-Factura archives are immutable"],
 ]
 
-/** Writes that must be accepted: the mutations the domain really performs. */
+// The shape CHECKs of a series, an idempotency fingerprint and the issuer branding, by value.
+const insertSeries = "INSERT INTO document_series VALUES('org-1','invoice',$1)"
+const insertFingerprint = `INSERT INTO idempotency_records(organization_id,idempotency_key,operation,fingerprint,
+  result_kind,result_id,created_at) VALUES('org-1','vec','create_draft',$1,'invoice','invoice-1','t')`
+const insertPaymentFingerprint = `INSERT INTO payment_idempotency_records(organization_id,idempotency_key,operation,
+  fingerprint,result_id,created_at) VALUES('org-1','vec','record_payment',$1,'pay-1','t')`
+const insertBranding = `INSERT INTO issuers(organization_id,legal_name,tax_identifier,country_code,city,street,county,
+  default_currency,default_payment_term_days,branding,legal_form,trade_registry_number,iban,bank_name,social_capital)
+  VALUES('org-json','X','1','RO','X','Y','RO-IS','RON',15,$1,'srl','J','I','B',100)`
+const hex = "0123456789abcdef".repeat(4)
+const shapes = [
+  ["series", insertSeries, ["A1", "INV_2026", "A-1", "A", "1A", "A_"],
+    ["a1", "_A1", "A/1", "A 1", "", "A".repeat(21), "Ă1"]],
+  ...[["fingerprint", insertFingerprint], ["payment fingerprint", insertPaymentFingerprint]].map(([label, sql]) =>
+    [label, sql, [`sha256:${hex}`],
+      [`sha256:${hex.toUpperCase()}`, `sha256:${hex.slice(0, -1)}`, `sha256:${hex.slice(0, -1)}g`, `md5:${hex}`, hex, ""]]),
+  ["branding JSON", insertBranding,
+    ["{}", "{\"a\":1}", "{\"a\":{\"b\":[1,2,3]}}", "{\"a\":1,\"a\":2}", "[]", "[1,2,3]", "1", "-1.5e3", "\"a\"", "true",
+      "null", "{\"a\":\"ăîșț\"}", "{\"a\":\"\\u0000\"}"],
+    ["01", "", " ", "{a:1}", "{'a':1}", "[1,2,", "[1,2,]", "NaN", "{\"a\":1} x", "\uFEFF{\"a\":1}"]],
+]
+const shapeAccepted = shapes.flatMap(([label, sql, accepted]) =>
+  accepted.map((value) => [`${label} ${JSON.stringify(value)}`, sql, [value]]))
+const shapeRejected = shapes.flatMap(([label, sql, , rejected]) =>
+  rejected.map((value) => [`${label} ${JSON.stringify(value)} is refused`, "23514", sql, [value]]))
+
+/** Writes that must be accepted: the mutations the domain really performs, and the valid shapes. */
 export const acceptedWrites = [
   ["issued invoice e-Factura status", "UPDATE issued_invoices SET e_factura_status='queued' WHERE id='invoice-1'"],
   ["correction e-Factura status", "UPDATE correction_documents SET e_factura_status='queued' WHERE id='corr-1'"],
@@ -269,7 +295,53 @@ export const acceptedWrites = [
   ["e-Factura submission progress", "UPDATE efactura_submissions SET polls=1,updated_at='t' WHERE id='sub-3'"],
   ["received-invoice fetch progress", "UPDATE efactura_received_fetches SET downloaded=1,updated_at='t' WHERE id='fetch-1'"],
   ["session expiry refresh", "UPDATE browser_sessions SET expires_at=1759007200000 WHERE session_hash='s1'"],
+  ...shapeAccepted,
 ]
+
+/**
+ * Triggers with an UPDATE OF list. A content guard covers every column of its table
+ * except the ones named, so a column dropped from the list or a new unguarded column
+ * shows up; the others guard exactly the columns named.
+ */
+export const updateOf = {
+  allBut: {
+    issued_invoices_no_update: ["actor_id", "e_factura_status", "sealed", "source_app", "source_kind", "source_id",
+      "direct_source_proforma_id"],
+    correction_documents_no_update: ["actor_id", "e_factura_status", "sealed"],
+    proformas_no_content_update: ["actor_id", "sealed", "source_app", "source_kind", "source_id"],
+  },
+  only: {
+    correction_documents_actor_no_update: ["actor_id"],
+    issued_invoices_actor_no_update: ["actor_id"],
+    proformas_actor_no_update: ["actor_id"],
+    issued_invoices_seal_only: ["sealed"],
+    correction_documents_seal_only: ["sealed"],
+    proformas_seal_only: ["sealed"],
+    issued_invoices_source_no_update: ["source_app", "source_kind", "source_id"],
+    proformas_source_no_update: ["source_app", "source_kind", "source_id"],
+    invoice_drafts_source_update: ["source_app", "source_kind", "source_id"],
+    invoice_drafts_series_update: ["organization_id", "series"],
+    invoice_drafts_bucharest_sector_update: ["customer_county", "customer_sector"],
+    efactura_submissions_content_no_update: ["organization_id", "environment", "document_kind", "document_id", "standard",
+      "cif", "buyer_is_individual", "xml", "xml_sha256", "xml_size", "created_by", "created_at"],
+  },
+}
+
+/** Trigger rows ({ name, table, columns }) and the table columns -> every mismatch with `updateOf`, as text. */
+export const updateOfDifferences = (rows, columnsOf) => {
+  const sorted = (list) => [...list].sort()
+  const expected = Object.fromEntries([
+    ...Object.entries(updateOf.only).map(([name, columns]) => [name, sorted(columns)]),
+    ...Object.entries(updateOf.allBut).map(([name, except]) => {
+      const table = rows.find((row) => row.name === name)?.table
+      return [name, sorted((columnsOf[table] ?? []).filter((column) => !except.includes(column)))]
+    }),
+  ])
+  const live = Object.fromEntries(rows.filter((row) => row.columns.length > 0).map((row) => [row.name, sorted(row.columns)]))
+  return [...new Set([...Object.keys(expected), ...Object.keys(live)])]
+    .filter((name) => JSON.stringify(expected[name]) !== JSON.stringify(live[name]))
+    .map((name) => `${name}: expected ${JSON.stringify(expected[name])}, live ${JSON.stringify(live[name])}`)
+}
 
 /**
  * Constraint invariants the triggers do not cover, with the SQLSTATE expected and,
@@ -314,4 +386,5 @@ export const constraintCases = [
   ["check: artifact byte length must be positive", "23514",
     `INSERT INTO invoice_artifacts(invoice_id,organization_id,object_key,sha256,byte_length,media_type,
      template_version,generated_at) VALUES('invoice-3','org-1','k/9','x',0,'application/pdf','v1','t')`],
+  ...shapeRejected,
 ]

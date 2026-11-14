@@ -52,7 +52,8 @@ its basis from that validated tuple, not from the registration boolean or zero r
 alone. Automatic UI generation is the product rule for the supported Article 310
 workflow, not an external verification of a company's fiscal status. Other
 non-registration grounds and E/Z/AE/other categories are unsupported. Client entry
-and prefix handling are unchanged; external CUI verification is deferred to T-1371.
+and prefix handling are unchanged; looking a company up by CUI is the `company-lookup`
+plugin ([ANAF.md](./ANAF.md)).
 
 Issuer configuration is dated. An invoice's VAT regime and rates are read at its
 supply date (`supplyDate`, the issue date when none is given), in authoring and at

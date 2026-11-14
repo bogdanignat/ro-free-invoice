@@ -1,20 +1,17 @@
 /**
- * Gate G1 and the PostgreSQL schema parity matrix.
+ * Gate G1 and the PostgreSQL schema behaviour matrix.
  *
  * Runs only against a throwaway PostgreSQL 16 cluster (compose.pg-schema-gate.yaml);
- * it is not part of `pnpm test`, which still runs the SQLite suite. Every database
+ * it is not part of `pnpm verify`, so it is run by hand after a schema change. Every database
  * it uses it creates itself, from `template0` with the C collation, and drops in a
  * `finally`. No existing database, volume or port is touched.
  */
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
 import { clearTimeout, setTimeout } from "node:timers"
-import { URL } from "node:url"
 
 import pg from "pg"
 
 
-import { footprint, translatedMessage, translatedPredicate, triggerDifferences } from "./pg-schema-trigger-parity-lib.mjs"
 import { migrationScopes } from "../kernel/storage/postgres-migration-plans.ts"
 import {
   applyMigrations, applyMigrationsOnClient, assertCollationC, databaseReady, planMigrations,
@@ -91,26 +88,19 @@ const INVENTORY = `
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public'
   ORDER BY 1, 2, 3`
 
-const TRIGGER_ROWS = `
-  SELECT t.tgname AS name, c.relname AS table_name,
-         (t.tgtype::int & 1) = 1 AS for_each_row,
-         (t.tgtype::int & 2) = 2 AS before,
-         (t.tgtype::int & 4) = 4 AS on_insert,
-         (t.tgtype::int & 8) = 8 AS on_delete,
-         (t.tgtype::int & 16) = 16 AS on_update,
-         COALESCE((SELECT array_agg(a.attname ORDER BY k.ord)
-                     FROM unnest(t.tgattr) WITH ORDINALITY AS k(num, ord)
+const UPDATE_OF_ROWS = `
+  SELECT t.tgname AS name, c.relname AS table,
+         COALESCE((SELECT array_agg(a.attname) FROM unnest(t.tgattr) AS k(num)
                      JOIN pg_attribute a ON a.attrelid = t.tgrelid AND a.attnum = k.num)::text[],
-                  ARRAY[]::text[]) AS update_of,
-         t.tgqual IS NOT NULL AS has_when,
-         p.proname AS action_function, p.prosrc AS action_source,
-         pg_get_triggerdef(t.oid) AS definition
+                  ARRAY[]::text[]) AS columns
     FROM pg_trigger t
     JOIN pg_class c ON c.oid = t.tgrelid
     JOIN pg_namespace n ON n.oid = c.relnamespace
-    JOIN pg_proc p ON p.oid = t.tgfoid
-   WHERE n.nspname = 'public' AND NOT t.tgisinternal
-   ORDER BY t.tgname`
+   WHERE n.nspname = 'public' AND NOT t.tgisinternal`
+
+const TABLE_COLUMNS = `
+  SELECT table_name AS table, column_name AS column
+    FROM information_schema.columns WHERE table_schema = 'public'`
 
 const inventory = async (pool) => {
   const { rows } = await pool.query(INVENTORY)
@@ -179,64 +169,13 @@ const main = async () => {
       assert.deepEqual(inventoryB, inventoryA)
     })
 
-    // -------------------------------------------------- inventory parity
-    const golden = JSON.parse(readFileSync(new URL("../kernel/parity/sqlite-baseline-objects.json",
-      import.meta.url), "utf8"))
-    // Objects born after the SQLite capture have no golden counterpart; each is named here.
-    const postCaptureTables = [
-      "company_lookup_settings",
-      "efactura_connections", "efactura_oauth_attempts",
-      "efactura_submissions", "efactura_resubmissions", "efactura_submission_attempts", "efactura_responses",
-      "efactura_dispatcher_epoch", "efactura_message_budgets", "efactura_rate_limits",
-      "efactura_received_fetches", "efactura_received_messages", "efactura_received_archives", "efactura_received_invoices",
-      "efactura_received_unreadable", "efactura_received_coverage",
-    ]
-    const postCaptureIndexes = [
-      "efactura_submissions_current", "efactura_submissions_upload_index", "efactura_submissions_document",
-      "efactura_submissions_due", "efactura_submission_attempts_submission",
-      "efactura_received_fetches_active", "efactura_received_messages_fetch", "efactura_received_messages_newest",
-      // T-1987 (shipped with T-2074): the register and reports read documents by issue date.
-      "issued_invoices_issue_date", "correction_documents_issue_date",
-      // T-2074: a product code is unique per organization, case-insensitively.
-      "product_presets_code",
-    ]
-    // T-2074: the item code and EAN copied on every kind of line, and the product kind; T-2129: payment texts.
-    const postCaptureChecks = [
-      "draft_lines_item_code_shape", "draft_lines_barcode_gtin", "issued_lines_item_code_shape", "issued_lines_barcode_gtin",
-      "proforma_lines_item_code_shape", "proforma_lines_barcode_gtin", "correction_lines_item_code_shape",
-      "correction_lines_barcode_gtin", "product_presets_code_shape", "product_presets_barcode_gtin", "product_presets_kind_valid",
-      // T-2129: the bounded payment texts.
-      "invoice_payments_method_length", "invoice_payments_external_reference_length", "invoice_payments_note_length",
-      // T-2678: the seal flag of issued invoices and corrections.
-      "issued_invoices_sealed_valid", "correction_documents_sealed_valid",
-      // T-2679: the supply date is never after the issue date, on a draft and on an issued invoice.
-      "invoice_drafts_supply_date_not_after_issue", "issued_invoices_supply_date_not_after_issue",
-    ]
-    const goldenTables = [...golden.plans.flatMap((plan) => plan.tables.map(({ name }) => name)), ...postCaptureTables].sort()
-    const goldenIndexes = [...golden.plans.flatMap((plan) => plan.explicitIndexes.map(({ name }) => name)), ...postCaptureIndexes].sort()
-    const liveTables = inventoryA.filter((entry) => entry.startsWith("table "))
-      .map((entry) => entry.split(" ")[1]).sort()
-    const liveIndexes = inventoryA.filter((entry) => entry.startsWith("index "))
-      .map((entry) => entry.split(" ")[1]).sort()
-
-    check("42 domain tables: the SQLite baseline's 26, company_lookup_settings and e-Factura's 15", () => {
-      assert.deepEqual(liveTables, goldenTables)
-      assert.equal(liveTables.length, 42)
-    })
-    check("41 explicit indexes: the SQLite baseline's 30, e-Factura's 8 and T-2074's 3", () => {
-      assert.deepEqual(liveIndexes, goldenIndexes)
-      assert.equal(liveIndexes.length, 41)
-    })
-    // 129 checks before e-Factura, plus 10 of its connection, 33 of its submissions,
-    // 33 of its received invoices, the e-Factura status of a correction and the
-    // archived flag of a series (T-2082), whose draft trigger gained a function, plus
-    // the 11 item-code, EAN and product-kind checks of T-2074 and the 3 payment-text
-    // checks of T-2129, each present by name; T-2678 added the 4 late-insert guards
-    // of issued invoices and corrections, T-2679 the 2 supply-date checks.
-    check("76 triggers, 225 named checks, 12 functions", () => {
+    // ------------------------------------------------------- inventory
+    // Each schema migration that adds an object bumps its count here.
+    check("42 domain tables, 41 explicit indexes, 76 triggers, 225 named checks, 12 functions", () => {
+      assert.equal(countOf(inventoryA, "table"), 42)
+      assert.equal(countOf(inventoryA, "index"), 41)
       assert.equal(countOf(inventoryA, "trigger"), 76)
-      for (const name of postCaptureChecks) assert.ok(inventoryA.some((entry) => entry.startsWith(`check ${name} `)), name)
-      assert.equal(countOf(inventoryA, "check"), 207 + postCaptureChecks.length)
+      assert.equal(countOf(inventoryA, "check"), 225)
       assert.equal(countOf(inventoryA, "function"), 12)
     })
     check("every check constraint is named and within 63 characters", () => {
@@ -258,146 +197,6 @@ const main = async () => {
       "SELECT datcollate, datctype, pg_encoding_to_char(encoding) AS encoding FROM pg_database WHERE datname=current_database()")
     check("database collation is C/C/UTF8", () => {
       assert.deepEqual(collation[0], { datcollate: "C", datctype: "C", encoding: "UTF8" })
-    })
-
-    // ------------------------------------------- triggers vs the capture
-    const capturedTriggers = JSON.parse(readFileSync(new URL(
-      "../kernel/parity/sqlite-baseline-triggers.json", import.meta.url), "utf8"))
-    // Triggers changed on purpose after the capture, declared here and nowhere
-    // else: a correction gained its e-Factura status (T-1346), so its blanket
-    // UPDATE guard became an UPDATE OF every other column except the actor,
-    // which keeps its own trigger, exactly like the invoice's.
-    const changedAfterCapture = {
-      correction_documents_no_update: {
-        updateOf: ["id", "organization_id", "original_invoice_id", "fiscal_year", "document_type", "series", "number", "issue_date",
-          "issued_at", "reason", "currency", "issuer_legal_name", "issuer_tax_identifier", "issuer_country_code", "issuer_city",
-          "issuer_street", "issuer_county", "issuer_sector", "issuer_postal_code", "customer_legal_name", "customer_tax_identifier",
-          "customer_country_code", "customer_city", "customer_street", "customer_county", "customer_sector", "customer_postal_code",
-          "total_excluding_tax", "tax_total", "total_including_tax", "customer_party_type", "customer_vat_registered", "source_app",
-          "source_kind", "source_id", "issuer_legal_form", "issuer_trade_registry_number", "issuer_iban", "issuer_bank_name",
-          "issuer_social_capital", "issuer_vat_registered"],
-        raiseMessages: ["correction documents are immutable except e_factura_status"],
-      },
-      // T-2082: an open draft may change series, so the blanket refusal became a
-      // check of the new reference, in the function body because it reads a table.
-      invoice_drafts_series_update: {
-        when: "OLD.organization_id IS DISTINCT FROM NEW.organization_id OR(OLD.series IS DISTINCT FROM NEW.series AND NOT EXISTS("
-          + "SELECT 1 FROM document_series WHERE organization_id=NEW.organization_id AND document_type='invoice' AND series=NEW.series))",
-        whenUsesSubquery: true,
-        raiseMessages: ["invoice draft keeps its organization and a configured invoice series"],
-      },
-      // T-2088: a proforma keeps the saved customer it was issued for, as immutable as the rest of it.
-      proformas_no_content_update: {
-        updateOf: ["id", "source_draft_id", "organization_id", "fiscal_year", "document_type", "series", "number", "issue_date",
-          "due_date", "issued_at", "currency", "issuer_legal_name", "issuer_tax_identifier", "issuer_country_code", "issuer_city",
-          "issuer_street", "issuer_county", "issuer_sector", "issuer_postal_code", "issuer_legal_form", "issuer_trade_registry_number",
-          "issuer_iban", "issuer_bank_name", "issuer_social_capital", "issuer_vat_registered", "issuer_branding",
-          "customer_party_type", "customer_legal_name", "customer_tax_identifier", "customer_country_code", "customer_city",
-          "customer_street", "customer_county", "customer_sector", "customer_postal_code", "customer_vat_registered",
-          "total_excluding_tax", "tax_total", "total_including_tax", "notes", "customer_id"],
-      },
-      // T-2678: the parent is read through the trigger's own schema, so the subquery became a
-      // dynamic SELECT and the refusal an `IS DISTINCT FROM 0` on its result (an invisible parent too).
-      proforma_lines_no_late_insert: { when: "parent_sealed IS DISTINCT FROM 0" },
-      proforma_tax_no_late_insert: { when: "parent_sealed IS DISTINCT FROM 0" },
-      // T-2679: the supply date is as immutable as the issue date it follows.
-      issued_invoices_no_update: {
-        updateOf: ["id", "draft_id", "source_proforma_id", "organization_id", "fiscal_year", "document_type", "series", "number",
-          "issue_date", "due_date", "supply_date", "issued_at", "currency", "issuer_legal_name", "issuer_tax_identifier",
-          "issuer_country_code", "issuer_city", "issuer_street", "issuer_county", "issuer_sector", "issuer_postal_code",
-          "issuer_legal_form", "issuer_trade_registry_number", "issuer_iban", "issuer_bank_name", "issuer_social_capital",
-          "issuer_vat_registered", "issuer_branding", "customer_party_type", "customer_legal_name", "customer_tax_identifier",
-          "customer_country_code", "customer_city", "customer_street", "customer_county", "customer_sector", "customer_postal_code",
-          "customer_vat_registered", "total_excluding_tax", "tax_total", "total_including_tax", "notes"],
-      },
-    }
-    const changedWith = (property) => Object.entries(changedAfterCapture)
-      .filter(([, change]) => change[property] !== undefined && change[property] !== false).map(([name]) => name)
-    const goldenTriggers = {
-      ...capturedTriggers,
-      // A trigger that already had a column list (proformas_no_content_update) is counted once.
-      withUpdateOf: [...new Set([...capturedTriggers.withUpdateOf, ...changedWith("updateOf")])],
-      withSubqueryInWhen: [...capturedTriggers.withSubqueryInWhen, ...changedWith("whenUsesSubquery")],
-      triggers: capturedTriggers.triggers.map((trigger) => ({ ...trigger, ...changedAfterCapture[trigger.name] })),
-    }
-    check("each declared post-capture change names a captured trigger", () => {
-      for (const name of Object.keys(changedAfterCapture)) assert.ok(capturedTriggers.triggers.some((t) => t.name === name), name)
-    })
-    // The e-Factura triggers came after the capture: each is declared here with
-    // its table, event, column list and message, and held to exactly that.
-    const postCaptureTriggers = {
-      issued_lines_no_late_insert: ["issued_lines", "INSERT", "issued invoice lines are sealed", []],
-      issued_tax_breakdown_no_late_insert: ["issued_tax_breakdown", "INSERT", "issued invoice tax breakdown is sealed", []],
-      correction_lines_no_late_insert: ["correction_lines", "INSERT", "correction lines are sealed", []],
-      correction_tax_breakdown_no_late_insert: ["correction_tax_breakdown", "INSERT", "correction tax breakdown is sealed", []],
-      issued_invoices_seal_only: ["issued_invoices", "UPDATE", "issued invoices are immutable", ["sealed"]],
-      correction_documents_seal_only: ["correction_documents", "UPDATE", "correction documents are immutable", ["sealed"]],
-      efactura_submissions_content_no_update: ["efactura_submissions", "UPDATE", "e-Factura submission content is immutable",
-        ["organization_id", "environment", "document_kind", "document_id", "standard", "cif", "buyer_is_individual", "xml", "xml_sha256", "xml_size", "created_by", "created_at"]],
-      efactura_submissions_no_delete: ["efactura_submissions", "DELETE", "e-Factura submissions are kept", []],
-      efactura_resubmissions_no_update: ["efactura_resubmissions", "UPDATE", "e-Factura resubmissions are append-only", []],
-      efactura_resubmissions_no_delete: ["efactura_resubmissions", "DELETE", "e-Factura resubmissions are append-only", []],
-      efactura_submission_attempts_no_update: ["efactura_submission_attempts", "UPDATE", "e-Factura call log is append-only", []],
-      efactura_submission_attempts_no_delete: ["efactura_submission_attempts", "DELETE", "e-Factura call log is append-only", []],
-      efactura_responses_no_update: ["efactura_responses", "UPDATE", "e-Factura responses are immutable", []],
-      efactura_responses_no_delete: ["efactura_responses", "DELETE", "e-Factura responses are immutable", []],
-      efactura_received_archives_no_update: ["efactura_received_archives", "UPDATE", "received e-Factura archives are immutable", []],
-      efactura_received_archives_no_delete: ["efactura_received_archives", "DELETE", "received e-Factura archives are immutable", []],
-    }
-    // The post-capture triggers with a WHEN, and its predicate: the rest fire unconditionally.
-    const postCaptureWhen = {
-      issued_invoices_seal_only: "OLD.sealed=1 OR NEW.sealed!=1",
-      correction_documents_seal_only: "OLD.sealed=1 OR NEW.sealed!=1",
-    }
-    const allTriggers = (await first.query(TRIGGER_ROWS)).rows
-    const liveTriggers = allTriggers.filter(({ name }) => !(name in postCaptureTriggers))
-    check("every post-capture trigger is exactly the declared one", () => {
-      const live = allTriggers.filter(({ name }) => name in postCaptureTriggers).map((row) => [row.name, [row.table_name,
-        row.on_update ? "UPDATE" : row.on_delete ? "DELETE" : "INSERT", translatedMessage(row), row.update_of]])
-      assert.deepEqual(Object.fromEntries(live), postCaptureTriggers)
-      assert.ok(allTriggers.filter(({ name }) => name in postCaptureTriggers)
-        .every((row) => row.before && row.for_each_row && row.has_when === (row.name in postCaptureWhen)), "BEFORE, FOR EACH ROW, WHEN as declared")
-      for (const [name, when] of Object.entries(postCaptureWhen)) {
-        const row = allTriggers.find((trigger) => trigger.name === name)
-        assert.deepEqual(footprint(translatedPredicate(row).expression), footprint(when), name)
-      }
-    })
-    check("every trigger matches the frozen SQLite capture", () => {
-      assert.deepEqual(triggerDifferences(goldenTriggers, liveTriggers), [])
-      assert.equal(liveTriggers.length, goldenTriggers.total)
-    })
-    check("the trigger comparator reports a mutated trigger (it is not vacuous)", () => {
-      const mutate = (name, change) => liveTriggers.map((row) => row.name === name ? { ...row, ...change } : row)
-      const cases = [
-        ["table", mutate("audit_events_no_update", { table_name: "audit_events_other" })],
-        ["event", mutate("audit_events_no_update", { on_update: false, on_delete: true })],
-        ["timing", mutate("audit_events_no_update", { before: false })],
-        ["updateOf", mutate("proformas_actor_no_update", { update_of: [] })],
-        ["message", mutate("proformas_no_delete", {
-          definition: "CREATE TRIGGER x BEFORE DELETE ON proformas FOR EACH ROW EXECUTE FUNCTION qwbe_abort('other')",
-        })],
-        ["predicate", mutate("invoice_drafts_bucharest_sector_insert", {
-          definition: "CREATE TRIGGER x BEFORE INSERT ON invoice_drafts FOR EACH ROW"
-            + " WHEN ((new.issuer_county = 'RO-B'::text)) EXECUTE FUNCTION qwbe_abort('Bucharest sector is required')",
-        })],
-        ["predicateHome", mutate("proforma_lines_no_late_insert", { has_when: true })],
-        ["missing", liveTriggers.filter(({ name }) => name !== "proformas_no_delete")],
-      ]
-      for (const [label, mutated] of cases) {
-        assert.notDeepEqual(triggerDifferences(goldenTriggers, mutated), [], label)
-      }
-    })
-    check("the 12 UPDATE OF column lists (the capture's 11 and the correction's) and the 7 moved predicates match", () => {
-      const withUpdateOf = liveTriggers.filter((row) => row.update_of.length > 0).map(({ name }) => name).sort()
-      assert.deepEqual(withUpdateOf, [...goldenTriggers.withUpdateOf].sort())
-      assert.equal(withUpdateOf.length, 12)
-      const inBody = liveTriggers.filter((row) => translatedPredicate(row).where === "body")
-        .map(({ name }) => name).sort()
-      assert.deepEqual(inBody, [...goldenTriggers.withSubqueryInWhen].sort())
-      assert.equal(inBody.length, 7)
-      // The other 53 keep their predicate (or their unconditional firing) in the trigger.
-      assert.equal(liveTriggers.filter((row) => row.has_when).length,
-        goldenTriggers.triggers.filter((t) => t.when !== null && !t.whenUsesSubquery).length)
     })
 
     // ----------------------------------------------- ownership, per scope
@@ -519,9 +318,10 @@ const main = async () => {
       assert.equal(afterBarrier.changed, 0)
     })
 
-    // --------------------------------------------------- behaviour parity
+    // ---------------------------------------------------------- behaviour
     const { seedStatements } = await import("./pg-schema-seed-lib.mjs")
-    const { acceptedWrites, constraintCases, triggerRejections } = await import("./pg-schema-behaviour-lib.mjs")
+    const { acceptedWrites, constraintCases, triggerRejections, updateOfDifferences } =
+      await import("./pg-schema-behaviour-lib.mjs")
     const behaviour = await createDatabase(admin, "gate_behaviour")
     pools.push(behaviour)
     const behaviourClient = await behaviour.connect()
@@ -544,11 +344,29 @@ const main = async () => {
       const triggerNames = new Set((await behaviourClient.query(
         "SELECT tgname FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE NOT t.tgisinternal",
       )).rows.map(({ tgname }) => tgname))
-      check("every trigger in the database has a parity case", () => {
+      check("every trigger in the database has a rejection case", () => {
         const covered = new Set(triggerRejections.map(([name]) => name))
         assert.deepEqual([...triggerNames].filter((name) => !covered.has(name)), [], "uncovered triggers")
         assert.deepEqual([...covered].filter((name) => !triggerNames.has(name)), [], "cases without a trigger")
         assert.equal(covered.size, 76)
+      })
+
+      const updateOfRows = (await behaviourClient.query(UPDATE_OF_ROWS)).rows
+      const columnsOf = {}
+      for (const { table, column } of (await behaviourClient.query(TABLE_COLUMNS)).rows) {
+        columnsOf[table] = [...(columnsOf[table] ?? []), column]
+      }
+      check("every UPDATE OF column list is the declared one", () => {
+        assert.deepEqual(updateOfDifferences(updateOfRows, columnsOf), [])
+      })
+      check("the UPDATE OF comparison reports a dropped column and a new unguarded one", () => {
+        const dropped = updateOfRows.map((row) => row.name === "issued_invoices_no_update"
+          ? { ...row, columns: row.columns.filter((column) => column !== "total_including_tax") } : row)
+        assert.notDeepEqual(updateOfDifferences(dropped, columnsOf), [], "dropped column")
+        const widened = { ...columnsOf, correction_documents: [...columnsOf.correction_documents, "new_column"] }
+        assert.notDeepEqual(updateOfDifferences(updateOfRows, widened), [], "new column")
+        const missing = updateOfRows.filter(({ name }) => name !== "proformas_seal_only")
+        assert.notDeepEqual(updateOfDifferences(missing, columnsOf), [], "missing trigger")
       })
 
       for (const [trigger, sql, message] of triggerRejections) {
@@ -559,8 +377,8 @@ const main = async () => {
           assert.ok(outcome.message.includes(message), `message was ${JSON.stringify(outcome.message)}`)
         })
       }
-      for (const [label, sql] of acceptedWrites) {
-        const outcome = await attempt(behaviourClient, sql)
+      for (const [label, sql, values] of acceptedWrites) {
+        const outcome = await attempt(behaviourClient, sql, values)
         check(`accepted: ${label}`, () => { assert.equal(outcome.ok, true, outcome.message) })
       }
       for (const [label, codes, sql, values] of constraintCases) {
@@ -612,67 +430,6 @@ const main = async () => {
           { id: "invoice-3", direct_source_proforma_id: "pf-3" },
         ])
       })
-
-      // Dialect vectors, replayed from the frozen SQLite capture.
-      const dialect = JSON.parse(readFileSync(new URL("../kernel/parity/sqlite-dialect-behavior.json",
-        import.meta.url), "utf8"))
-      const vectorInsert = {
-        document_series: (value) => ["INSERT INTO document_series VALUES('org-1','invoice',$1)", [value]],
-        idempotency_records: (value) => ["INSERT INTO idempotency_records(organization_id,idempotency_key,"
-          + "operation,fingerprint,result_kind,result_id,created_at) VALUES('org-1','vec','create_draft',$1,"
-          + "'invoice','invoice-1','t')", [value]],
-        payment_idempotency_records: (value) => ["INSERT INTO payment_idempotency_records(organization_id,"
-          + "idempotency_key,operation,fingerprint,result_id,created_at) VALUES('org-1','vec',"
-          + "'record_payment',$1,'pay-1','t')", [value]],
-      }
-      // T-1904 made money BIGINT in bani: the SQLite text GLOB on unit_price has no
-      // PostgreSQL counterpart, the format belongs to kernel/storage/postgres-money.ts.
-      let globChecked = 0
-      for (const predicate of dialect.checkPredicates) {
-        if (predicate.table === "product_presets" && predicate.column === "unit_price") {
-          const type = await behaviourClient.query("SELECT data_type FROM information_schema.columns"
-            + " WHERE table_name=$1 AND column_name=$2", [predicate.table, predicate.column])
-          check("product_presets.unit_price is BIGINT in bani, so its SQLite GLOB is retired", () => {
-            assert.equal(type.rows[0]?.data_type, "bigint")
-          })
-          continue
-        }
-        for (const { value, outcomes } of predicate.results) {
-          const expectAccept = outcomes.every(({ outcome }) => outcome === "satisfied")
-          const [sql, values] = vectorInsert[predicate.table](value)
-          await behaviourClient.query("SAVEPOINT vec")
-          let accepted = true
-          let code
-          try { await behaviourClient.query(sql, values) } catch (error) { accepted = false; code = error.code }
-          await behaviourClient.query("ROLLBACK TO SAVEPOINT vec")
-          globChecked += 1
-          check(`${predicate.table}.${predicate.column} vector ${JSON.stringify(value)}`, () => {
-            if (expectAccept) assert.equal(accepted, true, `rejected with ${code}`)
-            else { assert.equal(accepted, false, "accepted"); assert.equal(code, "23514") }
-          })
-        }
-      }
-      results.push({ name: `GLOB vectors replayed from the SQLite capture: ${globChecked}`, ok: globChecked > 0 })
-
-      let jsonChecked = 0
-      for (const vector of dialect.jsonValid) {
-        await behaviourClient.query("SAVEPOINT js")
-        let accepted = true
-        let code
-        try {
-          await behaviourClient.query(`INSERT INTO issuers(organization_id,legal_name,tax_identifier,
-            country_code,city,street,county,default_currency,default_payment_term_days,branding,legal_form,
-            trade_registry_number,iban,bank_name,social_capital)
-            VALUES('org-json','X','1','RO','X','Y','RO-IS','RON',15,$1,'srl','J','I','B',100)`, [vector.value])
-        } catch (error) { accepted = false; code = error.code }
-        await behaviourClient.query("ROLLBACK TO SAVEPOINT js")
-        jsonChecked += 1
-        check(`json vector ${vector.label}`, () => {
-          if (vector.jsonValid === 1) assert.equal(accepted, true, `rejected with ${code}`)
-          else { assert.equal(accepted, false, "accepted"); assert.equal(code, "23514") }
-        })
-      }
-      check("all 23 JSON vectors replayed", () => { assert.equal(jsonChecked, 23) })
 
       // NULL branding stays allowed, the IS NULL arm of the CHECK.
       const nullBranding = await attempt(behaviourClient, `INSERT INTO issuers(organization_id,legal_name,

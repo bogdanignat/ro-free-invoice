@@ -1,9 +1,9 @@
-# Gate G1 and the schema parity matrix, on a throwaway PostgreSQL 16 cluster.
+# Gate G1 and the schema behaviour matrix, on a throwaway PostgreSQL 16 cluster.
 #
 # Nothing here ships and nothing here persists: the cluster lives on tmpfs, no
 # port is published, no existing volume of the application is referenced and the
 # project name is its own. `trust` authentication exists only inside this rig and
-# is never copied into the runtime stack (plan step 1 uses POSTGRES_PASSWORD_FILE).
+# is never copied into the runtime stack (it uses POSTGRES_PASSWORD_FILE).
 #
 # The gate needs the installed driver, so it mounts the verifier project's
 # dependency volume read-only. It is produced by `scripts/verify-docker.sh install`.
@@ -48,7 +48,7 @@ services:
       PGDATABASE: gate
       PGUSER: gate
     volumes:
-      # The contracts, the executor, the gate and the frozen parity fixtures.
+      # The contracts, the executor and the gate.
       # Read-only: the gate writes nothing to the tree.
       - ./probes:/app/probes:ro
       - ./cubes:/app/cubes:ro
