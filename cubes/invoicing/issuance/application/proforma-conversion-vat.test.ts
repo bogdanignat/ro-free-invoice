@@ -96,7 +96,7 @@ void test("both conversion routes refuse a supply after the conversion day and t
   for (const attempt of attempts) {
     const failure = await Effect.runPromise(Effect.flip(attempt))
     assert.ok(failure instanceof ValidationFailure)
-    assert.equal(failure.details?.[0]?.code, "supply_date_after_issue")
+    assert.equal(failure.details[0]?.code, "supply_date_after_issue")
     assert.deepEqual(state, before)
   }
   const draft = await Effect.runPromise(service.createDraftInvoiceFromProforma({ ...conversion, request: { ...conversion.request, supplyDate: "2025-07-20" } }))

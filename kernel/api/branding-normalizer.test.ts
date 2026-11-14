@@ -14,6 +14,7 @@ const rejects = async (bytes: Uint8Array): Promise<void> => {
   const result = await Effect.runPromise(Effect.either(brandingNormalizer.normalize(bytes)))
   assert.equal(result._tag, "Left")
   assert.equal(result.left._tag, "ValidationFailure")
+  assert.deepEqual(result.left.details.map((detail) => detail.code), ["branding_image_unreadable"])
 }
 
 void test("normalizes PNG and JPEG to deterministic metadata-free PNG, preserving dimensions and transparency", async () => {

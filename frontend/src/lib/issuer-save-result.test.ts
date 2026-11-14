@@ -42,5 +42,7 @@ void test("the refusals of a fiscal change read as Romanian sentences, never as 
   assert.match(unavailable.message, /nu răspunde acum.*Încearcă mai târziu/u)
   assert.equal(unavailable.status, 503)
   const mismatch = "ANAF arată că CIF-ul 12345674 nu este înregistrat în scopuri de TVA la 2026-09-01."
-  assert.equal(parseApiFailure({ error: "ValidationFailure", issues: [mismatch] }, 400).message, mismatch)
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues: ["x"],
+    details: [{ code: "vat_registry_not_registered", params: { cif: "12345674", date: "2026-09-01" } }] }, 400).message,
+  `${mismatch.slice(0, -1)}; firma nu poate fi salvată ca plătitoare de TVA.`)
 })

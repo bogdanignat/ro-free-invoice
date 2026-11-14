@@ -1,9 +1,12 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
+import { renderIssue, type IssueDetail } from "../../issues/index.ts"
 import { fiscalChangeOf, registryChecks, registryIssue, sameFiscalState } from "./fiscal-change.ts"
 import type { IssuerProfile, VatChange } from "./issuer.ts"
 import { scheduleVatRegistration } from "./vat-regime.ts"
+
+const rendered = (detail: IssueDetail | undefined): string => detail === undefined ? "" : renderIssue(detail)
 
 const registered = (effectiveFrom: string): VatChange => ({ registered: true, effectiveFrom })
 const nonVat = (effectiveFrom: string): VatChange => ({ registered: false, effectiveFrom, nonVatBasis: "article_310" })
@@ -50,10 +53,10 @@ void test("the registry refuses a regime it contradicts and a CIF it does not kn
   const asNonVat = { date: "2026-01-01", registered: false }
   assert.equal(registryIssue("12345674", asRegistered, "registered"), undefined)
   assert.equal(registryIssue("12345674", asNonVat, "not_registered"), undefined)
-  assert.match(registryIssue("12345674", asRegistered, "not_registered") ?? "", /nu este înregistrat în scopuri de TVA la 2026-01-01/u)
-  assert.match(registryIssue("12345674", asNonVat, "registered") ?? "", /este înregistrat în scopuri de TVA la 2026-01-01.*art\. 310/u)
+  assert.match(rendered(registryIssue("12345674", asRegistered, "not_registered")), /nu este înregistrat în scopuri de TVA la 2026-01-01/u)
+  assert.match(rendered(registryIssue("12345674", asNonVat, "registered")), /este înregistrat în scopuri de TVA la 2026-01-01.*art\. 310/u)
   for (const check of [asRegistered, asNonVat]) {
-    assert.match(registryIssue("12345674", check, "unknown_cif") ?? "", /nu figurează în registrul ANAF/u)
+    assert.match(rendered(registryIssue("12345674", check, "unknown_cif")), /nu figurează în registrul ANAF/u)
   }
 })
 

@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 
-import { DomainConflict, PersistenceFailure, ValidationFailure, type InvoicingFailure } from "../contracts/failures.ts"
+import { DomainConflict, PersistenceFailure, validationFailure, type ValidationFailure, type InvoicingFailure } from "../contracts/failures.ts"
+import { idempotencyFingerprintInvalid, idempotencyKeyInvalid } from "../issues/index.ts"
 import type {
   IdempotencyAttempt,
   IdempotencyOperation,
@@ -14,7 +15,7 @@ const validateAttempt = (attempt: IdempotencyAttempt): Effect.Effect<void, Valid
   const validFingerprint = /^sha256:[a-f0-9]{64}$/.test(attempt.fingerprint)
   return validKey && validFingerprint
     ? Effect.void
-    : Effect.fail(new ValidationFailure({ issues: [validKey ? "idempotency fingerprint is invalid" : "Idempotency-Key is invalid"] }))
+    : Effect.fail(validationFailure([validKey ? idempotencyFingerprintInvalid() : idempotencyKeyInvalid()]))
 }
 
 export const findIdempotencyReplay = (

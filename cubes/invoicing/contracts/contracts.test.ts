@@ -4,9 +4,10 @@ import test from "node:test"
 import {
   DomainConflict,
   PermissionDenied,
-  ValidationFailure,
+  validationFailure,
   invoicingPermissions,
 } from "./index.ts"
+import { required } from "../issues/index.ts"
 
 void test("materializes permission names from the mounted cube identity", () => {
   assert.deepEqual(invoicingPermissions("mother/invoicing"), {
@@ -23,7 +24,7 @@ void test("materializes permission names from the mounted cube identity", () => 
 void test("exposes failures as discriminated values", () => {
   const failures = [
     new PermissionDenied({ permission: "invoicing:invoice.issue" }),
-    new ValidationFailure({ issues: ["customer is required"] }),
+    validationFailure([required("customer")]),
     new DomainConflict({ code: "invoice_number_taken", message: "Invoice number is already allocated" }),
   ]
 

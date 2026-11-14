@@ -2,7 +2,7 @@ import { Effect } from "effect"
 
 import { checked, recordAuditEvent, type OperationDependencies } from "../../application/support.ts"
 import type { InvoicingTransaction } from "../../application/ports.ts"
-import { DomainConflict, ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { DomainConflict, validationFailure, type ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
 import type { RequestContext } from "../../contracts/host.ts"
 import { issuerSaveConflicts, type VatRegistry, type VatRegistryUnavailable } from "../contracts/fiscal-guard.ts"
 import {
@@ -31,7 +31,7 @@ const verify = (
   if (registry === undefined) return Effect.succeed("not_checked")
   return Effect.forEach(checks, (check) => Effect.flatMap(registry.statusOn(cif, check.date), (status) => {
     const issue = registryIssue(cif, check, status)
-    return issue === undefined ? Effect.void : Effect.fail(new ValidationFailure({ issues: [issue] }))
+    return issue === undefined ? Effect.void : Effect.fail(validationFailure([issue]))
   }), { discard: true }).pipe(Effect.as("checked" as const))
 }
 

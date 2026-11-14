@@ -39,3 +39,8 @@ void test("a line keeps only the identifiers it states, each checked", () => {
   assert.deepEqual(itemIdentifiers({ barcode: "00012345600012" }), { barcode: "00012345600012" })
   assert.equal(issueOf(() => itemIdentifiers({ itemCode: "MAN", barcode: "96385075" })), "barcode must be a GTIN-8, 12, 13 or 14 with a valid check digit")
 })
+
+void test("an article code and a barcode are refused with codes on their own field", () => {
+  assert.throws(() => normalizeItemCode("cod cu spațiu ș", "itemCode"), { details: [{ code: "item_code_invalid", field: "itemCode" }] })
+  assert.throws(() => { validateBarcode("4006381333932") }, { details: [{ code: "barcode_invalid", field: "barcode" }] })
+})

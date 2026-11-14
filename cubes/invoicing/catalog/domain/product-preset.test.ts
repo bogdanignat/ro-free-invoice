@@ -87,3 +87,12 @@ void test("refuses a control character in the description a document line copies
       (error: unknown) => issueOf(error) === "description must not contain control characters", JSON.stringify(description))
   }
 })
+
+void test("a preset's kind, unit and VAT preference are refused with codes", () => {
+  const base = { ...product, description: "Audit", unitPrice: "1", unitOfMeasure: each }
+  assert.throws(() => normalizeProductPreset({ ...base, kind: "rent" as "goods" }, today), { details: [{ code: "product_kind_invalid", field: "kind" }] })
+  assert.throws(() => normalizeProductPreset({ ...base, unitOfMeasure: { code: "ZZZ", name: "necunoscut" } }, today),
+    { details: [{ code: "unit_invalid", field: "unitOfMeasure.code" }] })
+  assert.throws(() => normalizeProductPreset({ ...base, preferredVatRateCode: "NOPE" }, today),
+    { details: [{ code: "preferred_vat_rate_invalid", field: "preferredVatRateCode", params: { date: today } }] })
+})

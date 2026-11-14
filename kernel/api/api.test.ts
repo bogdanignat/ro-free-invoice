@@ -164,6 +164,13 @@ void test("requires host authentication and serves the complete invoice-core rou
     }, runtime)
     assert.equal(companyWithoutCui.status, 400)
     assert.equal((companyWithoutCui.body as { issues: ReadonlyArray<string> }).issues.includes("fiscalIdentifier is required for company"), true)
+    // A customer saved with a 201-character name is refused by the CIUS-RO party limit, coded for the browser.
+    assert.deepEqual(await handleApiRequest({
+      method: "POST", url: "/api/customers", authorization,
+      body: { partyType: "company", name: "N".repeat(201), fiscalIdentifier: "87654329", vatRegistered: true,
+        address: { countryCode: "RO", city: "Iași", street: "Strada 2", county: "RO-IS" } },
+    }, runtime), { status: 400, body: { error: "ValidationFailure", issues: ["name must be at most 200 characters"],
+      details: [{ code: "too_long", field: "name", params: { maximum: 200 } }] } })
     // T-2129: a character XML 1.0 cannot carry is refused at the door, never frozen into an issued invoice; U+0000 is a 400, not a 500.
     for (const name of ["Client\u000bSRL", "Client\u0000SRL", "Client\uffffSRL"]) {
       const refused = await handleApiRequest({
@@ -180,14 +187,14 @@ void test("requires host authentication and serves the complete invoice-core rou
         address: { countryCode: "RO", city: "Iași", street: "Strada 2", county: "RO-IS" } }, issueDate: "2026-09-01", series: "QWBE" },
     }, runtime)
     assert.equal(draftWithoutCui.status, 400)
-    // A coded party issue next to one not coded yet: `details` stays aligned with `issues`, the latter as `unclassified`.
+    // Every party refusal is coded: `details` stays aligned 1:1 with `issues`.
     assert.deepEqual(await handleApiRequest({
       method: "POST", url: "/api/drafts", authorization, idempotencyKey: "http-draft-long-name",
       body: { customer: { partyType: "company", name: "N".repeat(201), fiscalIdentifier: "", vatRegistered: false,
         address: { countryCode: "RO", city: "Iași", street: "Strada 2", county: "RO-IS" } }, issueDate: "2026-09-01", series: "QWBE" },
     }, runtime), { status: 400, body: { error: "ValidationFailure",
       issues: ["name must be at most 200 characters", "fiscalIdentifier is required for company"],
-      details: [{ code: "too_long", field: "name", params: { maximum: 200 } }, { code: "unclassified" }] } })
+      details: [{ code: "too_long", field: "name", params: { maximum: 200 } }, { code: "company_cui_required", field: "fiscalIdentifier" }] } })
     const customerId = (customer.body as { id: string }).id
     const updatedCustomer = await handleApiRequest({
       method: "PUT", url: `/api/customers/${customerId}`, authorization,
@@ -456,8 +463,12 @@ void test("requires host authentication and serves the complete invoice-core rou
     assert.equal(typeof ((await handleApiRequest({
       method: "GET", url: `/api/proformas/${proformaId}`, authorization, body: undefined,
     }, runtime)).body as { convertedInvoiceId: string | null }).convertedInvoiceId, "string")
-    assert.equal((await handleApiRequest({ method: "PUT", url: "/api/issuer", authorization,
-      body: { ...issuerBody, branding: { text: null, image: { dataBase64: "not-base64" } } } }, runtime)).status, 400)
+    for (const [branding, code] of [[{ text: null, image: { dataBase64: "not-base64" } }, "branding_image_invalid"],
+      [{ text: null, image: null }, "branding_empty"]] as const) {
+      const refused = await handleApiRequest({ method: "PUT", url: "/api/issuer", authorization, body: { ...issuerBody, branding } }, runtime)
+      assert.deepEqual([refused.status, (refused.body as { details: ReadonlyArray<{ code: string }> }).details.map((detail) => detail.code)],
+        [400, [code]], code)
+    }
     const textBrand = await handleApiRequest({ method: "PUT", url: "/api/issuer", authorization,
       body: { ...issuerBody, branding: { text: "  Marca text  ", image: null } } }, runtime)
     assert.deepEqual((textBrand.body as { branding: unknown }).branding, { text: "Marca text", image: null })
@@ -511,6 +522,10 @@ void test("requires host authentication and serves the complete invoice-core rou
     assert.equal((await handleApiRequest({ method: "GET", url: "/api/invoices?limit=0", authorization, body: undefined }, runtime)).status, 400)
     assert.equal((await handleApiRequest({ method: "GET", url: "/api/invoices?cursor=%%%", authorization, body: undefined }, runtime)).status, 400)
     assert.equal((await handleApiRequest({ method: "GET", url: "/api/invoices?sourceApp=crm", authorization, body: undefined }, runtime)).status, 400)
+    const repeated = await handleApiRequest({ method: "GET", url: "/api/invoices?sourceApp=crm&sourceApp=shop&sourceKind=contract&sourceId=c-1",
+      authorization, body: undefined }, runtime)
+    assert.deepEqual([repeated.status, (repeated.body as { details: ReadonlyArray<{ code: string }> }).details.map((detail) => detail.code)],
+      [400, ["source_filter_incomplete"]])
     assert.deepEqual(await handleApiRequest({ method: "POST", url: "/api/proformas", authorization,
       idempotencyKey: "direct-invoice-1", body: { ...authoredBody, issueDate: "2026-09-05", proformaSeries: "PRO" } }, runtime),
     { status: 409, body: { error: "DomainConflict", code: "idempotency_key_reused" } })

@@ -1,9 +1,12 @@
-import { ValidationFailure, validationFailure } from "../../contracts/failures.ts"
+import { validationFailure } from "../../contracts/failures.ts"
 import { compareDecimal } from "../../money/index.ts"
 import type { DraftLine, VatConfiguration } from "../../domain/invoice.ts"
 import type { IssuerProfile, VatChange } from "./issuer.ts"
 import { validateVatTreatment } from "../../domain/validation.ts"
-import { vatPairNeedsNonVat, vatPairNeedsVat, vatPairUnsupported, vatRegistrationMissing } from "../../issues/index.ts"
+import {
+  nonVatBasisInvalid, nonVatBasisNotAllowed, vatCatalogueNotCovered, vatConfigurationInconsistent,
+  vatPairNeedsNonVat, vatPairNeedsVat, vatPairUnsupported, vatRegistrationMissing,
+} from "../../issues/index.ts"
 import { activeOn, romanianVatRates, vatRatesOn } from "./vat-catalogue.ts"
 
 type VatRegistrationPeriod = {
@@ -27,7 +30,7 @@ const vatRegistrationOn = (
   })
   const nonVat = active.every((configuration) => configuration.code === "RO_NON_VAT")
   if (!nonVat && active.some((configuration) => configuration.code === "RO_NON_VAT")) {
-    throw new ValidationFailure({ issues: [`issuer VAT configuration is inconsistent on ${date}`] })
+    throw validationFailure([vatConfigurationInconsistent(date)])
   }
   const selected = active[0] as VatConfiguration
   const period = { effectiveFrom: selected.effectiveFrom, ...(selected.effectiveTo === undefined ? {} : { effectiveTo: selected.effectiveTo }) }
@@ -47,15 +50,13 @@ const validateVatChange = (change: VatChange): void => {
   const hasBasis = Object.prototype.hasOwnProperty.call(change, "nonVatBasis")
   if ((runtime.registered !== true && runtime.registered !== false)
     || (runtime.registered ? hasBasis : !hasBasis || runtime.nonVatBasis !== "article_310")) {
-    throw new ValidationFailure({ issues: [runtime.registered === true
-      ? "nonVatBasis is not allowed for a VAT-registered issuer"
-      : "nonVatBasis must be article_310 for a non-VAT issuer"] })
+    throw validationFailure([runtime.registered === true ? nonVatBasisNotAllowed() : nonVatBasisInvalid()])
   }
 }
 
 const configurationsFor = (change: VatChange): ReadonlyArray<VatConfiguration> => {
   const rates = vatRatesOn(change.effectiveFrom)
-  if (rates.length === 0) throw new ValidationFailure({ issues: [`VAT catalogue does not cover ${change.effectiveFrom}`] })
+  if (rates.length === 0) throw validationFailure([vatCatalogueNotCovered(change.effectiveFrom)])
   return romanianVatRates
     .filter(({ kind }) => change.registered ? kind !== "non_vat" : kind === "non_vat")
     .filter(({ effectiveTo }) => effectiveTo === undefined || effectiveTo >= change.effectiveFrom)

@@ -3,6 +3,8 @@ import test from "node:test"
 
 import { ValidationFailure } from "../../contracts/failures.ts"
 import { article310VatExemptionReason } from "../../domain/validation.ts"
+import { normalizeIssuerDetails } from "./issuer-details.ts"
+import { scheduleVatRegistration } from "./vat-regime.ts"
 import { normalizeBrandingText, validateIssuer as validateIssuerOn } from "./validation.ts"
 
 const validateIssuer = (issuer: Parameters<typeof validateIssuerOn>[0]): void => { validateIssuerOn(issuer) }
@@ -115,4 +117,15 @@ void test("rejects overlapping effective ranges for the same tax code", () => {
       { code: "RO_STANDARD", rate: "21", ...s, effectiveFrom: "2025-08-01" },
     ],
   }) })
+})
+
+void test("issuer legal details and VAT changes are refused with a code the browser says in Romanian", () => {
+  const details = { legalForm: "srl" as const, tradeRegistryNumber: "", iban: "", bankName: "", socialCapital: "" }
+  assert.throws(() => normalizeIssuerDetails({ ...details, legalForm: "sa" as never }), { details: [{ code: "legal_form_invalid", field: "legalForm" }] })
+  assert.throws(() => normalizeIssuerDetails({ ...details, tradeRegistryNumber: "J40-123" }),
+    { details: [{ code: "trade_registry_invalid", field: "tradeRegistryNumber" }] })
+  assert.throws(() => normalizeIssuerDetails({ ...details, iban: "RO49AAAA1B31007593840001" }), { details: [{ code: "iban_checksum", field: "iban" }] })
+  assert.throws(() => normalizeIssuerDetails({ ...details, iban: "RO49" }), { details: [{ code: "iban_invalid", field: "iban" }] })
+  assert.throws(() => scheduleVatRegistration([], { registered: true, effectiveFrom: "2020-01-01" }),
+    { details: [{ code: "vat_catalogue_not_covered", field: "vatChange.effectiveFrom", params: { date: "2020-01-01" } }] })
 })

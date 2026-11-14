@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 
-import { ValidationFailure } from "../../../contracts/failures.ts"
+import { validationFailure } from "../../../contracts/failures.ts"
+import { uploadIndexInvalid } from "../../../issues/index.ts"
 import { anafId, documentStatus, fiscalTransition, submissionAudit, type SubmissionRecord } from "../../submissions/index.ts"
 import { isOwnUpload, listWindow } from "../domain/listing.ts"
 import { listPage, listedByAnaf, reachable } from "./listing.ts"
@@ -71,7 +72,7 @@ export const createReconciliationService = (dependencies: ReconciliationDependen
       const context = yield* authorized(dependencies)
       const index = anafId(uploadIndex)
       if (!confirmed || index === undefined) {
-        return yield* Effect.fail(new ValidationFailure({ issues: ["uploadIndex must be ANAF's digits and confirmed must be true"] }))
+        return yield* Effect.fail(validationFailure([uploadIndexInvalid()]))
       }
       const organizationId = context.organization.id
       const target = yield* unknownOne(organizationId, id)

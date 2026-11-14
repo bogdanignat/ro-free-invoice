@@ -1,3 +1,5 @@
+import { partyTemplates } from "./party-templates.ts"
+
 /** English text of every code; the wire `issues` keep it, the browser maps the code to Romanian. */
 export const issueTemplates = {
   invalid_vat_tuple: "Invalid VAT tuple",
@@ -19,7 +21,7 @@ export const issueTemplates = {
   document_totals_inconsistent: "document totals are inconsistent",
   lines_required: "{kind} must contain at least one line",
   customer_choice: "exactly one of customerId or customer is required",
-  currency_not_ron: "currency must be RON",
+  currency_not_ron: "{field} must be RON",
   due_date_before_issue: "dueDate cannot be before issueDate",
   due_date_required: "dueDate is required for an invoice with a positive amount due",
   supply_date_after_issue: "supplyDate cannot be after issueDate",
@@ -42,8 +44,30 @@ export const issueTemplates = {
   currency_invalid: "currency must be an ISO 4217 code",
   currency_mismatch: "payment currency must match invoice currency",
   empty_when_provided: "{field} must not be empty when provided",
-  idempotency_key_invalid: "Idempotency-Key is invalid",
+  idempotency_key_invalid: "Idempotency-Key header is required and must contain 1-255 visible ASCII characters",
   idempotency_fingerprint_invalid: "idempotency fingerprint is invalid",
+  invalid_input: "invalid input",
+  pagination_repeated: "limit and cursor must be supplied at most once",
+  source_filter_incomplete: "sourceApp, sourceKind, and sourceId must be supplied exactly once and together",
+  request_not_fingerprintable: "request cannot be fingerprinted",
+  product_kind_invalid: "kind must be goods or service",
+  preferred_vat_rate_invalid: "preferredVatRateCode must be a taxable VAT rate in force on {date}",
+  item_code_invalid: "{field} must be 1-50 printable ASCII characters",
+  barcode_invalid: "{field} must be a GTIN-8, 12, 13 or 14 with a valid check digit",
+  unit_invalid: "unitOfMeasure.code must be one of the supported UN/ECE unit codes",
+  cui_digits_only: "cui must contain only digits",
+  cui_too_short: "cui must have at least {minimum} digits",
+  query_too_few_letters: "q must have at least {minimum} letters",
+  provider_invalid: "provider must be one of {providers}",
+  openapi_key_conflict: "openapiKey and clearOpenapiKey cannot be combined",
+  openapi_key_invalid: "openapiKey must be 10 to 200 printable ASCII characters without spaces",
+  openapi_key_required: "provider openapi requires a configured openapiKey",
+  upload_index_invalid: "uploadIndex must be ANAF's digits and confirmed must be true",
+  confirmation_required: "confirmed must be true",
+  spv_filter_unavailable: "spv filter requires the e-Factura plugin",
+  efactura_rule: "{text} ({rule})",
+  efactura_contract: "{text}",
+  ...partyTemplates,
 } as const
 
 export type IssueCode = keyof typeof issueTemplates

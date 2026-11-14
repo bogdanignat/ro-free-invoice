@@ -88,6 +88,9 @@ const failureMessages: Readonly<Record<string, string>> = {
   ...issuerSaveFailureMessages,
 }
 
+/** A refusal whose codes the browser does not know yet: never the server's English. */
+export const INVALID_INPUT_MESSAGE = "Datele trimise nu sunt valide. Verifică câmpurile și încearcă din nou."
+
 /**
  * Whether the failure is one a second identical request could survive.
  *
@@ -116,7 +119,7 @@ export const parseApiFailure = (input: unknown, status: number): ApiFailure => {
   const localizedCode = code === undefined ? undefined : failureMessages[code]
   const message = localizedCode ?? (typeof value.message === "string"
     ? value.message
-    : localizedIssue(value.details) ?? issues[0] ?? (code === undefined
+    : localizedIssue(value.details) ?? (error === "ValidationFailure" ? INVALID_INPUT_MESSAGE : issues[0]) ?? (code === undefined
       ? (error === undefined ? `Cererea a eșuat (${String(status)}).` : failureMessages[error] ?? error)
       : error ?? code))
   const field = localizedIssueField(value.details, message)

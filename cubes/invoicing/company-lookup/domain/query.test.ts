@@ -40,5 +40,10 @@ void test("a name query counts letters, not characters, and is trimmed", () => {
 
 void test("a name query is refused above the length cap, after trimming", () => {
   assert.equal(nameQuery(` ${"a".repeat(MAX_NAME_LENGTH)} `).length, MAX_NAME_LENGTH)
-  assert.deepEqual(refusal(() => nameQuery("a".repeat(MAX_NAME_LENGTH + 1))), ["q must have at most 100 characters"])
+  assert.deepEqual(refusal(() => nameQuery("a".repeat(MAX_NAME_LENGTH + 1))), ["q must be at most 100 characters"])
+})
+
+void test("lookup query refusals carry codes", () => {
+  assert.throws(() => cuiQuery("12a4"), { details: [{ code: "cui_digits_only", field: "cui" }] })
+  assert.throws(() => nameQuery("ab"), { details: [{ code: "query_too_few_letters", field: "q", params: { minimum: MIN_NAME_LETTERS } }] })
 })

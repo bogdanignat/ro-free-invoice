@@ -1,8 +1,12 @@
+import { fieldLabels } from "./issue-field-labels.ts"
+import { recordIssueMessages } from "./issue-messages-records.ts"
+
 /**
  * Romanian text of the coded validation issues (`cubes/invoicing/issues`), keyed by code. Every code of the
- * cube has one (probes/frontend-cube-parity.test.mjs); `unclassified` has none, so the English `issues[0]` shows.
+ * cube has one (probes/frontend-cube-parity.test.mjs); a code not listed falls back to the generic sentence in `api-errors.ts`.
  */
 export const issueMessages: Readonly<Record<string, string>> = {
+  ...recordIssueMessages,
   invalid_vat_tuple: "Combinația de TVA aleasă nu este validă.",
   date_format: "Câmpul „{field}” trebuie să fie o dată calendaristică în formatul AAAA-LL-ZZ.",
   date_yyyy_mm_dd: "Câmpul „{field}” trebuie să fie o dată în formatul AAAA-LL-ZZ.",
@@ -22,7 +26,7 @@ export const issueMessages: Readonly<Record<string, string>> = {
   document_totals_inconsistent: "Totalurile documentului nu sunt consistente.",
   lines_required: "Documentul trebuie să conțină cel puțin o linie.",
   customer_choice: "Alege fie un client salvat, fie datele unui client nou, nu ambele.",
-  currency_not_ron: "Moneda documentului trebuie să fie RON.",
+  currency_not_ron: "Câmpul „{field}” trebuie să fie RON.",
   due_date_before_issue: "Data scadenței nu poate fi înainte de data emiterii.",
   due_date_required: "Data scadenței este obligatorie pentru o factură cu sumă de plată pozitivă.",
   supply_date_after_issue: "Data livrării nu poate fi după data emiterii.",
@@ -49,40 +53,6 @@ export const issueMessages: Readonly<Record<string, string>> = {
   idempotency_fingerprint_invalid: "Amprenta cererii nu este validă.",
 }
 
-/** A field the codes above can name; one not listed is shown as the server wrote it. */
-export const fieldLabels: Readonly<Record<string, string>> = {
-  issueDate: "data emiterii",
-  dueDate: "data scadenței",
-  supplyDate: "data livrării",
-  paymentDate: "data plății",
-  "vatChange.effectiveFrom": "data intrării în vigoare a regimului de TVA",
-  description: "descrierea",
-  quantity: "cantitatea",
-  unitPrice: "prețul unitar",
-  vatRate: "cota de TVA",
-  money: "suma",
-  amount: "suma",
-  customerId: "clientul",
-  originalInvoiceId: "factura originală",
-  invoiceId: "factura",
-  paymentId: "plata",
-  reason: "motivul",
-  method: "metoda de plată",
-  externalReference: "referința externă",
-  note: "nota",
-  name: "denumirea",
-  "address.street": "strada și numărul",
-  "address.city": "localitatea",
-  "address.postalCode": "codul poștal",
-  from: "data de început",
-  to: "data de sfârșit",
-  notes: "observațiile",
-  "source.app": "aplicația sursă",
-  "source.kind": "tipul sursei",
-  "source.id": "identificatorul sursei",
-  q: "căutarea",
-}
-
 const own = (table: Readonly<Record<string, unknown>>, key: string): string | undefined => {
   const value = Object.hasOwn(table, key) ? table[key] : undefined
   return typeof value === "string" ? value : undefined
@@ -102,7 +72,11 @@ const detailMessage = (detail: unknown): string | undefined => {
     const value = name === "field" ? detail.field : Object.hasOwn(params, name) ? params[name] : undefined
     if (typeof value === "number" && name !== "field") return String(value)
     if (typeof value !== "string") { missing.push(name); return "" }
-    return name === "field" ? own(fieldLabels, value) ?? value : value
+    if (name !== "field") return value
+    const label = own(fieldLabels, value)
+    // A decoding path the forms do not name (`lines.0.quantity`) reads the generic text, never the raw path.
+    if (label === undefined && detail.code === "invalid_input") missing.push(name)
+    return label ?? value
   })
   return missing.length === 0 ? text : undefined
 }

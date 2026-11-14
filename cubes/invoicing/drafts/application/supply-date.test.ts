@@ -50,14 +50,14 @@ void test("a supply after the issue date is refused on create, update and issue"
   const { state, service, createDraft } = await setup()
   const created = await refusal(createDraft("2025-08-06"))
   assert.deepEqual(created.details, [{ code: "supply_date_after_issue", field: "supplyDate" }])
-  assert.equal((await refusal(createDraft("2025-02-30"))).details?.[0]?.field, "supplyDate")
+  assert.equal((await refusal(createDraft("2025-02-30"))).details[0]?.field, "supplyDate")
   const draft = await Effect.runPromise(createDraft())
   const updated = await refusal(service.updateDraft({ draftId: draft.id, customer, issueDate: "2025-07-19", supplyDate: "2025-07-20" }))
-  assert.equal(updated.details?.[0]?.code, "supply_date_after_issue")
+  assert.equal(updated.details[0]?.code, "supply_date_after_issue")
   // Deliberate invalid store fixture: authoring never saves it, so issuance must still refuse it.
   state.drafts.set(draft.id, { ...draft, supplyDate: "2025-08-06" })
   const issued = await refusal(service.issueInvoice(idempotent({ draftId: draft.id })))
-  assert.equal(issued.details?.[0]?.code, "supply_date_after_issue")
+  assert.equal(issued.details[0]?.code, "supply_date_after_issue")
   assert.equal(state.issued.size, 0)
 })
 

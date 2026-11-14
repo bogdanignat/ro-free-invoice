@@ -726,8 +726,12 @@ docker compose exec app sh -c 'wget -qO- --header "Host: invoice.test" --header 
 session it redirects to `/unlock`. Its OpenAPI 3.1 document is generated from the same
 Effect `HttpApi` contract served by `HttpApiBuilder`.
 The builder handles routing, decoding and response encoding; input errors retain
-the existing `400 ValidationFailure` envelope. The server disposes its Effect
-handler on shutdown.
+the existing `400 ValidationFailure` envelope: `issues` (English text) and `details`, aligned
+1:1, each `{ code, field?, params? }` from the closed catalogue in `cubes/invoicing/issues/`.
+A body or query that does not decode is `invalid_input` on its field; an e-Factura refusal is
+`efactura_rule` with the rule id in `params.rule` (`BR-RO-120`, or a range such as `BR-O-11..14`), else `efactura_contract`. The
+browser shows the Romanian text of the code and a generic Romanian message for an unknown one.
+The server disposes its Effect handler on shutdown.
 
 | Area | Routes |
 |---|---|
@@ -872,13 +876,13 @@ The register filters on the server, so any client narrows it the same way: `from
 ignored — `FCT 12`, `FCT12`, `12` — or in the customer name; `%` and `_` match themselves; blank =
 no search; at most 100 characters). Without them the answer is the whole register, as before. A
 cursor pages inside the filter it was issued for. Refusals are `400 ValidationFailure` with an
-issue per field: `from must not be after to`, `from|to must be a calendar date in YYYY-MM-DD format`,
-`kind: kind must be invoice or correction`, `q must be at most 100 characters`,
-`q must not contain control characters`, `limit must be an integer between 1 and 200`.
+issue and a coded detail per field: `range_inverted` (`from must not be after to`), `date_format`
+(`from|to must be a calendar date in YYYY-MM-DD format`), `invalid_input` on `kind` or `spv`,
+`too_long` and `control_characters` on `q`, `limit_out_of_range` (`limit must be an integer between 1 and 200`).
 With the e-Factura plugin on, every row also carries `spv` (SPV group, operational deadline and
 its urgency; `null` with the plugin off) and `spv=unresolved` keeps the documents still to resolve
 in SPV (not sent, rejected/refused, unknown); with the plugin off that filter is refused with
-`spv filter requires the e-Factura plugin`. See `docs/EFACTURA.md`.
+`spv_filter_unavailable` (`spv filter requires the e-Factura plugin`). See `docs/EFACTURA.md`.
 
 Issued invoices have no `DELETE`. Mistakes are handled through correction documents, which are
 numbered in the invoice series like any other invoice (Codul fiscal art. 330). Issue dates cannot be

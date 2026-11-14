@@ -122,7 +122,7 @@ and its dates are not used, their semantics being unverified.
 
 | Answer | When |
 | --- | --- |
-| `400 ValidationFailure`, issue in Romanian | ANAF contradicts the regime chosen on either day, or does not know the CIF (`notFound`) |
+| `400 ValidationFailure`, `vat_registry_not_registered`, `vat_registry_registered` or `vat_registry_unknown_cif` (shown in Romanian) | ANAF contradicts the regime chosen on either day, or does not know the CIF (`notFound`) |
 | `409 DomainConflict` `vat_change_affects_issued_documents` | an invoice or storno of the organization is dated on or after `effectiveFrom` |
 | `409 DomainConflict` `fiscal_identifier_change_has_issued_documents` | the CIF changes and the organization has issued any invoice or storno, whatever its date |
 | `409 DomainConflict` `issuer_changed_concurrently` | the CIF or the VAT history changed between the read and the save |

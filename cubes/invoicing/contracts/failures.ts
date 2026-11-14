@@ -12,15 +12,12 @@ export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
 
 export class ValidationFailure extends Data.TaggedError("ValidationFailure")<{
   readonly issues: ReadonlyArray<string>
-  /** Aligned 1:1 with `issues` when present (a hole is an issue without a code); a failure built from bare text has none. */
-  readonly details?: ReadonlyArray<IssueDetail | undefined>
+  /** Aligned 1:1 with `issues`: the code the browser says in Romanian. */
+  readonly details: ReadonlyArray<IssueDetail>
 }> {}
 
-/** A string is an issue not coded yet: its text goes out as is, with a hole in `details`. */
-export const validationFailure = (entries: ReadonlyArray<IssueDetail | string>): ValidationFailure => new ValidationFailure({
-  issues: entries.map((entry) => typeof entry === "string" ? entry : renderIssue(entry)),
-  details: entries.map((entry) => typeof entry === "string" ? undefined : entry),
-})
+export const validationFailure = (details: ReadonlyArray<IssueDetail>): ValidationFailure =>
+  new ValidationFailure({ issues: details.map(renderIssue), details })
 
 export class ResourceNotFound extends Data.TaggedError("ResourceNotFound")<{
   readonly resource: string

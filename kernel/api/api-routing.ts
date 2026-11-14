@@ -3,22 +3,24 @@ import {
 } from "@effect/platform"
 import { Cause, Chunk, Effect, Option } from "effect"
 
+import { invalidInput, paginationRepeated, sourceFilterIncomplete, validationFailure, type IssueDetail } from "../../cubes/invoicing/index.ts"
 import { failureReason, logInternalFailure } from "../failure-log.ts"
 
 const issuePath = (issue: { readonly path: ReadonlyArray<PropertyKey>, readonly message: string }): string => issue.path.length === 0
   ? issue.message : `${issue.path.map(String).join(".")}: ${issue.message}`
+const refused = (details: ReadonlyArray<IssueDetail>, issues = validationFailure(details).issues) =>
+  HttpServerResponse.unsafeJson({ error: "ValidationFailure", issues, details }, { status: 400 })
 const decodeFailure = (failure: HttpApiError.HttpApiDecodeError) => Effect.gen(function*() {
   const request = yield* HttpServerRequest.HttpServerRequest
   const params = new URL(request.url, "http://rfi.local").searchParams
   if (params.getAll("limit").length > 1 || params.getAll("cursor").length > 1) {
-    return HttpServerResponse.unsafeJson({ error: "ValidationFailure",
-      issues: ["limit and cursor must be supplied at most once"] }, { status: 400 })
+    return refused([paginationRepeated()])
   }
   if (["sourceApp", "sourceKind", "sourceId"].some((key) => params.getAll(key).length > 1)) {
-    return HttpServerResponse.unsafeJson({ error: "ValidationFailure",
-      issues: ["sourceApp, sourceKind, and sourceId must be supplied exactly once and together"] }, { status: 400 })
+    return refused([sourceFilterIncomplete()])
   }
-  return HttpServerResponse.unsafeJson({ error: "ValidationFailure", issues: failure.issues.map(issuePath) }, { status: 400 })
+  // Effect's own wording stays in `issues` for API clients; the browser reads the field from `details`.
+  return refused(failure.issues.map((issue) => invalidInput(issue.path.map(String).join("."))), failure.issues.map(issuePath))
 })
 const mapDecodeFailures = (app: HttpApp.Default): HttpApp.Default => Effect.catchIf(
   app as Effect.Effect<HttpServerResponse.HttpServerResponse, unknown, HttpServerRequest.HttpServerRequest>,

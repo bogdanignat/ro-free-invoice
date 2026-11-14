@@ -13,13 +13,14 @@ void test("the backend's refusals read in Romanian, from the answers the kernel 
   assert.match(companyLookupFailureMessage(parseApiFailure(
     { error: "DomainConflict", code: "company_lookup_key_storage_unavailable" }, 409)), /cheia de criptare/u)
   assert.match(companyLookupFailureMessage(parseApiFailure({ error: "ValidationFailure",
-    issues: ["openapiKey must be 10 to 200 printable ASCII characters without spaces"] }, 400)), /10–200 de caractere/u)
+    issues: ["x"], details: [{ code: "openapi_key_invalid", field: "openapiKey" }] }, 400)), /10–200 de caractere/u)
   assert.equal(companyLookupFailureMessage(parseApiFailure({ error: "ValidationFailure",
-    issues: ["provider openapi requires a configured openapiKey"] }, 400)), OPENAPI_NEEDS_KEY)
+    issues: ["x"], details: [{ code: "openapi_key_required", field: "openapiKey" }] }, 400)), OPENAPI_NEEDS_KEY)
 })
 
-void test("an unknown 400 issue never reaches the screen in English", () => {
-  const message = companyLookupFailureMessage(parseApiFailure({ error: "ValidationFailure", issues: ["provider must be one of none"] }, 400))
+void test("an unknown 400 code never reaches the screen in English", () => {
+  const message = companyLookupFailureMessage(parseApiFailure({ error: "ValidationFailure",
+    issues: ["provider must be one of none"], details: [{ code: "not_a_code" }] }, 400))
   assert.match(message, /nu sunt valide/u)
 })
 

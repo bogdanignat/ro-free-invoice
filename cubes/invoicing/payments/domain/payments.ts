@@ -57,13 +57,11 @@ const parseMoneyMinor = (value: string, field: string): bigint => {
   if (parsed.units <= 0n) throw validationFailure([issue.amountNotPositive(field)])
   return parsed.units
 }
-/** The details a check refused with; a refusal without a code on every issue propagates as is, never vanishes. */
+/** The details a check refused with; any other failure propagates as is. */
 const refusedWith = (check: () => unknown): ReadonlyArray<issue.IssueDetail> => {
   try { check() } catch (error) {
     if (!(error instanceof ValidationFailure)) throw error
-    const coded = error.details?.filter((detail) => detail !== undefined) ?? []
-    if (coded.length !== error.issues.length) throw error
-    return coded
+    return error.details
   }
   return []
 }

@@ -1,4 +1,5 @@
-import { DomainConflict, ValidationFailure } from "../../contracts/failures.ts"
+import { DomainConflict, validationFailure } from "../../contracts/failures.ts"
+import { preferredVatRateInvalid, productKindInvalid, required } from "../../issues/index.ts"
 import { normalizeMoney } from "../../domain/calculation.ts"
 import { validateLineDescription } from "../../domain/validation.ts"
 import { normalizeItemCode, normalizeUnitOfMeasure, validateBarcode, type UnitOfMeasure } from "../../items/index.ts"
@@ -42,13 +43,13 @@ export const codeTakenConflict = (code: string): DomainConflict =>
 // code the law has retired since must be replaced or removed before the product can change.
 export const normalizeProductPreset = (input: ProductPresetInput, today: string): ProductPresetInput => {
   const description = input.description.trim()
-  if (description.length === 0) throw new ValidationFailure({ issues: ["description is required"] })
+  if (description.length === 0) throw validationFailure([required("description")])
   validateLineDescription(description)
   const kind: unknown = input.kind
-  if (!productKinds.includes(kind as ProductKind)) throw new ValidationFailure({ issues: ["kind must be goods or service"] })
+  if (!productKinds.includes(kind as ProductKind)) throw validationFailure([productKindInvalid()])
   const preferred = input.preferredVatRateCode
   if (preferred !== undefined && !isTaxableVatRateOn(preferred, today)) {
-    throw new ValidationFailure({ issues: [`preferredVatRateCode must be a taxable VAT rate in force on ${today}`] })
+    throw validationFailure([preferredVatRateInvalid(today)])
   }
   const barcode = input.barcode
   if (barcode !== undefined) validateBarcode(barcode)

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { ApiFailure, isTransientFailure, parseApiFailure } from "./api-errors.ts"
+import { ApiFailure, INVALID_INPUT_MESSAGE, isTransientFailure, parseApiFailure } from "./api-errors.ts"
 
 void test("preserves the established session error messages", () => {
   assert.equal(parseApiFailure({ error: "invalid_credentials" }, 401).message, "Tokenul API este incorect.")
@@ -113,8 +113,8 @@ void test("a coded validation issue reads in Romanian with its field label and p
     details: [{ code: "too_long", field: "description", params: { maximum: 100 } }] }, 400)
   assert.equal(failure.message, "Câmpul „descrierea” este prea lung (maxim 100, în caractere).")
   assert.deepEqual(failure.issues, ["description must be at most 100 characters"])
-  const unknownField = parseApiFailure({ error: "ValidationFailure", issues: ["x"], details: [{ code: "required", field: "address.county" }] }, 400)
-  assert.equal(unknownField.message, "Câmpul „address.county” este obligatoriu.")
+  const unknownField = parseApiFailure({ error: "ValidationFailure", issues: ["x"], details: [{ code: "required", field: "address.unknown" }] }, 400)
+  assert.equal(unknownField.message, "Câmpul „address.unknown” este obligatoriu.")
 })
 
 void test("a payment amount, a storno reason and a future issue date read in Romanian", () => {
@@ -134,25 +134,51 @@ void test("a supply after the issue and a VAT regime missing on the supply date 
 
 void test("the failure keeps the field of the detail its message was read from", () => {
   const read = (details: unknown) => parseApiFailure({ error: "ValidationFailure", issues: ["x"], details }, 400).field
-  assert.equal(read([{ code: "unclassified", field: "notes" }, { code: "supply_date_after_issue", field: "supplyDate" }]), "supplyDate")
+  assert.equal(read([{ code: "not_a_code", field: "notes" }, { code: "supply_date_after_issue", field: "supplyDate" }]), "supplyDate")
   assert.equal(read([{ code: "vat_registration_missing", params: { date: "2025-07-20" } }]), undefined)
-  assert.equal(read([{ code: "unclassified", field: "supplyDate" }]), undefined)
+  assert.equal(read([{ code: "not_a_code", field: "supplyDate" }]), undefined)
   assert.equal(parseApiFailure({ error: "DomainConflict", code: "x", message: "m", details: [{ code: "required", field: "supplyDate" }] }, 409).field, undefined)
 })
 
-void test("the first coded detail wins, and an unclassified one leaves the English issue", () => {
+void test("the first known code wins, and a refusal with none known reads the generic Romanian text, never the English", () => {
   const issues = ["first", "second"]
-  assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "unclassified" }, { code: "quantity_zero", field: "quantity" }] }, 400).message,
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "not_a_code" }, { code: "quantity_zero", field: "quantity" }] }, 400).message,
     "Cantitatea trebuie să fie mai mare decât zero.")
-  assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "unclassified" }, { code: "unclassified" }] }, 400).message, "first")
-  assert.equal(parseApiFailure({ error: "ValidationFailure", issues }, 400).message, "first")
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "not_a_code" }, { code: "not_a_code" }] }, 400).message, INVALID_INPUT_MESSAGE)
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues }, 400).message, INVALID_INPUT_MESSAGE)
+  // A decoding refusal at the root names no field, so it reads the generic text too.
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "invalid_input" }] }, 400).message, INVALID_INPUT_MESSAGE)
 })
 
-void test("a malformed details is ignored: the English issue shows", () => {
+void test("the codes of the parties, the issuer, company lookup and e-Factura read in Romanian", () => {
+  const read = (details: unknown) => parseApiFailure({ error: "ValidationFailure", issues: ["x"], details }, 400).message
+  assert.equal(read([{ code: "too_long", field: "name", params: { maximum: 200 } }]), "Câmpul „denumirea” este prea lung (maxim 200, în caractere).")
+  assert.equal(read([{ code: "company_cui_required", field: "fiscalIdentifier" }]), "CUI-ul este obligatoriu pentru o firmă.")
+  assert.equal(read([{ code: "iban_checksum", field: "iban" }]), "IBAN-ul nu este valid: cifrele de control nu se potrivesc.")
+  assert.match(read([{ code: "vat_catalogue_not_covered", field: "vatChange.effectiveFrom", params: { date: "2020-01-01" } }]), /cotele de TVA de la data 2020-01-01/u)
+  assert.match(read([{ code: "cui_too_short", field: "cui", params: { minimum: 4 } }]), /cel puțin 4 cifre/u)
+  assert.equal(read([{ code: "invalid_input", field: "address.city" }]), "Câmpul „localitatea” nu are o valoare validă.")
+  assert.equal(read([{ code: "efactura_rule", params: { rule: "BR-RO-010", text: "id must contain at least one digit" } }]),
+    "Factura nu respectă regula e-Factura BR-RO-010. Verifică datele facturii și ale părților.")
+  assert.equal(read([{ code: "efactura_contract", params: { text: "UBL root is missing" } }]),
+    "Factura nu poate fi generată pentru e-Factura: datele nu respectă specificația CIUS-RO.")
+  assert.equal(read([{ code: "currency_not_ron", field: "defaultCurrency" }]), "Câmpul „moneda implicită” trebuie să fie RON.")
+  assert.equal(read([{ code: "invalid_input", field: "uploadIndex" }]), "Câmpul „indexul de încărcare” nu are o valoare validă.")
+})
+
+void test("a decoding refusal on a path the forms do not name reads the generic Romanian text, not the raw path", () => {
+  const issues = ["lines.0.quantity: Expected string"]
+  for (const field of ["lines.0.quantity", "constructor"]) {
+    const failure = parseApiFailure({ error: "ValidationFailure", issues, details: [{ code: "invalid_input", field }] }, 400)
+    assert.deepEqual([failure.message, failure.field], [INVALID_INPUT_MESSAGE, undefined], field)
+  }
+})
+
+void test("a malformed details is ignored: the generic Romanian text shows, never the English issue", () => {
   const issues = ["english"]
   for (const details of ["too_long", 7, null, {}, [null], [7], [{}], [{ code: 3 }], [{ code: "constructor" }], [{ code: "__proto__" }],
     [{ code: "too_long", field: "description" }], [{ code: "too_long", field: "description", params: { maximum: {} } }],
     [{ code: "too_long", field: 4, params: { maximum: 1 } }], [{ code: "too_long", params: "x" }]]) {
-    assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details }, 400).message, "english", JSON.stringify(details))
+    assert.equal(parseApiFailure({ error: "ValidationFailure", issues, details }, 400).message, INVALID_INPUT_MESSAGE, JSON.stringify(details))
   }
 })

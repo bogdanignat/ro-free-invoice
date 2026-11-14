@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 
-import { ValidationFailure } from "../../../contracts/failures.ts"
+import { validationFailure } from "../../../contracts/failures.ts"
+import { confirmationRequired } from "../../../issues/index.ts"
 import {
   canSupersede, checkedUpload, documentStatus, submissionAudit, type SubmissionDocument, type SubmissionRecord, type Submitted,
   type SubmittedKind,
@@ -33,7 +34,7 @@ export const resubmit = <E>(dependencies: ReconciliationDependencies, id: string
   Effect.Effect<Submitted, ReconciliationFailure | E> => Effect.gen(function*() {
   const { anaf, clock, environment, ids, store } = dependencies
   const context = yield* authorized(dependencies)
-  if (!confirmed) return yield* Effect.fail(new ValidationFailure({ issues: ["confirmed must be true"] }))
+  if (!confirmed) return yield* Effect.fail(validationFailure([confirmationRequired()]))
   const organizationId = context.organization.id
   const seen = yield* store.transaction((transaction) => Effect.gen(function*() {
     const previous = yield* found(transaction, organizationId, id)

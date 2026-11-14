@@ -1,5 +1,8 @@
-import { ValidationFailure } from "../../contracts/failures.ts"
+import { validationFailure } from "../../contracts/failures.ts"
 import type { VatConfiguration } from "../../domain/invoice.ts"
+import {
+  vatRegistrationMissing, vatRegistryNotRegistered, vatRegistryRegistered, vatRegistryUnknownCif, type IssueDetail,
+} from "../../issues/index.ts"
 import type { VatRegistryStatus } from "../contracts/fiscal-guard.ts"
 import type { IssuerProfile, VatChange } from "./issuer.ts"
 import { changesVatRegistration, currentVatRegistration } from "./vat-regime.ts"
@@ -40,19 +43,15 @@ export const registryChecks = (
   const first = configurations.map(({ effectiveFrom }) => effectiveFrom).sort()[0] ?? today
   const date = currentVatRegistration(configurations, today) === undefined ? first : today
   const registration = currentVatRegistration(configurations, date)
-  if (registration === undefined) throw new ValidationFailure({ issues: [`issuer VAT registration must be configured on ${date}`] })
+  if (registration === undefined) throw validationFailure([vatRegistrationMissing(date)])
   return [{ date, registered: registration.registered }]
 }
 
 /** Why the registry's answer refuses the save, in the words the settings screen shows; `undefined` when it agrees. */
-export const registryIssue = (cif: string, check: RegistryCheck, status: VatRegistryStatus): string | undefined => {
-  if (status === "unknown_cif") return `CIF-ul ${cif} nu figurează în registrul ANAF al plătitorilor de TVA.`
-  if (check.registered && status === "not_registered") {
-    return `ANAF arată că CIF-ul ${cif} nu este înregistrat în scopuri de TVA la ${check.date}; firma nu poate fi salvată ca plătitoare de TVA.`
-  }
-  if (!check.registered && status === "registered") {
-    return `ANAF arată că CIF-ul ${cif} este înregistrat în scopuri de TVA la ${check.date}; firma nu poate fi salvată ca neplătitoare (art. 310).`
-  }
+export const registryIssue = (cif: string, check: RegistryCheck, status: VatRegistryStatus): IssueDetail | undefined => {
+  if (status === "unknown_cif") return vatRegistryUnknownCif(cif)
+  if (check.registered && status === "not_registered") return vatRegistryNotRegistered(cif, check.date)
+  if (!check.registered && status === "registered") return vatRegistryRegistered(cif, check.date)
   return undefined
 }
 
