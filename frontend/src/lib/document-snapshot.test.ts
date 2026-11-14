@@ -15,7 +15,7 @@ import { projectCorrectionDocument, projectIssuedInvoice } from "./document-proj
  * screen printed `RO-B` and `RORO12345678` in front of a real document.
  */
 const issuer = {
-  name: "Qwbe Software SRL",
+  name: "RFI Software SRL",
   fiscalIdentifier: "12345674",
   address: { countryCode: "RO", city: "București", street: "Str. Lungă 1", county: "RO-B", sector: 3, postalCode: "030123" },
   legalForm: "srl",

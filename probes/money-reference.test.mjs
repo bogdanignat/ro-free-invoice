@@ -60,12 +60,12 @@ const issuer = (vatRegistered) => ({
 })
 const invoiceOf = (lines, vatRegistered) => ({
   id: "invoice-1", organizationId: "org-1", draftId: null, sourceProformaId: null, eFacturaStatus: "not_sent",
-  series: "QWBE", number: 7, issueDate: "2026-09-01", dueDate: "2026-09-16", issuedAt: "2026-09-01T10:00:00.000Z",
+  series: "RFI", number: 7, issueDate: "2026-09-01", dueDate: "2026-09-16", issuedAt: "2026-09-01T10:00:00.000Z",
   actorId: "user-1", currency: "RON", notes: null, issuer: issuer(vatRegistered),
   customer: { partyType: "company", vatRegistered: true, ...party }, lines, ...calculateTotals(lines),
 })
 const correctionOf = (invoice) => ({
-  id: "correction-1", organizationId: "org-1", originalInvoiceId: invoice.id, fiscalYear: 2026, series: "QWBE",
+  id: "correction-1", organizationId: "org-1", originalInvoiceId: invoice.id, fiscalYear: 2026, series: "RFI",
   number: 8, issueDate: "2026-09-20", dueDate: null, notes: null, issuedAt: "2026-09-20T10:00:00.000Z",
   reason: "Stornare integrală", actorId: "user-1", currency: "RON", issuer: invoice.issuer, customer: invoice.customer,
   original: { series: invoice.series, number: invoice.number, issueDate: invoice.issueDate },
@@ -96,16 +96,16 @@ const documentDigests = async (name, invoice) => {
 void test("the synthetic e-Factura fixtures render to the bytes they had before T-1905", () => {
   const digests = Object.fromEntries(syntheticFixtures.map(({ name, document }) => [name, sha256(renderEFacturaXml(document))]))
   assert.deepEqual(digests, {
-    "01-standard-b2b": "28d172a9a058d6d58750a54c48f5271ecf8e95b0a24e995924a63e06b558b1f7",
-    "02-consumer-placeholder-id": "a649e1c6b4ca78d95932db29be8dd37c809af74e6d950d795035f5527bed8644",
-    "03-bucharest-buyer": "112ffe04beedf1e086b95df97a5923bc47024ebb370c9666042e59a9526cef76",
-    "04-article310-exempt-E": "779cf712e59a71f01dbb4cf9c23be14860a35274b435c1e38c6605df3971f1de",
-    "05-article310-not-subject-O": "e521026714ece6f5b24f0820eb6a4312f3689c1d6212a233b784667d1e648100",
-    "06-credit-note": "605e37d73b74203e1f97025ae0ba55960da642ff3acfd6d6dd13f63054cbd82e",
-    "07-consumer-cnp": "da50eb0123f2463730c2e9e4bbfca417b71a1cc38bd482506c5aedbd4c0bb918",
-    "08-buyer-without-vat-registration": "322ded6aba3972a81e98251161c59548196ab58603f23dfa893d07972ac7852e",
-    "09-article310-credit-note": "9f7705dceeb2d3a1b0e94f64e6924c60433b1b373f2f9b05114368ccdb20324c",
-    "10-article310-with-remarks": "35b014d218e960fe01577d9aa33651755109656296bdd5aaafd62ff6ed391f6c",
+    "01-standard-b2b": "0677ef81955b18ce6ef14ab8faa079f35f5708795ef33b421abec8a3ddfef19c", // T-2711: seria -> RFI
+    "02-consumer-placeholder-id": "e82235ecb68a59e1f12ed8db81e07f0f605ae57d086c23b6993873bfb9cf95fe", // T-2711: seria -> RFI
+    "03-bucharest-buyer": "5b52a4b963d7cf9bd6856bab43c7976d33545430c84523b77b0d50fedf9043d4", // T-2711: seria -> RFI
+    "04-article310-exempt-E": "08e7bdfc6da868050f2a79afd642f3243f27f78ab96d7d10cb52b26304ff84f2", // T-2711: seria -> RFI
+    "05-article310-not-subject-O": "cd8db3bd7180ca300dbc7c0eb9e05b336d6d8269bfc27631c4353d06b920fa85", // T-2711: seria -> RFI
+    "06-credit-note": "3375c80b4239135d5b15996ba354fb781bac5dff81152cf73d3fc3b842dd7879", // T-2711: seria -> RFI
+    "07-consumer-cnp": "06b48c75daab4b744ac584abb7abce45bb97ff8d2b6818d23ea575582080fe60", // T-2711: seria -> RFI
+    "08-buyer-without-vat-registration": "3dc2a224ef9cc11b0596f5e61b91e16b7ff24a3bc606e997d45ea36a7dc6ab05", // T-2711: seria -> RFI
+    "09-article310-credit-note": "b99f4a58b663fe33f0bee2696200421973a7e377b425e0cdf9074b98686b19cd", // T-2711: seria -> RFI
+    "10-article310-with-remarks": "2309b3a6310b4e6b566f77c4b91294aa1369fb64c755afa1bbe3bbddee8015b7", // T-2711: seria -> RFI
   })
 })
 
@@ -116,15 +116,15 @@ void test("calculated snapshots, their XML and their PDFs are the ones from befo
   }
   assert.deepEqual(digests, {
     "taxed.snapshot": "9854fd4902bbaaf5c3068ac8d76ec75040a7c59af528bace2794d923dba50c4a",
-    "taxed.invoice.xml": "59d57dbee2dd79fd489b0a371c963a9e04952f12fdff0ae49740cd0810685557",
-    "taxed.credit-note.xml": "f56b46ccc7182074f4f4e40f483b411210ed75f91d18fe926c27bdf4a0bc5fec",
-    "taxed.invoice.pdf": "7ff57f460809cad3913fed9648d42ca68e4215d03bbf90b0373abbec8661d83d",
-    "taxed.storno.pdf": "6794f507e153d1cadc6c68bb5322f08b5f4f03f8718743c4a43a7bf933ea6953",
+    "taxed.invoice.xml": "1ab246e82868d6e6cb776bfc961dc0308b300619dbb039a3443ac0c16601a571", // T-2711: seria -> RFI
+    "taxed.credit-note.xml": "6920b403ad03666ce0435073739017cb67d9c330f2537ed3bff6b10e4b5a1d4a", // T-2711: seria -> RFI
+    "taxed.invoice.pdf": "df42eed7c48072669a9034b236aec40d8dcd7e0849c0d60bba1a8ec792ea0f55", // T-2711: seria -> RFI
+    "taxed.storno.pdf": "30ea00fa9eacdc37071ffbe2e09c2df4aca62894638c3a6ce635c7362b0f2d36", // T-2711: seria -> RFI
     "article310.snapshot": "3a0af2fe5dd56bbe49cf15ca0e758de63b81e0ed997fb1e7c69283ae3105b3c2",
-    "article310.invoice.xml": "776e53bf51eff0e0c6f680ecb32921fc9b4a9012c8e53ca238febd8ff06c7fd3",
-    "article310.credit-note.xml": "f340d8b1e3e425695d37cc6be115f64e9b69a4354828113881e7a4cb9154d42e",
-    "article310.invoice.pdf": "9dd56037b39bf36f825b59490813df340277f52d430e7a40ca2111e27e216485",
-    "article310.storno.pdf": "02952863421ab3e5f569a1f32df52b272984f49c2b5f9c24d81cc6bb84e15fde",
+    "article310.invoice.xml": "17a0db649383ea4d12e24054178ecb1357a9e6610a7ae315c2d05285e654b228", // T-2711: seria -> RFI
+    "article310.credit-note.xml": "85af27a747a1981df3611ea9f923213179710384a0ae7239d94a15cdaa26d770", // T-2711: seria -> RFI
+    "article310.invoice.pdf": "bd2b71cc1b321bc0fd713fa58c8243098655392385444e58537a28398532a7fd", // T-2711: seria -> RFI
+    "article310.storno.pdf": "d14ad8a91417346751566b07eca0ad990facf5bb655f520eaadc941c8f0bbb8c", // T-2711: seria -> RFI
   })
 })
 

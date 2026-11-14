@@ -15,7 +15,7 @@ const article310VatExemptionReason = "Regim special de scutire conform art. 310 
 const invoice: RenderableInvoice = {
   id: "invoice-1",
   organizationId: "org-1",
-  series: "QWBE",
+  series: "RFI",
   number: 7,
   issueDate: "2026-09-01",
   supplyDate: "2026-09-01",
@@ -73,7 +73,7 @@ void test("renders deterministic valid PDFs with Romanian glyphs and fixed metad
 
   const parsed = await PDFDocument.load(first.bytes, { updateMetadata: false })
   assert.equal(parsed.getPageCount(), 1)
-  assert.equal(parsed.getTitle(), "Factura QWBE 7")
+  assert.equal(parsed.getTitle(), "Factura RFI 7")
   assert.equal(parsed.getAuthor(), "Știință și Tehnică SRL")
   assert.equal(parsed.getCreationDate()?.toISOString(), invoice.issuedAt)
 })
@@ -152,7 +152,7 @@ void test("renders deterministic non-fiscal proformas and omits a null due date"
   assert.deepEqual(first.bytes, second.bytes)
   assert.equal(first.templateVersion, proformaTemplateVersion)
   const parsed = await PDFDocument.load(first.bytes, { updateMetadata: false })
-  assert.equal(parsed.getTitle(), "Proformă QWBE 7")
+  assert.equal(parsed.getTitle(), "Proformă RFI 7")
   assert.equal(parsed.getSubject(), "PROFORMĂ — DOCUMENT NEFISCAL")
   assert.equal(parsed.getProducer(), `RO Free Invoice ${proformaTemplateVersion}`)
 })

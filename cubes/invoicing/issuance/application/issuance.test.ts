@@ -27,21 +27,21 @@ void test("issues deterministic immutable invoice snapshots through the public s
     defaultPaymentTermDays: 15,
     vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "ALT" }))
   await Effect.runPromise(service.addDocumentSeries({ documentType: "proforma", series: "PRO" }))
   assert.deepEqual(await Effect.runPromise(service.listDocumentSeries()), [
     { organizationId: "org-1", documentType: "invoice", series: "ALT", archived: false },
-    { organizationId: "org-1", documentType: "invoice", series: "QWBE", archived: false },
+    { organizationId: "org-1", documentType: "invoice", series: "RFI", archived: false },
     { organizationId: "org-1", documentType: "proforma", series: "PRO", archived: false },
   ])
   const duplicateSeries = await Effect.runPromise(Effect.flip(
-    service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }),
+    service.addDocumentSeries({ documentType: "invoice", series: "RFI" }),
   ))
   assert.equal(duplicateSeries instanceof DomainConflict && duplicateSeries.code === "document_series_exists", true)
   assert.deepEqual(state.auditEvents.filter(({ action }) => action === "series.added")
     .map(({ actorId, targetKind, targetId }) => ({ actorId, targetKind, targetId })), [
-    { actorId: identity.id, targetKind: "document_series", targetId: "invoice:QWBE" },
+    { actorId: identity.id, targetKind: "document_series", targetId: "invoice:RFI" },
     { actorId: identity.id, targetKind: "document_series", targetId: "invoice:ALT" },
     { actorId: identity.id, targetKind: "document_series", targetId: "proforma:PRO" },
   ])
@@ -61,23 +61,23 @@ void test("issues deterministic immutable invoice snapshots through the public s
   const invalidDueDate = await Effect.runPromise(Effect.flip(service.createDraft(idempotent({
     customerId: customer.id,
     issueDate: "2026-09-01",
-    series: "QWBE",
+    series: "RFI",
     dueDate: "2026-08-31",
   }))))
   assert.equal(invalidDueDate instanceof ValidationFailure, true)
   const invalidCurrency = await Effect.runPromise(Effect.flip(service.createDraft(idempotent({
     customerId: customer.id,
     issueDate: "2026-09-01",
-    series: "QWBE",
+    series: "RFI",
     currency: "EUR",
   }))))
   assert.equal(invalidCurrency instanceof ValidationFailure && invalidCurrency.issues.includes("currency must be RON"), true)
   const draft = await Effect.runPromise(service.createDraft(idempotent({
     customerId: customer.id,
     issueDate: "2026-09-01",
-    series: "QWBE",
+    series: "RFI",
   })))
-  assert.equal(draft.series, "QWBE")
+  assert.equal(draft.series, "RFI")
   assert.equal(draft.dueDate, null)
   await Effect.runPromise(service.addDraftLine({
     draftId: draft.id,
@@ -102,7 +102,7 @@ void test("issues deterministic immutable invoice snapshots through the public s
     { action: "invoice.issued", actorId: identity.id, targetKind: "invoice", targetId: issued.id },
   ])
   assert.equal(issuanceAudit[0]?.occurredAt, issued.issuedAt)
-  assert.equal(issued.series, "QWBE")
+  assert.equal(issued.series, "RFI")
   assert.equal(issued.totalExcludingVat, "125.00")
   assert.equal(issued.vatTotal, "26.25")
   assert.equal(issued.totalIncludingVat, "151.25")
@@ -142,7 +142,7 @@ void test("issues deterministic immutable invoice snapshots through the public s
   const newDraft = await Effect.runPromise(Effect.flip(service.createDraft(idempotent({
     customerId: customer.id,
     issueDate: "2026-09-02",
-    series: "QWBE",
+    series: "RFI",
   }))))
   assert.equal(newDraft instanceof ResourceNotFound, true)
   assert.equal((await Effect.runPromise(service.getIssuedInvoice(issued.id))).customer.name, "Client SRL")
@@ -176,7 +176,7 @@ void test("failed invoice and proforma issuance rolls back both the document and
     defaultPaymentTermDays: 15,
     vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   await Effect.runPromise(service.addDocumentSeries({ documentType: "proforma", series: "PRO" }))
   const customer = await Effect.runPromise(service.createCustomer({
     partyType: "company",
@@ -185,7 +185,7 @@ void test("failed invoice and proforma issuance rolls back both the document and
     vatRegistered: true,
     address: { countryCode: "RO", city: "Iași", street: "Strada Mică 2", county: "RO-IS" },
   }))
-  const draft = await Effect.runPromise(service.createDraft(idempotent({ customerId: customer.id, issueDate: "2026-09-01", series: "QWBE", dueDate: "2026-09-16" })))
+  const draft = await Effect.runPromise(service.createDraft(idempotent({ customerId: customer.id, issueDate: "2026-09-01", series: "RFI", dueDate: "2026-09-16" })))
   const deletion = await Effect.runPromise(Effect.flip(service.deleteCustomer(customer.id)))
   assert.equal(deletion instanceof DomainConflict && deletion.code === "customer_has_open_drafts", true)
   await Effect.runPromise(service.addDraftLine({
@@ -224,7 +224,7 @@ void test("failed invoice and proforma issuance rolls back both the document and
   assert.equal(state.auditEvents.length, auditBaseline)
   assert.equal(state.drafts.get(draft.id)?.status, "draft")
 
-  const proformaDraft = await Effect.runPromise(service.createDraft(idempotent({ customerId: customer.id, issueDate: "2026-09-01", series: "QWBE" })))
+  const proformaDraft = await Effect.runPromise(service.createDraft(idempotent({ customerId: customer.id, issueDate: "2026-09-01", series: "RFI" })))
   await Effect.runPromise(service.addDraftLine({
     draftId: proformaDraft.id,
     description: "Avans",

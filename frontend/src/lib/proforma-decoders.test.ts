@@ -13,7 +13,7 @@ import { decodeProforma, decodeProformaPage } from "./proforma-decoders.ts"
  * detail can share one decoder.
  */
 const issuer = {
-  name: "Qwbe Software SRL",
+  name: "RFI Software SRL",
   fiscalIdentifier: "12345674",
   address: { countryCode: "RO", city: "București", street: "Str. Lungă 1", county: "RO-B", sector: 3 },
   legalForm: "srl",

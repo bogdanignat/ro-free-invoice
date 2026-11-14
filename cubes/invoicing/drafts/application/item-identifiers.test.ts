@@ -20,7 +20,7 @@ const setup = async () => {
     legalForm: "srl", tradeRegistryNumber: "J40/123/2020", socialCapital: "200.00", iban: "", bankName: "",
     defaultCurrency: "RON", defaultPaymentTermDays: 15, branding: null, vatChange: { registered: true, effectiveFrom: "2025-08-01" },
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   await Effect.runPromise(service.addDocumentSeries({ documentType: "proforma", series: "PRO" }))
   return { state, service }
 }
@@ -28,7 +28,7 @@ const setup = async () => {
 const header = {
   customer: { partyType: "company" as const, name: "Client SRL", fiscalIdentifier: "87654329", vatRegistered: true,
     address: { countryCode: "RO", city: "Iași", street: "Strada Mică 2", county: "RO-IS" } },
-  series: "QWBE", issueDate: "2026-09-01", dueDate: "2026-09-15",
+  series: "RFI", issueDate: "2026-09-01", dueDate: "2026-09-15",
 }
 const coded = { description: "Șurub M6", quantity: "2", unitPrice: "1.50", unitOfMeasure: each, vatRateCode: "RO_STANDARD",
   itemCode: " SRB-M6 ", barcode: "00012345600012" }
@@ -101,8 +101,8 @@ void test("issuance, both proforma conversions and the storno copy the identifie
     dueDate: header.dueDate, proformaSeries: "PRO", currency: "RON" as const, lines: [coded] })))
   const first = await proforma()
   assert.deepEqual(identifiers(first.lines[0]), { itemCode: "SRB-M6", barcode: "00012345600012" })
-  const fromProforma = await Effect.runPromise(service.issueInvoiceFromProforma(idempotent({ proformaId: first.id, invoiceSeries: "QWBE" })))
+  const fromProforma = await Effect.runPromise(service.issueInvoiceFromProforma(idempotent({ proformaId: first.id, invoiceSeries: "RFI" })))
   assert.deepEqual(identifiers(fromProforma.lines[0]), { itemCode: "SRB-M6", barcode: "00012345600012" })
-  const derived = await Effect.runPromise(service.createDraftInvoiceFromProforma(idempotent({ proformaId: (await proforma()).id, invoiceSeries: "QWBE" })))
+  const derived = await Effect.runPromise(service.createDraftInvoiceFromProforma(idempotent({ proformaId: (await proforma()).id, invoiceSeries: "RFI" })))
   assert.deepEqual(identifiers(derived.lines[0]), { itemCode: "SRB-M6", barcode: "00012345600012" })
 })

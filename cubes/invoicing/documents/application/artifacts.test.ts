@@ -19,7 +19,7 @@ import { createArtifactService } from "./artifacts.ts"
 const invoice: RenderableInvoice = {
   id: "invoice-1",
   organizationId: "org-1",
-  series: "QWBE",
+  series: "RFI",
   number: 1,
   issueDate: "2026-09-01",
   supplyDate: "2026-09-01",

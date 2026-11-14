@@ -15,7 +15,7 @@ const customer = {
   address: { countryCode: "RO", city: "Iași", street: "Strada Mică 2", county: "RO-IS" },
 }
 const line = { description: "Servicii", quantity: "2", unitPrice: "100", unitOfMeasure: each, vatRateCode: "RO_STANDARD" }
-const draftBody = { customer, series: "QWBE", issueDate: "2026-09-05", dueDate: "2026-09-20", lines: [line, line] }
+const draftBody = { customer, series: "RFI", issueDate: "2026-09-05", dueDate: "2026-09-20", lines: [line, line] }
 
 const fixture = async (label: string) => {
   const rig = await migratedFixture(`idem_${label}`)
@@ -40,7 +40,7 @@ const fixture = async (label: string) => {
     bankName: "Banca Română", socialCapital: "1000.00", defaultCurrency: "RON", defaultPaymentTermDays: 15,
     vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   })
-  await call("POST", "/api/document-series", { documentType: "invoice", series: "QWBE" })
+  await call("POST", "/api/document-series", { documentType: "invoice", series: "RFI" })
   return { call, close: () => rig.close() }
 }
 
@@ -75,7 +75,7 @@ void test("POST /api/drafts carries the lines in the create request and replays 
     assert.equal(((await value.call("GET", "/api/drafts")).body as { items: ReadonlyArray<unknown> }).items.length, 1)
 
     // A draft with no lines at all is a legitimate create; issuing it is not.
-    const empty = await value.call("POST", "/api/drafts", { customer, series: "QWBE", issueDate: "2026-09-05" }, "http-empty")
+    const empty = await value.call("POST", "/api/drafts", { customer, series: "RFI", issueDate: "2026-09-05" }, "http-empty")
     assert.equal(empty.status, 200)
     assert.deepEqual((empty.body as { lines: ReadonlyArray<unknown> }).lines, [])
     const issued = await value.call("POST", `/api/drafts/${idOf(empty)}/issue`, {}, "http-issue-empty")

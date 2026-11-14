@@ -61,7 +61,7 @@ void test("renders a credit note as a credit note, not as a negated invoice", ()
 
 void test("references the corrected invoice by number and date (BG-3)", () => {
   const xml = renderEFacturaXml(fullCreditNote)
-  assert.match(xml, /<cac:BillingReference>\s*<cac:InvoiceDocumentReference>\s*<cbc:ID>QWBE 1001<\/cbc:ID>/u)
+  assert.match(xml, /<cac:BillingReference>\s*<cac:InvoiceDocumentReference>\s*<cbc:ID>RFI 1001<\/cbc:ID>/u)
   assert.ok(element(xml, "cbc:IssueDate").includes(standardB2B.issueDate))
 })
 

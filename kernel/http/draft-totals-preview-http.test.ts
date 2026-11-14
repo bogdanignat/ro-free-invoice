@@ -25,7 +25,7 @@ void test("the preview answers the totals the saved draft gets, without a key an
       await seed(served)
       const preview = await ok(call("POST", path, { issueDate, lines }), "preview")
       assert.equal(await draftCount(call), 0)
-      const draft = await ok(call("POST", "/api/drafts", { customer, series: "QWBE", issueDate, dueDate, lines }, "preview-draft"), "draft")
+      const draft = await ok(call("POST", "/api/drafts", { customer, series: "RFI", issueDate, dueDate, lines }, "preview-draft"), "draft")
       const savedLines = (draft.lines as ReadonlyArray<Record<string, unknown>>)
         .map(({ totalExcludingVat, vatAmount, totalIncludingVat }) => ({ totalExcludingVat, vatAmount, totalIncludingVat }))
       assert.deepEqual(totals.map((key) => preview[key]), totals.map((key) => key === "lines" ? savedLines : draft[key]))

@@ -20,11 +20,11 @@ void test("corrects an issued invoice exactly once with a negated immutable snap
     legalForm: "srl", tradeRegistryNumber: "J40/123/2020", socialCapital: "200.00", iban: "", bankName: "",
     defaultCurrency: "RON", defaultPaymentTermDays: 15, vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   const customer = { partyType: "company" as const, name: "Client SRL", fiscalIdentifier: "87654329", vatRegistered: true,
     address: { countryCode: "RO", city: "Iași", street: "Strada Mică 2", county: "RO-IS" } }
   const invoice = await Effect.runPromise(service.issueInvoice(idempotent({
-    customer, series: "QWBE", issueDate: "2026-09-01", dueDate: "2026-09-16", currency: "RON" as const,
+    customer, series: "RFI", issueDate: "2026-09-01", dueDate: "2026-09-16", currency: "RON" as const,
     source: { app: "shop", kind: "order", id: "order-7" },
     lines: [{ description: "Servicii", quantity: "1.2500", unitPrice: "100.00", unitOfMeasure: each, vatRateCode: "RO_STANDARD" }],
   })))
@@ -47,7 +47,7 @@ void test("corrects an issued invoice exactly once with a negated immutable snap
   const attempt = idempotent({ originalInvoiceId: invoice.id, reason: "  Eroare de cantitate  " })
   const correction = await Effect.runPromise(service.createCorrection(attempt))
   assert.equal(correction.originalInvoiceId, invoice.id)
-  assert.equal(correction.series, "QWBE")
+  assert.equal(correction.series, "RFI")
   assert.equal(correction.number, 2)
   assert.equal(correction.fiscalYear, 2026)
   assert.equal(correction.issueDate, "2026-09-01")
@@ -67,8 +67,8 @@ void test("corrects an issued invoice exactly once with a negated immutable snap
     address: invoice.issuer.address, legalForm: "srl", vatRegistered: true, tradeRegistryNumber: "J40/123/2020",
     socialCapital: "200.00", iban: "", bankName: "" })
   assert.deepEqual(correction.customer, invoice.customer)
-  assert.equal(state.sequences.get("org-1:invoice:QWBE"), 2)
-  assert.equal(state.sequences.get("org-1:correction:QWBE"), undefined)
+  assert.equal(state.sequences.get("org-1:invoice:RFI"), 2)
+  assert.equal(state.sequences.get("org-1:correction:RFI"), undefined)
 
   const replay = await Effect.runPromise(service.createCorrection(attempt))
   assert.deepEqual(replay, correction)
@@ -105,11 +105,11 @@ void test("register pagination uses the same binary id ordering as its cursor", 
     legalForm: "srl", tradeRegistryNumber: "J40/123/2020", socialCapital: "200.00", iban: "", bankName: "",
     defaultCurrency: "RON", defaultPaymentTermDays: 15, vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   const invoice = await Effect.runPromise(service.issueInvoice(idempotent({
     customer: { partyType: "company", name: "Client SRL", fiscalIdentifier: "87654329", vatRegistered: true,
       address: { countryCode: "RO", city: "Iași", street: "Strada Mică 2", county: "RO-IS" } },
-    series: "QWBE", issueDate: "2026-09-01", dueDate: "2026-09-16", currency: "RON",
+    series: "RFI", issueDate: "2026-09-01", dueDate: "2026-09-16", currency: "RON",
     lines: [{ description: "Servicii", quantity: "1", unitPrice: "100.00", unitOfMeasure: each, vatRateCode: "RO_STANDARD" }],
   })))
   state.issued.delete(invoice.id)

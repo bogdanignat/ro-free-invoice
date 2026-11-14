@@ -106,12 +106,12 @@ export const seed = async ({ call }: Served): Promise<void> => {
     tradeRegistryNumber: "J22/123/2020", iban: "RO49AAAA1B31007593840000", bankName: "Banca",
     socialCapital: "1000", defaultCurrency: "RON", defaultPaymentTermDays: 15,
     vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null }), "issuer")
-  await ok(call("POST", "/api/document-series", { documentType: "invoice", series: "QWBE" }), "invoice series")
+  await ok(call("POST", "/api/document-series", { documentType: "invoice", series: "RFI" }), "invoice series")
   await ok(call("POST", "/api/document-series", { documentType: "proforma", series: "PRO" }), "proforma series")
 }
 
 export const issueInvoice = (call: Served["call"], key: string) => ok(call("POST", "/api/invoices",
-  { customer, series: "QWBE", issueDate, dueDate, currency: "RON", lines }, key), "issue invoice")
+  { customer, series: "RFI", issueDate, dueDate, currency: "RON", lines }, key), "issue invoice")
 
 /** The spec embedded in the Swagger page this installation serves. */
 export const documentedPaths = async (call: Served["call"]): Promise<ReadonlyArray<string>> => {

@@ -719,7 +719,7 @@ docker compose exec app sh -c 'wget -qO- --header "Host: invoice.test" \
   --header "Authorization: Bearer $(cat /run/secrets/api_token)" http://127.0.0.1:3000/api/customers'
 docker compose exec app sh -c 'wget -qO- --header "Host: invoice.test" --header "Origin: https://invoice.test" \
   --header "Authorization: Bearer $(cat /run/secrets/api_token)" --header "Content-Type: application/json" \
-  --post-data "{\"documentType\":\"invoice\",\"series\":\"QWBE\"}" http://127.0.0.1:3000/api/document-series'
+  --post-data "{\"documentType\":\"invoice\",\"series\":\"RFI\"}" http://127.0.0.1:3000/api/document-series'
 ```
 
 `GET /api` is the authenticated Swagger page (linked from Setări): without a valid

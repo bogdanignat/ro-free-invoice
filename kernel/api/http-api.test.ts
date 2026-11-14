@@ -106,14 +106,14 @@ void test("every error a plugin endpoint declares is one the handler's API encod
 })
 
 void test("dueDate contracts accept absent, null, or string input and encode explicit null responses", () => {
-  const base = { customerId: "customer-1", series: "QWBE", issueDate: "2026-09-01" }
+  const base = { customerId: "customer-1", series: "RFI", issueDate: "2026-09-01" }
   assert.doesNotThrow(() => Schema.decodeUnknownSync(S.DraftInput)(base))
   assert.equal(Schema.decodeUnknownSync(S.DraftInput)({ ...base, dueDate: null }).dueDate, null)
   assert.equal(Schema.decodeUnknownSync(S.DraftInput)({ ...base, dueDate: "2026-09-15" }).dueDate, "2026-09-15")
   assert.throws(() => Schema.decodeUnknownSync(S.DraftInput)({ ...base, dueDate: 15 }))
   const draft = {
     id: "draft-1", organizationId: "org-1", sourceProformaId: null, customer: { partyType: "individual", name: "Ion", fiscalIdentifier: "",
-      vatRegistered: false, address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" } }, series: "QWBE", issueDate: "2026-09-01",
+      vatRegistered: false, address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" } }, series: "RFI", issueDate: "2026-09-01",
     dueDate: null, currency: "RON", notes: null, status: "proforma_issued", lines: [], vatBreakdown: [], totalExcludingVat: "0.00",
     vatTotal: "0.00", totalIncludingVat: "0.00",
   } as const
@@ -406,7 +406,7 @@ void test("Swagger materialization recreates a disposed handler after failure", 
 })
 
 void test("notes contract mirrors the runtime rules for whitespace, length, and invisible separators", () => {
-  const base = { customerId: "customer-1", series: "QWBE", issueDate: "2026-09-01" }
+  const base = { customerId: "customer-1", series: "RFI", issueDate: "2026-09-01" }
   const decode = (notes: unknown) => Schema.decodeUnknownSync(S.DraftInput)({ ...base, notes })
   assert.equal(decode(null).notes, null)
   assert.equal(decode("Linie unu\nLinie doi").notes, "Linie unu\nLinie doi")

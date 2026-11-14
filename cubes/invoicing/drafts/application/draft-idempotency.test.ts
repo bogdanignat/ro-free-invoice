@@ -15,7 +15,7 @@ const buyer = {
   address: { countryCode: "RO", city: "Cluj-Napoca", street: "Strada Unu 1", county: "RO-CJ" },
 }
 const line = { description: "Consultanță", quantity: "1", unitPrice: "100", unitOfMeasure: each, vatRateCode: "RO_STANDARD" }
-const header = { customer: buyer, series: "QWBE", issueDate: "2025-08-01" }
+const header = { customer: buyer, series: "RFI", issueDate: "2025-08-01" }
 // The fingerprint stands in for the hash the HTTP layer computes: what matters
 // to the cube is that the same request carries the same value and a different
 // request does not.
@@ -35,7 +35,7 @@ const setup = async (state: MemoryState = emptyState()) => {
     defaultCurrency: "RON", defaultPaymentTermDays: 15,
     branding: null, vatChange: { registered: true, effectiveFrom: "2025-08-01" },
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   return { service, state }
 }
 

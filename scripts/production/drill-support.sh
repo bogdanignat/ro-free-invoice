@@ -94,7 +94,7 @@ login() {
 issue_invoice() {
   local customer='{"partyType":"company","name":"Client SRL","fiscalIdentifier":"87654329","vatRegistered":true,"address":{"countryCode":"RO","city":"Iasi","street":"Strada 2","county":"RO-IS"}}'
   local invoice_lines='[{"description":"Servicii","quantity":"1","unitPrice":"100","unitOfMeasure":{"code":"HUR","name":"ora"},"vatRateCode":"RO_STANDARD"}]'
-  [[ "$(api POST /api/invoices "{\"customer\":$customer,\"series\":\"QWBE\",\"issueDate\":\"$(date -u -d yesterday +%F)\",\"dueDate\":\"$(date -u -d '+14 days' +%F)\",\"currency\":\"RON\",\"lines\":$invoice_lines}" "$1")" =~ ^2[0-9][0-9]$ ]] \
+  [[ "$(api POST /api/invoices "{\"customer\":$customer,\"series\":\"RFI\",\"issueDate\":\"$(date -u -d yesterday +%F)\",\"dueDate\":\"$(date -u -d '+14 days' +%F)\",\"currency\":\"RON\",\"lines\":$invoice_lines}" "$1")" =~ ^2[0-9][0-9]$ ]] \
     || fail "issue invoice: $(cat "$work/reply")"
   local id
   id="$(jq -r .id "$work/reply")"
@@ -144,7 +144,7 @@ install_with_data() {
   login
   [[ "$(api PUT /api/issuer '{"name":"Furnizor SRL","fiscalIdentifier":"12345674","address":{"countryCode":"RO","city":"Iasi","street":"Strada 1","county":"RO-IS"},"legalForm":"srl","tradeRegistryNumber":"J22/123/2020","iban":"RO49AAAA1B31007593840000","bankName":"Banca","socialCapital":"1000","defaultCurrency":"RON","defaultPaymentTermDays":15,"vatChange":{"registered":true,"effectiveFrom":"2025-08-01"},"branding":null}')" =~ ^2[0-9][0-9]$ ]] \
     || fail "issuer: $(cat "$work/reply")"
-  [[ "$(api POST /api/document-series '{"documentType":"invoice","series":"QWBE"}')" =~ ^2[0-9][0-9]$ ]] || fail "series: $(cat "$work/reply")"
+  [[ "$(api POST /api/document-series '{"documentType":"invoice","series":"RFI"}')" =~ ^2[0-9][0-9]$ ]] || fail "series: $(cat "$work/reply")"
   first_invoice="$(issue_invoice drill-1)"
   pass "installed $project:install with an issued invoice and its PDF ($first_invoice)"
 }

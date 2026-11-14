@@ -11,7 +11,7 @@ const pending = <T>(): ResourceSnapshot<T> => ({ data: undefined, isPending: tru
 const failed = <T>(error: unknown): ResourceSnapshot<T> => ({ data: undefined, isPending: false, error })
 
 const issuer: Issuer = {
-  organizationId: "org", name: "Qwbe Software SRL", fiscalIdentifier: "12345674",
+  organizationId: "org", name: "RFI Software SRL", fiscalIdentifier: "12345674",
   address: { countryCode: "RO", city: "București", street: "Str. Lungă 1", county: "RO-B", sector: 3 },
   legalForm: "srl", tradeRegistryNumber: "J40/1234/2020", iban: "RO49AAAA1B31007593840000",
   bankName: "Banca Transilvania", socialCapital: "200.00", defaultCurrency: "RON", defaultPaymentTermDays: 14,

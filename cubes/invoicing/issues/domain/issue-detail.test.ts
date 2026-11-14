@@ -68,7 +68,7 @@ void test("every code's constructor fills each placeholder of its template", () 
     currency_mismatch: documentIssue.currencyMismatch(), due_date_before_issue: documentIssue.dueDateBeforeIssue(),
     due_date_required: documentIssue.dueDateRequired(), supply_date_after_issue: documentIssue.supplyDateAfterIssue(), issue_date_future: documentIssue.issueDateFuture(),
     issue_date_before_original: documentIssue.issueDateBeforeOriginal(),
-    issue_date_before_last: documentIssue.issueDateBeforeLast("2026-09-01", "invoice", "QWBE"),
+    issue_date_before_last: documentIssue.issueDateBeforeLast("2026-09-01", "invoice", "RFI"),
     vat_registration_missing: documentIssue.vatRegistrationMissing("2026-09-01"), vat_registration_changed: documentIssue.vatRegistrationChanged(),
     vat_pair_unsupported: documentIssue.vatPairUnsupported("RO_STANDARD", "21.00", "2026-09-01"),
     vat_pair_needs_non_vat: documentIssue.vatPairNeedsNonVat("RO_NON_VAT", "0.00", "2026-09-01"),

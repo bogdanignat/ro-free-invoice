@@ -6,7 +6,7 @@ import { validateDate, validateDocumentNotes, validateDocumentSeries, validateLi
 import { resolveVatConfiguration, validateIssuer } from "../issuer/index.ts"
 
 void test("validates supported document types and fiscal series format", () => {
-  assert.doesNotThrow(() => { validateDocumentSeries({ documentType: "invoice", series: "QWBE_01" }) })
+  assert.doesNotThrow(() => { validateDocumentSeries({ documentType: "invoice", series: "RFI_01" }) })
   assert.doesNotThrow(() => { validateDocumentSeries({ documentType: "proforma", series: "PRO-F" }) })
   assert.throws(
     () => { validateDocumentSeries({ documentType: "invoice", series: "lower" }) },

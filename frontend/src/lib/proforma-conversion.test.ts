@@ -11,7 +11,7 @@ const proforma: Proforma = {
   id: "prf-1", series: "PRO", number: 7, issueDate: "2026-02-01", dueDate: "2026-02-15",
   currency: "RON", notes: null, sourceDraftId: null, convertedInvoiceId: null, convertedDraftId: null,
   issuer: {
-    name: "Qwbe Software SRL", fiscalIdentifier: "12345674", legalForm: "srl",
+    name: "RFI Software SRL", fiscalIdentifier: "12345674", legalForm: "srl",
     tradeRegistryNumber: "J40/1234/2020", iban: "RO49AAAA1B31007593840000", bankName: "Banca Transilvania",
     socialCapital: "200.00", vatRegistered: true,
     address: { countryCode: "RO", city: "București", street: "Str. Lungă 1", county: "RO-B", sector: 3 },

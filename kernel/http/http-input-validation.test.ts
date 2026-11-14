@@ -21,7 +21,7 @@ const customer = { partyType: "company", name: "Client", fiscalIdentifier: " 876
 const source = { app: "shop", kind: "order", id: "123" }
 const line = { description: "Servicii", quantity: "1", unitPrice: "10.00",
   unitOfMeasure: { code: "HUR", name: "oră" }, vatRateCode: "RO_STANDARD", itemCode: "SRV", barcode: "00012345600012" }
-const draft = { customerId: "customer-1", series: "QWBE", issueDate: "2026-09-01" }
+const draft = { customerId: "customer-1", series: "RFI", issueDate: "2026-09-01" }
 const authoring = { ...draft, currency: "RON", lines: [line] }
 const issuer = { name: "Furnizor", fiscalIdentifier: " 12345674 ", address: customer.address,
   legalForm: "srl" as const, tradeRegistryNumber: " j22/123/2020 ", iban: " ro49 aaaa 1b31 0075 9384 0000 ",
@@ -40,9 +40,9 @@ const inputs: ReadonlyArray<InputCase> = [
   { name: "issuer", schema: S.IssuerInput, decode: A.issuerInput, value: issuer },
   { name: "customer", schema: S.CustomerInput, decode: A.customerInput, value: customer },
   { name: "preset", schema: S.ProductPresetInput, decode: A.productPresetInput, value: { ...line, code: "SRV", kind: "service" } },
-  { name: "series", schema: S.DocumentSeriesInput, decode: A.documentSeriesInput, value: { documentType: "invoice", series: "QWBE" } },
-  { name: "series archived", schema: S.DocumentSeriesArchivedInput, decode: (value) => A.documentSeriesArchivedInput("invoice", "QWBE", value),
-    value: { archived: true }, ids: { documentType: "invoice", series: "QWBE" } },
+  { name: "series", schema: S.DocumentSeriesInput, decode: A.documentSeriesInput, value: { documentType: "invoice", series: "RFI" } },
+  { name: "series archived", schema: S.DocumentSeriesArchivedInput, decode: (value) => A.documentSeriesArchivedInput("invoice", "RFI", value),
+    value: { archived: true }, ids: { documentType: "invoice", series: "RFI" } },
   { name: "draft", schema: S.DraftInput, decode: A.draftInput, value: draft },
   { name: "update draft", schema: S.UpdateDraftInput, decode: (value) => A.updateDraftInput("draft-1", value), value: draft, ids: { draftId: "draft-1" } },
   { name: "line", schema: S.DraftLineInput, decode: (value) => A.lineInput("draft-1", value), value: line, ids: { draftId: "draft-1" } },
