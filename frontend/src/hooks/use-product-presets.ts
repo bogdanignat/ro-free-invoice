@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 
 import { useAuth } from "./auth-context.ts"
 import { useAuthoringPagedList } from "./use-authoring-paged-list.ts"
+import { useConfirm } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { useReferenceData } from "./use-reference-data.ts"
 import { useRegistryEditor, type RegistryEditorIssue } from "./use-registry-editor.ts"
@@ -73,6 +74,7 @@ export const useProductPresets = (): ProductCatalogueModel => {
   const reference = useReferenceData()
   const writes = useRegistryWrites(["product-presets"], productPresetNotice)
   const editor = useRegistryEditor<ProductPresetForm, ProductPresetField>()
+  const confirm = useConfirm()
 
   const unitList = units.data ?? []
   // The server checks a rate against the date in Bucharest; so does this, or a
@@ -108,6 +110,14 @@ export const useProductPresets = (): ProductCatalogueModel => {
       onDone: editor.close,
     })
   }
+  const remove = async (preset: ProductPreset): Promise<void> => {
+    if (!await confirm(productPresetDeleteConfirm(preset.description), { confirmLabel: "Șterge", tone: "danger" })) return
+    writes.submit({
+      write: "deleted",
+      run: (csrfToken) => clients.registry.deleteProductPreset(csrfToken, preset.id),
+      onDone: () => { editor.closeRecord(preset.id) },
+    })
+  }
   return {
     load,
     retry: registryReload(load, refetch),
@@ -132,13 +142,6 @@ export const useProductPresets = (): ProductCatalogueModel => {
     close: editor.close,
     change: editor.change,
     submit,
-    remove: (preset) => {
-      if (!window.confirm(productPresetDeleteConfirm(preset.description))) return
-      writes.submit({
-        write: "deleted",
-        run: (csrfToken) => clients.registry.deleteProductPreset(csrfToken, preset.id),
-        onDone: () => { editor.closeRecord(preset.id) },
-      })
-    },
+    remove: (preset) => { void remove(preset) },
   }
 }

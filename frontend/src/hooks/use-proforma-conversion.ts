@@ -4,8 +4,10 @@ import { useState } from "react"
 import { useAuth } from "./auth-context.ts"
 import { documentSeriesQuery } from "./reference-queries.ts"
 import { useAuthoringRecovery } from "./use-authoring-recovery.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { useProformaConversionController } from "./use-proforma-conversion-controller.ts"
+import { confirmWhile } from "../lib/confirm-controller.ts"
 import { authoringSeriesOptions } from "../lib/document-authoring-options.ts"
 import { knownResultNotice, type KnownWrite, type RecoveryNoticeModel } from "../lib/operation-recovery-view.ts"
 import type { RecoveryRecord } from "../lib/operation-recovery-types.ts"
@@ -64,6 +66,7 @@ export const useProformaConversion = (proforma: Proforma | undefined): ProformaC
   const recovery = useAuthoringRecovery()
   const controller = useProformaConversionController(recovery.port)
   const [selected, setSelected] = useState("")
+  const confirm = useConfirm()
 
   // The catalogue is only read while a conversion is still possible: a proforma
   // that already became a document offers a link, not a series.
@@ -97,9 +100,13 @@ export const useProformaConversion = (proforma: Proforma | undefined): ProformaC
     : mutation.data.kind === "error"
       ? mutation.data.error
       : mutation.data.kind === "converted" ? mutation.data.effectsError ?? null : null
-  const convert = (target: ProformaConversionTarget): void => {
-    if (target === "invoice" ? !availability.canIssueInvoice : !availability.canCreateDraft) return
-    if (target === "draft" || window.confirm(CONVERSION_CONFIRM)) mutation.mutate(target)
+  const latestAvailability = useLatest(availability)
+  const convert = async (target: ProformaConversionTarget): Promise<void> => {
+    const allowed = (): boolean =>
+      target === "invoice" ? latestAvailability.current.canIssueInvoice : latestAvailability.current.canCreateDraft
+    // Only the invoice asks; the draft starts at once.
+    const go = target === "draft" ? allowed() : await confirmWhile(allowed, () => confirm(CONVERSION_CONFIRM, { confirmLabel: "Emite factura" }))
+    if (go) mutation.mutate(target)
   }
   return {
     ...availability,
@@ -115,7 +122,7 @@ export const useProformaConversion = (proforma: Proforma | undefined): ProformaC
     noticePending: recovery.pending,
     replay: recovery.replay,
     dismiss: () => { mutation.reset(); recovery.dismiss() },
-    issueInvoice: () => { convert("invoice") },
-    createDraft: () => { convert("draft") },
+    issueInvoice: () => { void convert("invoice") },
+    createDraft: () => { void convert("draft") },
   }
 }

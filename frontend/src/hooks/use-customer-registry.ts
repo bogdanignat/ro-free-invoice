@@ -1,4 +1,5 @@
 import { useAuthoringPagedList } from "./use-authoring-paged-list.ts"
+import { useConfirm } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { NO_COUNTIES, useReferenceData } from "./use-reference-data.ts"
 import { useRegistryEditor, type RegistryEditorIssue } from "./use-registry-editor.ts"
@@ -57,6 +58,7 @@ export const useCustomerRegistry = (): CustomerRegistryModel => {
   )
   const writes = useRegistryWrites(["customers"], customerNotice)
   const editor = useRegistryEditor<CustomerForm, CustomerField>()
+  const confirm = useConfirm()
   const editing = editor.editing
   const reference = useReferenceData()
   const load = registryLoad([
@@ -78,6 +80,14 @@ export const useCustomerRegistry = (): CustomerRegistryModel => {
         ? clients.registry.createCustomer(csrfToken, payload)
         : clients.registry.updateCustomer(csrfToken, id, payload),
       onDone: editor.close,
+    })
+  }
+  const remove = async (customer: Customer): Promise<void> => {
+    if (!await confirm(customerDeleteConfirm(customer.name), { confirmLabel: "Șterge", tone: "danger" })) return
+    writes.submit({
+      write: "deleted",
+      run: (csrfToken) => clients.registry.deleteCustomer(csrfToken, customer.id),
+      onDone: () => { editor.closeRecord(customer.id) },
     })
   }
   return {
@@ -107,13 +117,6 @@ export const useCustomerRegistry = (): CustomerRegistryModel => {
     },
     changeCounty: (county) => { editor.apply((form) => chooseCustomerCounty(form, county)) },
     submit,
-    remove: (customer) => {
-      if (!window.confirm(customerDeleteConfirm(customer.name))) return
-      writes.submit({
-        write: "deleted",
-        run: (csrfToken) => clients.registry.deleteCustomer(csrfToken, customer.id),
-        onDone: () => { editor.closeRecord(customer.id) },
-      })
-    },
+    remove: (customer) => { void remove(customer) },
   }
 }

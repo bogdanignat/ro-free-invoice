@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { useEffect, useState } from "react"
 
 import { useAuth } from "./auth-context.ts"
+import { useConfirm } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { useOperationRecovery } from "./use-operation-recovery.ts"
 import { isTransientFailure } from "../lib/api-errors.ts"
@@ -99,6 +100,10 @@ export const useDrafts = (): DraftsListModel => {
   }))
   const removal = useMutation({ mutationFn: (draft: DraftInvoice): Promise<SaveOutcome> => controller.deleteDraft(draft) })
   const feedback = draftRemovalFeedback(removal.data, removal.error, removal.isPending)
+  const confirm = useConfirm()
+  const removeDraft = async (draft: DraftInvoice): Promise<void> => {
+    if (await confirm(`Ștergi draftul pentru „${draft.customer.name}”?`, { confirmLabel: "Șterge draftul", tone: "danger" })) removal.mutate(draft)
+  }
   return {
     items: query.data?.pages.flatMap((page) => page.items),
     isPending: query.isPending,
@@ -112,9 +117,7 @@ export const useDrafts = (): DraftsListModel => {
     loadingMore: query.isFetchingNextPage,
     loadMore: () => { void query.fetchNextPage() },
     // The policy itself lives in the controller; the hook only confirms.
-    removeDraft: (draft) => {
-      if (window.confirm(`Ștergi draftul pentru „${draft.customer.name}”?`)) removal.mutate(draft)
-    },
+    removeDraft: (draft) => { void removeDraft(draft) },
     canDeleteDraft: draftIsDeletable,
     removalPending: feedback.pending,
     removalError: feedback.error,

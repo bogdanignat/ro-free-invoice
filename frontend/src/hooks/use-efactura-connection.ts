@@ -4,9 +4,11 @@ import { useEffect, useState } from "react"
 
 import { useAuth } from "./auth-context.ts"
 import { efacturaConnectionQuery } from "./efactura-queries.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { retryAction } from "./use-document-detail.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { SESSION_CLOSED } from "./use-registry-writes.ts"
+import { confirmWhile } from "../lib/confirm-controller.ts"
 import { callbackCode, callbackNotice, withoutCallbackCode, type CallbackNotice } from "../lib/efactura-callback.ts"
 import { efacturaQueryKeys } from "../lib/efactura-client.ts"
 import { connectionView, DISCONNECT_CONFIRM, type EFacturaConnectionView } from "../lib/efactura-connection.ts"
@@ -66,6 +68,15 @@ export const useEFacturaConnection = (): EFacturaConnectionModel | undefined => 
   })
   // Not held after success: a page restored from the back-forward cache after ANAF must still connect.
   const pending = connect.isPending || disconnect.isPending
+  const latestPending = useLatest(pending)
+  const confirm = useConfirm()
+  const disconnectNow = async (): Promise<void> => {
+    const ask = () => confirm(DISCONNECT_CONFIRM, { confirmLabel: "Deconectează", tone: "danger" })
+    if (!await confirmWhile(() => !latestPending.current, ask)) return
+    setNotice(undefined)
+    connect.reset()
+    disconnect.mutate()
+  }
 
   if (!enabled) return undefined
   return {
@@ -82,11 +93,6 @@ export const useEFacturaConnection = (): EFacturaConnectionModel | undefined => 
       disconnect.reset()
       connect.mutate()
     },
-    disconnect: () => {
-      if (pending || !window.confirm(DISCONNECT_CONFIRM)) return
-      setNotice(undefined)
-      connect.reset()
-      disconnect.mutate()
-    },
+    disconnect: () => { void disconnectNow() },
   }
 }

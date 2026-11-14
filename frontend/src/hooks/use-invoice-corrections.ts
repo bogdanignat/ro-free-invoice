@@ -3,9 +3,11 @@ import { useRef } from "react"
 
 import { useAuth } from "./auth-context.ts"
 import { useAuthoringRecovery } from "./use-authoring-recovery.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { useCorrectionIssuanceController } from "./use-correction-issuance-controller.ts"
 import { correctionsQueryOptions, invoiceQueryOptions, retryAction } from "./use-document-detail.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
+import { confirmWhile } from "../lib/confirm-controller.ts"
 import type { CorrectionOutcome } from "../lib/correction-issuance-types.ts"
 import {
   CORRECTION_CONFIRM, correctionInputFrom, correctionSummary, correctionsView, type CorrectionsView,
@@ -61,6 +63,7 @@ export const useInvoiceCorrections = (invoiceId: string): InvoiceCorrectionsMode
   const recovery = useAuthoringRecovery()
   const controller = useCorrectionIssuanceController(recovery.port)
   const inFlight = useRef(false)
+  const confirm = useConfirm()
   const mutation = useMutation({
     mutationFn: (body: CorrectionInput): Promise<CorrectionOutcome> => (invoice === undefined
       ? Promise.reject(new Error("Factura nu este încărcată."))
@@ -76,6 +79,14 @@ export const useInvoiceCorrections = (invoiceId: string): InvoiceCorrectionsMode
   const view = list.data === undefined ? undefined : correctionsView(list.data)
   const canIssue = view?.canIssue === true && invoice !== undefined && !mutation.isPending
     && !recovery.blocked && known === undefined && alreadyCorrected === undefined
+  const latestCanIssue = useLatest(canIssue)
+  const issue = async (form: FormData): Promise<void> => {
+    const body = correctionInputFrom(form)
+    const ask = () => confirm(CORRECTION_CONFIRM, { confirmLabel: "Emite storno integral", tone: "danger" })
+    if (!await confirmWhile(() => !inFlight.current && latestCanIssue.current, ask)) return
+    inFlight.current = true
+    mutation.mutate(body)
+  }
   return {
     view,
     isPending: list.isPending,
@@ -89,12 +100,6 @@ export const useInvoiceCorrections = (invoiceId: string): InvoiceCorrectionsMode
     noticePending: recovery.pending,
     replay: recovery.replay,
     dismiss: () => { mutation.reset(); recovery.dismiss() },
-    issue: (form) => {
-      if (inFlight.current || !canIssue) return
-      const body = correctionInputFrom(form)
-      if (!window.confirm(CORRECTION_CONFIRM)) return
-      inFlight.current = true
-      mutation.mutate(body)
-    },
+    issue: (form) => { void issue(form) },
   }
 }

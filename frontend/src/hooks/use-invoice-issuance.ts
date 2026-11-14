@@ -3,11 +3,13 @@ import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
 import { useAuth } from "./auth-context.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { invalidateIssuedDocuments } from "./report-queries.ts"
 import { draftsQueryKey, draftQueryKey } from "./use-drafts.ts"
 import { createOperationLifetime } from "../lib/authoring-operation-lifetime.ts"
 import { lifetimeMountEffect, lifetimeRequestsEffect } from "../lib/authoring-lifetime-wiring.ts"
+import { confirmWhile } from "../lib/confirm-controller.ts"
 import { issuanceAllowed } from "../lib/invoice-authoring-derived.ts"
 import { createInvoiceIssuanceController } from "../lib/invoice-issuance-controller.ts"
 import type { InvoiceIssuanceController, IssuanceOutcome } from "../lib/invoice-issuance-types.ts"
@@ -56,6 +58,7 @@ export const useInvoiceIssuance = (input: InvoiceIssuanceInput): InvoiceIssuance
   const clients = useInvoicingClients()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   // The reconciliation read is tracked: its request dies with the screen or
   // the session (a status change is a session boundary), instead of wandering
   // off with a signal nobody can abort. Re-authentication gets a fresh one,
@@ -124,16 +127,18 @@ export const useInvoiceIssuance = (input: InvoiceIssuanceInput): InvoiceIssuance
   const outcomeError = outcome === undefined
     ? null
     : outcome.kind === "error" ? outcome.error : (outcome.kind === "issued" ? outcome.effectsError ?? null : null)
+  const latestCanIssue = useLatest(canIssue)
+  const issue = async (): Promise<void> => {
+    const ask = () => confirm("Emiți factura? Numărul și documentul fiscal devin imuabile.", { confirmLabel: "Emite factura" })
+    if (await confirmWhile(() => latestCanIssue.current, ask)) mutation.mutate()
+  }
   return {
     pending: mutation.isPending,
     error: outcomeError ?? mutation.error,
     knownResult,
     canIssue,
     unconfirmedMessage,
-    issue: () => {
-      if (!canIssue) return
-      if (window.confirm("Emiți factura? Numărul și documentul fiscal devin imuabile.")) mutation.mutate()
-    },
+    issue: () => { void issue() },
     reset: () => { mutation.reset() },
   }
 }
