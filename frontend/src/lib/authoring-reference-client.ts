@@ -28,7 +28,12 @@ export interface AuthoringReferenceClient {
   readonly listCustomers: (page: PageRequest | undefined, signal: AbortSignal) => Promise<Page<Customer>>
   readonly getCustomer: (id: string, signal: AbortSignal) => Promise<Customer>
   readonly listProductPresets: (page: PageRequest | undefined, signal: AbortSignal) => Promise<Page<ProductPreset>>
+  /** The first page matching `q` (the server trims it and refuses more than 100 characters). */
+  readonly searchCustomers: (q: string, signal: AbortSignal) => Promise<Page<Customer>>
+  readonly searchProductPresets: (q: string, signal: AbortSignal) => Promise<Page<ProductPreset>>
 }
+
+const searched = (path: string, q: string): string => `${path}?${new URLSearchParams({ q }).toString()}`
 
 export const createAuthoringReferenceClient = (transport: BrowserTransport): AuthoringReferenceClient => ({
   getIssuer: async (signal) => {
@@ -51,4 +56,8 @@ export const createAuthoringReferenceClient = (transport: BrowserTransport): Aut
     decodeCustomer(await transport.json(`/api/customers/${encoded(id)}`, { signal })),
   listProductPresets: async (page, signal) =>
     decodeProductPresetPage(await transport.json(paged("/api/product-presets", page), { signal })),
+  searchCustomers: async (q, signal) =>
+    decodeCustomerPage(await transport.json(searched("/api/customers", q), { signal })),
+  searchProductPresets: async (q, signal) =>
+    decodeProductPresetPage(await transport.json(searched("/api/product-presets", q), { signal })),
 })

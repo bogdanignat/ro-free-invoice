@@ -5,6 +5,8 @@ import { Input } from "../ui/Input.tsx"
 import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
 import { Select } from "../ui/Select.tsx"
 import { Button } from "../Button.tsx"
+import { Combobox } from "../ui/Combobox.tsx"
+import { useProductPresetSearch } from "../../hooks/use-registry-search.ts"
 import { UnitOfMeasureOptions } from "../UnitOfMeasureOptions.tsx"
 import { money } from "../../lib/money.ts"
 import { vatTreatmentLabel } from "../../lib/vat-snapshots.ts"
@@ -19,24 +21,30 @@ interface InvoiceLineRowProps {
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
   readonly pending: boolean
   readonly onChange: (key: string, patch: Partial<EditableInvoiceLine>) => void
-  readonly onApplyPreset: (lineKey: string, presetId: string) => void
+  readonly onApplyPreset: (lineKey: string, preset: ProductPreset) => void
   readonly onDelete: (line: EditableInvoiceLine) => void
 }
+
+const presetKey = (preset: ProductPreset): string => preset.id
+const presetLabel = (preset: ProductPreset): string => `${preset.code} — ${preset.description} — ${money(preset.unitPrice, "RON")}`
 
 /** One line of the document: preset prefill, the copied code and EAN (editable, may be cleared), amounts, unit and the VAT code resolved on the document date. */
 export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
   const { line, index, productPresets, vatRates, unitOfMeasures, pending } = props
+  const presets = useProductPresetSearch(productPresets)
+  const lineNumber = String(index + 1)
   return <fieldset className="line-editor">
-    <legend>Linia {String(index + 1)}{line.lineId === undefined ? " — nesalvată" : ""}</legend>
+    <legend>Linia {lineNumber}{line.lineId === undefined ? " — nesalvată" : ""}</legend>
     {productPresets.length === 0 ? null : <Field label="Produs predefinit">
-      <Select disabled={pending} value="" onChange={(event) => { props.onApplyPreset(line.key, event.currentTarget.value) }}>
-        <option value="">Alege pentru precompletare</option>
-        {productPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.code} — {preset.description} — {money(preset.unitPrice, "RON")}</option>)}
-      </Select>
+      <Combobox {...presets.field} aria-label={`Produs predefinit, linia ${lineNumber}`} placeholder="Caută pentru precompletare" disabled={pending}
+        value={presets.text ?? ""} suggest options={presets.options} optionKey={presetKey} optionLabel={presetLabel}
+        listLabel={`Produse predefinite, linia ${lineNumber}`} onClose={presets.close}
+        onPick={(preset) => { presets.restore(); props.onApplyPreset(line.key, preset) }} />
+      {presets.hint === undefined ? null : <span className="hint" role="status">{presets.hint}</span>}
     </Field>}
     <div className="line-fields">
       <Field label="Descriere" required>
-        <Input required disabled={pending} value={line.description} maxLength={CIUS_TEXT_LIMITS.lineDescription} onChange={(event) => { props.onChange(line.key, { description: event.currentTarget.value }) }} />
+        <Input id={`line-${line.key}-description`} required disabled={pending} value={line.description} maxLength={CIUS_TEXT_LIMITS.lineDescription} onChange={(event) => { props.onChange(line.key, { description: event.currentTarget.value }) }} />
       </Field>
       <LineIdentifierField label="Cod articol" id={`line-${line.key}-code`} value={line.itemCode ?? ""} maxLength={50}
         issue={itemCodeIssue(line.itemCode ?? "")} disabled={pending}
@@ -68,7 +76,7 @@ export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
       </Field>
     </div>
     <div className="line-actions">
-      <Button className="danger small" aria-label={`Șterge linia ${String(index + 1)}: ${line.description || "linie fără descriere"}`}
+      <Button className="danger small" aria-label={`Șterge linia ${lineNumber}: ${line.description || "linie fără descriere"}`}
         disabled={pending} onClick={() => { props.onDelete(line) }}>Șterge linia</Button>
     </div>
   </fieldset>

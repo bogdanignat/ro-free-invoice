@@ -43,7 +43,7 @@ export const ProformaAuthoringHeader = ({ session }: { readonly session: Proform
       ? null
       : <p className="hint" id="proforma-due-date-note" aria-live="polite">{feedback.dueDateNote}</p>}
     <BuyerEditor
-      form={document.form} customers={document.customers} savedBuyer={undefined}
+      form={document.form} customers={document.customers} chosenCustomer={document.chosenCustomer} savedBuyer={undefined}
       customersHasMore={document.customersHasMore} customersLoadingMore={document.customersLoadingMore}
       onCustomersLoadMore={document.customersLoadMore}
       disabled={status.pending} sectorRequired={document.buyerSectorRequired}

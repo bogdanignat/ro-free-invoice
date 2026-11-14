@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { useInvoiceAuthoringDraft } from "./use-invoice-authoring-draft.ts"
 import { useInvoiceIssuance } from "./use-invoice-issuance.ts"
-import { createInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
+import { useInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
 import { useAuthoringRecovery } from "./use-authoring-recovery.ts"
 import { useSupplyDateRefusal } from "./use-supply-date-refusal.ts"
 import type { InvoiceAuthoringSession, InvoiceAuthoringSessionInput } from "./invoice-authoring-session-types.ts"
@@ -64,9 +64,9 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
     journalNotice: recovery.notice, journalBlocked: recovery.blocked,
     issuanceKnownResult: invoiceIssuance.knownResult,
   })
-  const editorActions = createInvoiceAuthoringEditorActions({
+  const editor = useInvoiceAuthoringEditorActions({
     issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
-    productPresets: input.productPresets, customers: input.customers,
+    customers: input.customers,
     vatDate, deriveDueDate: draft === undefined || draft.dueDate === null, setForm, setLines,
   })
   const pending = workflowPending || invoiceIssuance.pending || issueUnconfirmed !== undefined || recovery.pending
@@ -78,7 +78,7 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
   return {
     document: {
       draft, issuer: issuerForIssueDate(input.issuer, vatDate),
-      customers: input.customers, customersHasMore: input.customersHasMore,
+      customers: input.customers, chosenCustomer: editor.chosenCustomer, customersHasMore: input.customersHasMore,
       customersLoadingMore: input.customersLoadingMore, customersLoadMore: input.customersLoadMore,
       seriesChoices: series.choices, unitOfMeasures: input.unitOfMeasures, form, lines,
       savedBuyer: draft?.customerId !== undefined
@@ -112,7 +112,7 @@ export const useInvoiceAuthoringSession = (input: InvoiceAuthoringSessionInput):
     },
     draftDeletion: draftDeletionState(draft),
     actions: {
-      ...editorActions,
+      ...editor.actions,
       deleteLine: draftWorkflow.deleteLine,
       save: () => { if (derived.canSave) draftWorkflow.save() },
       issueInvoice: invoiceIssuance.issue,

@@ -42,7 +42,7 @@ export const InvoiceAuthoringHeader = ({ session }: { readonly session: InvoiceA
       <div className="static-field"><span>Monedă</span><span className="fixed-value">RON</span></div>
     </div>
     <BuyerEditor
-      form={document.form} customers={document.customers} savedBuyer={document.savedBuyer}
+      form={document.form} customers={document.customers} chosenCustomer={document.chosenCustomer} savedBuyer={document.savedBuyer}
       customersHasMore={document.customersHasMore} customersLoadingMore={document.customersLoadingMore}
       onCustomersLoadMore={document.customersLoadMore}
       disabled={status.pending} sectorRequired={document.buyerSectorRequired}

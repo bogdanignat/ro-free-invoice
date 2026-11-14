@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { useAuthoringRecovery } from "./use-authoring-recovery.ts"
-import { createInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
+import { useInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
 import { useProformaSave } from "./use-proforma-save.ts"
 import type {
   ProformaAuthoringSession, ProformaAuthoringSessionInput,
@@ -55,16 +55,16 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   // confirmed-but-unfollowed save only needs to be read and acknowledged.
   const knownNotice = knownResultNotice(save.knownResult)
   const notice = recovery.notice ?? knownNotice
-  const editorActions = createInvoiceAuthoringEditorActions({
+  const editor = useInvoiceAuthoringEditorActions({
     issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
-    productPresets: input.productPresets, customers: input.customers,
+    customers: input.customers,
     vatDate: form.issueDate, deriveDueDate: true, setForm, setLines,
   })
   const pending = save.pending || recovery.pending
   return {
     document: {
       issuer: issuerForIssueDate(input.issuer, form.issueDate),
-      customers: input.customers, customersHasMore: input.customersHasMore,
+      customers: input.customers, chosenCustomer: editor.chosenCustomer, customersHasMore: input.customersHasMore,
       customersLoadingMore: input.customersLoadingMore, customersLoadMore: input.customersLoadMore,
       proformaSeries: input.proformaSeries, unitOfMeasures: input.unitOfMeasures, form, lines,
       buyerSectorRequired: countyRequiresSector(form.county), productPresets: input.productPresets,
@@ -91,7 +91,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
       recoveryPending: recovery.pending,
     },
     actions: {
-      ...editorActions,
+      ...editor.actions,
       deleteLine: (line) => { setLines((current) => current.filter((item) => item.key !== line.key)) },
       save: save.save,
       replayRecovery: recovery.replay,
