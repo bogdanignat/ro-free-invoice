@@ -1,5 +1,7 @@
 import { Field } from "../ui/Field.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import { Input } from "../ui/Input.tsx"
+import { StatusNote } from "../ui/StatusNote.tsx"
 
 interface SupplyDateFieldProps {
   readonly value: string
@@ -29,8 +31,8 @@ export const SupplyDateField = ({ value, issueDate, issue, warning, disabled, on
         aria-invalid={issue === null ? undefined : true} aria-describedby={describedBy}
         onChange={(event) => { onChange(event.currentTarget.value) }} />
     </Field>
-    <p className="hint" id={HINT_ID}>Completezi doar dacă livrarea sau prestarea a fost înainte de data emiterii.</p>
-    {issue === null ? null : <p className="hint warning" id={ISSUE_ID} role="alert">{issue}</p>}
-    {warning === null ? null : <p className="status-note" id={WARNING_ID} role="status">{warning}</p>}
+    <Hint id={HINT_ID}>Completezi doar dacă livrarea sau prestarea a fost înainte de data emiterii.</Hint>
+    {issue === null ? null : <Hint tone="warning" id={ISSUE_ID} role="alert">{issue}</Hint>}
+    {warning === null ? null : <StatusNote id={WARNING_ID}>{warning}</StatusNote>}
   </div>
 }

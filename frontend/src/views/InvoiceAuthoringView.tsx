@@ -1,5 +1,6 @@
 import { AppLink } from "../components/ui/AppLink.tsx"
 import { buttonClass } from "../components/ui/Button.tsx"
+import { SetupNote } from "../components/ui/SetupNote.tsx"
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
@@ -31,10 +32,10 @@ export const InvoiceAuthoringView = ({ id }: InvoiceAuthoringViewProps) => {
     >
       {page.kind === "loading" ? <Loading label="Se pregătește formularul…" />
         : page.kind === "error" ? <ErrorAlert error={page.error} onRetry={page.retry} />
-        : page.kind === "issuer-required" ? <p className="setup-note">Datele firmei emitente nu sunt completate. Completează-le în <AppLink href="/settings">Setări</AppLink>, împreună cu o serie pentru facturi, apoi revino aici.</p>
-        : page.kind === "invoice-series-required" ? <p className="setup-note">Nu există nicio serie activă pentru facturi. Adaug-o sau reactiveaz-o în <AppLink href="/settings">Setări</AppLink>, apoi revino aici.</p>
-        : page.kind === "unit-catalogue-empty" ? <p className="setup-note">Catalogul de unități de măsură a venit gol de la server; nu se completează din aplicație. Reîncarcă pagina, iar dacă problema rămâne, verifică instalarea serverului.</p>
-        : page.kind === "draft-missing" ? <p className="setup-note">Draftul cerut nu există sau nu mai este disponibil. <AppLink href="/invoices">Întoarce-te la registrul de facturi</AppLink>.</p>
+        : page.kind === "issuer-required" ? <SetupNote>Datele firmei emitente nu sunt completate. Completează-le în <AppLink href="/settings">Setări</AppLink>, împreună cu o serie pentru facturi, apoi revino aici.</SetupNote>
+        : page.kind === "invoice-series-required" ? <SetupNote>Nu există nicio serie activă pentru facturi. Adaug-o sau reactiveaz-o în <AppLink href="/settings">Setări</AppLink>, apoi revino aici.</SetupNote>
+        : page.kind === "unit-catalogue-empty" ? <SetupNote>Catalogul de unități de măsură a venit gol de la server; nu se completează din aplicație. Reîncarcă pagina, iar dacă problema rămâne, verifică instalarea serverului.</SetupNote>
+        : page.kind === "draft-missing" ? <SetupNote>Draftul cerut nu există sau nu mai este disponibil. <AppLink href="/invoices">Întoarce-te la registrul de facturi</AppLink>.</SetupNote>
         : page.kind === "locked" ? <LockedDraftReadonly
           title={page.title} notice={page.notice}
           registryHref={page.registryHref} registryLabel={page.registryLabel}

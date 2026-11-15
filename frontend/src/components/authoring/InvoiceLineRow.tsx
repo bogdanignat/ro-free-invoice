@@ -3,6 +3,7 @@ import type { ProductPreset, UnitOfMeasure, VatCatalogue } from "../../lib/draft
 import type { LineTotals } from "../../lib/draft-totals-preview.ts"
 import { AUTHORING_CURRENCY } from "../../lib/document-authoring-form-model.ts"
 import { Field } from "../ui/Field.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import { Input } from "../ui/Input.tsx"
 import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
@@ -38,16 +39,16 @@ export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
   const { line, index, productPresets, vatRates, unitOfMeasures, pending } = props
   const presets = useProductPresetSearch(productPresets)
   const lineNumber = String(index + 1)
-  return <fieldset className="line-editor">
-    <legend>Linia {lineNumber}{line.lineId === undefined ? " — nesalvată" : ""}</legend>
+  return <fieldset className="grid gap-[.9rem] m-0 p-4 border border-invoice-border rounded-invoice-control">
+    <legend className="px-[.4rem] text-invoice-muted text-[.74rem] font-invoice-label">Linia {lineNumber}{line.lineId === undefined ? " — nesalvată" : ""}</legend>
     {productPresets.length === 0 ? null : <Field label="Produs predefinit">
       <Combobox {...presets.field} aria-label={`Produs predefinit, linia ${lineNumber}`} placeholder="Caută pentru precompletare" disabled={pending}
         value={presets.text ?? ""} suggest options={presets.options} optionKey={presetKey} optionLabel={presetLabel}
         listLabel={`Produse predefinite, linia ${lineNumber}`} onClose={presets.close}
         onPick={(preset) => { presets.restore(); props.onApplyPreset(line.key, preset) }} />
-      {presets.hint === undefined ? null : <span className="hint" role="status">{presets.hint}</span>}
+      {presets.hint === undefined ? null : <Hint as="span" role="status">{presets.hint}</Hint>}
     </Field>}
-    <div className="line-fields">
+    <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(9rem,1fr))]">
       <Field label="Descriere" required>
         <Input id={`line-${line.key}-description`} required disabled={pending} value={line.description} maxLength={limits?.lineDescription} onChange={(event) => { props.onChange(line.key, { description: event.currentTarget.value }) }} />
       </Field>
@@ -80,10 +81,10 @@ export const InvoiceLineRow = (props: InvoiceLineRowProps) => {
         </Select>
       </Field>
     </div>
-    {props.totals === undefined ? null : <p className="hint">
+    {props.totals === undefined ? null : <Hint>
       Total linie: {money(props.totals.totalIncludingVat, AUTHORING_CURRENCY)} cu TVA ({money(props.totals.totalExcludingVat, AUTHORING_CURRENCY)} fără TVA)
-    </p>}
-    <div className="line-actions">
+    </Hint>}
+    <div className="flex justify-end">
       <Button variant="danger" size="sm" aria-label={`Șterge linia ${lineNumber}: ${line.description || "linie fără descriere"}`}
         disabled={pending} onClick={() => { props.onDelete(line) }}>Șterge linia</Button>
     </div>

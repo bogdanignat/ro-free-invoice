@@ -1,5 +1,8 @@
 import { AppLink } from "./ui/AppLink.tsx"
 import { Button, buttonClass } from "./ui/Button.tsx"
+import { Card } from "./ui/Card.tsx"
+import { ListItem } from "./ui/ListItem.tsx"
+import { SectionHeading } from "./ui/SectionHeading.tsx"
 import { EmptyState, ErrorAlert, Loading } from "./AsyncState.tsx"
 import { LoadMore } from "./LoadMore.tsx"
 import type { DraftsListModel } from "../hooks/use-drafts.ts"
@@ -10,13 +13,8 @@ import { money } from "../lib/money.ts"
  * empty draft list never blanks the issued-document register above it, and the
  * register's filters do not reach into it.
  */
-export const DraftsSection = ({ drafts }: { readonly drafts: DraftsListModel }) => <section className="card">
-  <div className="section-heading">
-    <div>
-      <h2>Drafturi</h2>
-      <p>Documente neterminate, salvate pe server. Deschide un draft pentru a continua editarea sau emiterea.</p>
-    </div>
-  </div>
+export const DraftsSection = ({ drafts }: { readonly drafts: DraftsListModel }) => <Card>
+  <SectionHeading title="Drafturi" description="Documente neterminate, salvate pe server. Deschide un draft pentru a continua editarea sau emiterea." />
   {drafts.items === undefined
     ? drafts.isPending
       ? <Loading label="Se încarcă drafturile…" />
@@ -27,22 +25,19 @@ export const DraftsSection = ({ drafts }: { readonly drafts: DraftsListModel }) 
         {drafts.error === null || drafts.error === undefined ? null : <ErrorAlert error={drafts.error} onRetry={drafts.retry} />}
         {drafts.removalError === null || drafts.removalError === undefined ? null : <ErrorAlert error={drafts.removalError} />}
         <div>
-          {drafts.items.map((draft) => <div className="draft-item" key={draft.id}>
-            <div className="draft-item-main">
-              <AppLink href={`/drafts/${encodeURIComponent(draft.id)}`}><strong>{draft.customer.name}</strong></AppLink>
-              <small>
-                Serie {draft.series} · {draft.issueDate}
-                {draft.dueDate === null ? "" : ` · scadență ${draft.dueDate}`} · {draft.lines.length}{" "}linii · {money(draft.totalIncludingVat, draft.currency)}
-              </small>
-            </div>
-            <div className="draft-item-actions">
-              <AppLink className={buttonClass({ variant: "secondary", size: "sm" })} href={`/drafts/${encodeURIComponent(draft.id)}`}>Deschide</AppLink>
-              {drafts.canDeleteDraft(draft)
-                ? <Button variant="danger" size="sm" disabled={drafts.removalPending} onClick={() => { drafts.removeDraft(draft) }}>Șterge</Button>
-                : null}
-            </div>
-          </div>)}
+          {drafts.items.map((draft) => <ListItem key={draft.id} actions={<>
+            <AppLink className={buttonClass({ variant: "secondary", size: "sm" })} href={`/drafts/${encodeURIComponent(draft.id)}`}>Deschide</AppLink>
+            {drafts.canDeleteDraft(draft)
+              ? <Button variant="danger" size="sm" disabled={drafts.removalPending} onClick={() => { drafts.removeDraft(draft) }}>Șterge</Button>
+              : null}
+          </>}>
+            <AppLink href={`/drafts/${encodeURIComponent(draft.id)}`}><strong>{draft.customer.name}</strong></AppLink>
+            <small>
+              Serie {draft.series} · {draft.issueDate}
+              {draft.dueDate === null ? "" : ` · scadență ${draft.dueDate}`} · {draft.lines.length}{" "}linii · {money(draft.totalIncludingVat, draft.currency)}
+            </small>
+          </ListItem>)}
         </div>
         <LoadMore visible={drafts.hasMore} pending={drafts.loadingMore} onClick={drafts.loadMore} />
       </>}
-</section>
+</Card>

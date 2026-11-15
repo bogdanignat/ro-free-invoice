@@ -5,7 +5,9 @@ import { InvoiceLinesEditor } from "./InvoiceLinesEditor.tsx"
 import { OperationRecoveryNotice } from "./OperationRecoveryNotice.tsx"
 import { ProformaAuthoringActions } from "./ProformaAuthoringActions.tsx"
 import { ProformaAuthoringHeader } from "./ProformaAuthoringHeader.tsx"
-import { Textarea } from "../ui/Textarea.tsx"
+import { StatusNote } from "../ui/StatusNote.tsx"
+import { AuthoringLayout } from "./AuthoringLayout.tsx"
+import { NotesSection } from "./NotesSection.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
 
 /**
@@ -28,32 +30,22 @@ export const ProformaAuthoringSession = (input: ProformaAuthoringSessionInput) =
     />
     {feedback.unconfirmedMessage === undefined
       ? null
-      : <p className="status-note warning" role="status">{feedback.unconfirmedMessage}{" "}<AppLink href="/proformas">Registrul de proforme</AppLink></p>}
+      : <StatusNote tone="warning" role="status">{feedback.unconfirmedMessage}{" "}<AppLink href="/proformas">Registrul de proforme</AppLink></StatusNote>}
     {feedback.issuerWarning === undefined
       ? null
-      : <p className="status-note warning" role="status">{feedback.issuerWarning} Proforma nu este document fiscal; salvarea rămâne disponibilă.</p>}
-    <form className="authoring-layout" onSubmit={(event) => { event.preventDefault(); actions.save() }}>
-      <div className="section-stack">
-        <ProformaAuthoringHeader session={session} />
-        <section className="card authoring-section">
-          <label className="notes-field">Observații <span className="optional">opțional</span>
-            <Textarea disabled={status.pending} maxLength={feedback.notesMaxLength} rows={3}
-              aria-describedby="proforma-notes-status" aria-invalid={feedback.notesIssue !== null}
-              value={document.form.notes} onChange={(event) => { actions.changeForm({ notes: event.currentTarget.value }) }} />
-          </label>
-          <p className={feedback.notesIssue === null ? "hint" : "hint warning"} id="proforma-notes-status" aria-live="polite">
-            {feedback.notesIssue ?? `${String(document.form.notes.length)}/${String(feedback.notesMaxLength)}`}
-          </p>
-        </section>
-        <InvoiceLinesEditor
-          lines={document.lines} productPresets={document.productPresets}
-          presetsHasMore={document.presetsHasMore} presetsLoadingMore={document.presetsLoadingMore}
-          onPresetsLoadMore={document.presetsLoadMore}
-          vatRates={document.vatRates} unitOfMeasures={document.unitOfMeasures} pending={status.pending}
-          onAdd={actions.addLine} onChange={actions.changeLine} onApplyPreset={actions.choosePreset} onDelete={actions.deleteLine}
-        />
-      </div>
-      <div className="authoring-side"><ProformaAuthoringActions session={session} /></div>
-    </form>
+      : <StatusNote tone="warning" role="status">{feedback.issuerWarning} Proforma nu este document fiscal; salvarea rămâne disponibilă.</StatusNote>}
+    <AuthoringLayout onSubmit={(event) => { event.preventDefault(); actions.save() }} side={<ProformaAuthoringActions session={session} />}>
+      <ProformaAuthoringHeader session={session} />
+      <NotesSection statusId="proforma-notes-status" value={document.form.notes} maxLength={feedback.notesMaxLength}
+        issue={feedback.notesIssue} disabled={status.pending}
+        onChange={(notes) => { actions.changeForm({ notes }) }} />
+      <InvoiceLinesEditor
+        lines={document.lines} productPresets={document.productPresets}
+        presetsHasMore={document.presetsHasMore} presetsLoadingMore={document.presetsLoadingMore}
+        onPresetsLoadMore={document.presetsLoadMore}
+        vatRates={document.vatRates} unitOfMeasures={document.unitOfMeasures} pending={status.pending}
+        onAdd={actions.addLine} onChange={actions.changeLine} onApplyPreset={actions.choosePreset} onDelete={actions.deleteLine}
+      />
+    </AuthoringLayout>
   </>
 }

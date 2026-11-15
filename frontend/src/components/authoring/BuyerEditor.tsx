@@ -1,8 +1,14 @@
 import { useId } from "react"
 
 import { Button } from "../ui/Button.tsx"
+import { Card } from "../ui/Card.tsx"
+import { CardText } from "../ui/CardText.tsx"
 import { Combobox } from "../ui/Combobox.tsx"
 import { Field } from "../ui/Field.tsx"
+import { Hint } from "../ui/Hint.tsx"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
+import { SegmentedControl } from "../ui/SegmentedControl.tsx"
+import { StatusNote } from "../ui/StatusNote.tsx"
 import { BuyerOneTimeFields } from "./BuyerOneTimeFields.tsx"
 import { partyLabel, useCustomerPicker } from "../../hooks/use-customer-picker.ts"
 import type { SavedBuyer } from "../../hooks/invoice-authoring-session-types.ts"
@@ -38,32 +44,33 @@ export const BuyerEditor = (props: BuyerEditorProps) => {
   const labelId = useId()
   const picker = useCustomerPicker(form, props.customers, props.savedBuyer, props.chosenCustomer, props.onSavedCustomerChange)
   const { search } = picker
-  return <section className="card authoring-section">
-    <div className="section-heading"><div><h2>Cumpărător</h2><p>Alege un client salvat sau completează un client folosit doar pe acest document.</p></div></div>
-    <fieldset className="segmented-fieldset"><legend>Sursa cumpărătorului</legend><div className="segmented-control">
-      <label><input type="radio" name="buyerMode" value="saved" checked={form.buyerMode === "saved"} disabled={props.disabled || !picker.usable} onChange={() => { props.onBuyerModeChange("saved") }} /><span>Client salvat</span></label>
-      <label><input type="radio" name="buyerMode" value="one-time" checked={form.buyerMode === "one-time"} disabled={props.disabled} onChange={() => { props.onBuyerModeChange("one-time") }} /><span>Client ocazional</span></label>
-    </div></fieldset>
-    {form.buyerMode === "saved" ? <div className="authoring-section">
+  return <Card className="grid gap-4">
+    <SectionHeading title="Cumpărător" description="Alege un client salvat sau completează un client folosit doar pe acest document." />
+    <SegmentedControl legend="Sursa cumpărătorului" name="buyerMode" value={form.buyerMode} onChange={props.onBuyerModeChange}
+      choices={[
+        { value: "saved", label: "Client salvat", disabled: props.disabled || !picker.usable },
+        { value: "one-time", label: "Client ocazional", disabled: props.disabled },
+      ]} />
+    {form.buyerMode === "saved" ? <div className="grid gap-4">
       {!picker.usable
-        ? <p className="status-note">Registrul este gol. Alege „Client ocazional” și continuă fără să salvezi clientul în registru.</p>
+        ? <StatusNote role={null}>Registrul este gol. Alege „Client ocazional” și continuă fără să salvezi clientul în registru.</StatusNote>
         : <Field label="Client" required labelId={labelId}>
           <Combobox {...search.field} required disabled={props.disabled} aria-labelledby={labelId} placeholder="Caută după nume sau cod fiscal"
             value={picker.value} suggest options={search.options} optionKey={customerKey} optionLabel={partyLabel}
             listLabel="Clienți găsiți" onPick={picker.pick} onClose={search.close} />
-          {search.hint === undefined ? null : <span className="hint" role="status">{search.hint}</span>}
+          {search.hint === undefined ? null : <Hint as="span" role="status">{search.hint}</Hint>}
         </Field>}
       {props.customersHasMore
-        ? <p><Button variant="secondary" size="sm" disabled={props.customersLoadingMore} onClick={props.onCustomersLoadMore}>
+        ? <CardText><Button variant="secondary" size="sm" disabled={props.customersLoadingMore} onClick={props.onCustomersLoadMore}>
           {props.customersLoadingMore ? "Se încarcă…" : "Încarcă mai mulți clienți"}
-        </Button></p>
+        </Button></CardText>
         : null}
-      <p className="hint">Datele clientului ocazional rămân păstrate dacă schimbi temporar modul.</p>
+      <Hint>Datele clientului ocazional rămân păstrate dacă schimbi temporar modul.</Hint>
     </div> : <BuyerOneTimeFields
       form={form} disabled={props.disabled} sectorRequired={props.sectorRequired}
       onChange={props.onChange} onPartyTypeChange={props.onPartyTypeChange}
       onCountyChange={props.onCountyChange} onFiscalIdentifierChange={props.onFiscalIdentifierChange}
       onSectorChange={props.onSectorChange}
     />}
-  </section>
+  </Card>
 }

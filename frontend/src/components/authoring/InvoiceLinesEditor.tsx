@@ -3,6 +3,9 @@ import type { ProductPreset, UnitOfMeasure, VatCatalogue } from "../../lib/draft
 import type { LineTotals } from "../../lib/draft-totals-preview.ts"
 import { InvoiceLineRow } from "./InvoiceLineRow.tsx"
 import { Button } from "../ui/Button.tsx"
+import { Card } from "../ui/Card.tsx"
+import { Hint } from "../ui/Hint.tsx"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
 import { useFocusAfterRender } from "../../hooks/use-focus-after-render.ts"
 
 interface InvoiceLinesEditorProps {
@@ -27,20 +30,18 @@ interface InvoiceLinesEditorProps {
 export const InvoiceLinesEditor = (props: InvoiceLinesEditorProps) => {
   const focusAfterRender = useFocusAfterRender()
   const add = () => { focusAfterRender(`line-${props.onAdd()}-description`) }
-  return <section className="card authoring-section">
-    <div className="section-heading">
-      <div><h2>Produse și servicii</h2><p>Alege un produs predefinit sau completează linia manual.</p></div>
-      <Button variant="secondary" size="sm" disabled={props.pending} onClick={add}>Adaugă linie</Button>
-    </div>
+  return <Card className="grid gap-4">
+    <SectionHeading title="Produse și servicii" description="Alege un produs predefinit sau completează linia manual."
+      aside={<Button variant="secondary" size="sm" disabled={props.pending} onClick={add}>Adaugă linie</Button>} />
     {props.presetsHasMore
-      ? <p className="hint">
+      ? <Hint>
         Se afișează primele produse predefinite.{" "}
         <Button variant="secondary" size="sm" disabled={props.presetsLoadingMore} onClick={props.onPresetsLoadMore}>
           {props.presetsLoadingMore ? "Se încarcă…" : "Încarcă mai multe produse"}
         </Button>
-      </p>
+      </Hint>
       : null}
-    <div className="line-editor-list">
+    <div className="grid gap-[1.1rem]">
       {props.lines.map((line, index) => <InvoiceLineRow key={line.key} line={line} index={index} totals={props.lineTotals?.get(line.key)}
         productPresets={props.productPresets} vatRates={props.vatRates} unitOfMeasures={props.unitOfMeasures}
         pending={props.pending} onChange={props.onChange} onApplyPreset={props.onApplyPreset} onDelete={props.onDelete}
@@ -49,5 +50,5 @@ export const InvoiceLinesEditor = (props: InvoiceLinesEditorProps) => {
     {props.lines.length === 0
       ? <Button variant="secondary" disabled={props.pending} onClick={add}>Adaugă prima linie manuală</Button>
       : null}
-  </section>
+  </Card>
 }
