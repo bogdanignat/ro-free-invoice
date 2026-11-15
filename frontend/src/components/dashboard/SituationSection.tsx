@@ -4,7 +4,10 @@ import { CollectionsTable } from "./CollectionsTable.tsx"
 import { ReportFrame } from "./ReportFrame.tsx"
 import { StatCards } from "./StatCards.tsx"
 import { EmptyState } from "../AsyncState.tsx"
+import { Card } from "../ui/Card.tsx"
 import { ChoiceGroup } from "../ui/ChoiceGroup.tsx"
+import { Count } from "../ui/Count.tsx"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
 import type { DashboardModel } from "../../hooks/use-dashboard.ts"
 import { COLLECTIONS_STATUS_FILTERS } from "../../lib/dashboard-query.ts"
 
@@ -16,17 +19,13 @@ export const SituationSection = ({ dashboard }: { readonly dashboard: DashboardM
   const headingId = useId()
   const { filters, situation } = dashboard
   if (situation === undefined) return null
-  return <section className="card" aria-labelledby={headingId} aria-busy={situation.state.refreshing}>
-    <div className="section-heading">
-      <div>
-        <h2 id={headingId}>Facturile emise în perioadă</h2>
-        <p>Status și sold la zi, cu toate plățile facturii, indiferent de data lor.</p>
-      </div>
-      {situation.state.refreshing
-        ? <span className="count" role="status">Se actualizează…</span>
-        : situation.view === undefined ? null : <span className="count">{situation.view.count}</span>}
-    </div>
-    <div className="filters">
+  return <Card aria-labelledby={headingId} aria-busy={situation.state.refreshing}>
+    <SectionHeading id={headingId} title="Facturile emise în perioadă"
+      description="Status și sold la zi, cu toate plățile facturii, indiferent de data lor."
+      aside={situation.state.refreshing
+        ? <Count role="status">Se actualizează…</Count>
+        : situation.view === undefined ? null : <Count>{situation.view.count}</Count>} />
+    <div className="flex flex-wrap gap-x-6 gap-y-4 items-end mb-[1.2rem]">
       <ChoiceGroup legend="Status încasare" choices={COLLECTIONS_STATUS_FILTERS}
         value={filters.query.status} onChange={filters.chooseStatus} />
     </div>
@@ -38,5 +37,5 @@ export const SituationSection = ({ dashboard }: { readonly dashboard: DashboardM
           : <CollectionsTable rows={view.rows} />}
       </>}
     </ReportFrame>
-  </section>
+  </Card>
 }

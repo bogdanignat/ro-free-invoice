@@ -18,7 +18,8 @@ export const DashboardView = () => {
     <Page title="Acasă" eyebrow="Tablou de bord"
       actions={<AppLink className={buttonClass()} href="/invoices/new">Factură nouă</AppLink>}>
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}
-      <div className="section-stack">
+      {/* `minmax(0,1fr)`: a wide table scrolls inside its card instead of widening the column past the screen. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
         <SetupGapsCard gaps={gaps} />
         <PeriodSection dashboard={dashboard} />
         <SituationSection dashboard={dashboard} />

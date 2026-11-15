@@ -1,30 +1,30 @@
 import { AppLink } from "../ui/AppLink.tsx"
+import { Badge } from "../ui/Badge.tsx"
+import { Table, Td, Th } from "../ui/Table.tsx"
 import type { CollectionRow } from "../../lib/dashboard-situation.ts"
 
-/** The listed invoices with today's status and balance; `data-label` stacks each row on a narrow screen. */
+/** The listed invoices with today's status and balance; `label` stacks each row on a narrow screen. */
 export const CollectionsTable = ({ rows }: { readonly rows: ReadonlyArray<CollectionRow> }) =>
-  <div className="table-wrap">
-    <table>
-      <caption className="sr-only">Facturile emise în perioadă, după scadență</caption>
-      <thead>
-        <tr>
-          <th scope="col">Număr</th><th scope="col">Client</th><th scope="col">Emisă</th><th scope="col">Scadență</th>
-          <th scope="col" className="numeric">Total</th><th scope="col" className="numeric">Încasat</th><th scope="col" className="numeric">Stornat</th>
-          <th scope="col" className="numeric">Sold</th><th scope="col">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => <tr key={row.id}>
-          <td data-label="Număr"><AppLink href={row.href}><strong>{row.number}</strong></AppLink></td>
-          <td data-label="Client">{row.customerName}</td>
-          <td data-label="Emisă">{row.issueDate}</td>
-          <td data-label="Scadență">{row.dueDate}</td>
-          <td data-label="Total" className="numeric">{row.total}</td>
-          <td data-label="Încasat" className="numeric">{row.paid}</td>
-          <td data-label="Stornat" className="numeric">{row.credited}</td>
-          <td data-label="Sold" className="numeric">{row.remaining}</td>
-          <td data-label="Status"><span className={`badge ${row.statusTone}`}>{row.statusLabel}</span></td>
-        </tr>)}
-      </tbody>
-    </table>
-  </div>
+  <Table>
+    <caption className="sr-only">Facturile emise în perioadă, după scadență</caption>
+    <thead>
+      <tr>
+        <Th scope="col">Număr</Th><Th scope="col">Client</Th><Th scope="col">Emisă</Th><Th scope="col">Scadență</Th>
+        <Th scope="col" numeric>Total</Th><Th scope="col" numeric>Încasat</Th><Th scope="col" numeric>Stornat</Th>
+        <Th scope="col" numeric>Sold</Th><Th scope="col">Status</Th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => <tr key={row.id}>
+        <Td label="Număr"><AppLink href={row.href}><strong>{row.number}</strong></AppLink></Td>
+        <Td label="Client">{row.customerName}</Td>
+        <Td label="Emisă">{row.issueDate}</Td>
+        <Td label="Scadență">{row.dueDate}</Td>
+        <Td label="Total" numeric>{row.total}</Td>
+        <Td label="Încasat" numeric>{row.paid}</Td>
+        <Td label="Stornat" numeric>{row.credited}</Td>
+        <Td label="Sold" numeric>{row.remaining}</Td>
+        <Td label="Status"><Badge tone={row.statusTone}>{row.statusLabel}</Badge></Td>
+      </tr>)}
+    </tbody>
+  </Table>

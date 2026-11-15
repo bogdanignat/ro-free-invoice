@@ -27,10 +27,12 @@ const LAYOUTS: Readonly<Record<CardTextLayout, string>> = {
 }
 
 /** A paragraph that reads, inside a card, as the legacy `.card p` did: muted, line height 1.6. */
-export const CardText = ({ tone = "muted", size = "body", layout = "flow", role, children }: {
+export const CardText = ({ tone = "muted", size = "body", layout = "flow", id, role, children }: {
   readonly tone?: CardTextTone
   readonly size?: CardTextSize
   readonly layout?: CardTextLayout
+  /** For an `aria-describedby` that points at the sentence. */
+  readonly id?: string
   readonly role?: AriaRole
   readonly children: ReactNode
-}) => <p role={role} className={cx("m-0 in-data-[card]:leading-[1.6]", TONES[tone], SIZES[size], LAYOUTS[layout])}>{children}</p>
+}) => <p id={id} role={role} className={cx("m-0 in-data-[card]:leading-[1.6]", TONES[tone], SIZES[size], LAYOUTS[layout])}>{children}</p>

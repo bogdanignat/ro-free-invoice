@@ -16,7 +16,7 @@ const TONES: Readonly<Record<StatusNoteTone, string>> = {
 }
 
 // The legacy `.card p` outranks the note's own colour, so inside a card an info note paragraph reads muted.
-const INFO_P_IN_CARD = "[.card_&]:text-invoice-muted in-data-[card]:text-invoice-muted"
+const INFO_P_IN_CARD = "in-data-[card]:text-invoice-muted"
 
 /**
  * A sentence about the screen's state: a warning or an error is announced at

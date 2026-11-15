@@ -1,4 +1,7 @@
 import { Button } from "../ui/Button.tsx"
+import { ButtonRow } from "../ui/ButtonRow.tsx"
+import { Hint } from "../ui/Hint.tsx"
+import { ListItem } from "../ui/ListItem.tsx"
 import { EmptyState, ErrorAlert } from "../AsyncState.tsx"
 import type { EFacturaReconciliationModel } from "../../hooks/use-efactura-reconciliation.ts"
 
@@ -12,35 +15,31 @@ export const EFacturaReconciliation = ({ model }: { readonly model: EFacturaReco
   const busy = model.pending || model.searching
   return <section className="grid gap-3" aria-labelledby="efactura-reconcile-title">
     <h3 id="efactura-reconcile-title" className="m-0">Reconciliere</h3>
-    <p className="hint">Caută în lista ANAF încărcările acestui CIF din perioada trimiterii. Leagă doar mesajul pe care îl recunoști ca fiind acest document; dacă nu-l găsești, îl poți retrimite.</p>
-    <div className="button-row">
+    <Hint>Caută în lista ANAF încărcările acestui CIF din perioada trimiterii. Leagă doar mesajul pe care îl recunoști ca fiind acest document; dacă nu-l găsești, îl poți retrimite.</Hint>
+    <ButtonRow>
       <Button variant="secondary" disabled={busy} onClick={model.search}>{model.searching ? "Se caută…" : "Caută la ANAF"}</Button>
       <Button variant="danger" disabled={busy} onClick={model.resubmit}>Retrimite</Button>
-    </div>
+    </ButtonRow>
     {model.searchError === undefined ? null : <ErrorAlert error={model.searchError} />}
     {model.failure === undefined ? null : <ErrorAlert error={model.failure} />}
     {candidates === undefined ? null : <>
-      <p className="hint">{candidates.window}</p>
+      <Hint>{candidates.window}</Hint>
       {candidates.rows.length === 0
         ? <EmptyState>ANAF nu listează nicio încărcare a acestui CIF în perioada trimiterii.</EmptyState>
         : <ul className="m-0 list-none p-0">
-          {candidates.rows.map((row) => <li key={row.uploadIndex} className="draft-item">
-            <div className="draft-item-main">
-              <strong>Index {row.uploadIndex}</strong>
-              <small>{row.date} · {row.type}</small>
-            </div>
-            <div className="draft-item-actions">
-              <Button variant="secondary" size="sm" disabled={busy || row.linked} onClick={() => { model.link(row.uploadIndex) }}>
-                {row.linkLabel}
-              </Button>
-            </div>
-          </li>)}
+          {candidates.rows.map((row) => <ListItem as="li" key={row.uploadIndex}
+            actions={<Button variant="secondary" size="sm" disabled={busy || row.linked} onClick={() => { model.link(row.uploadIndex) }}>
+              {row.linkLabel}
+            </Button>}>
+            <strong>Index {row.uploadIndex}</strong>
+            <small>{row.date} · {row.type}</small>
+          </ListItem>)}
         </ul>}
       {candidates.pageLabel === undefined
         ? null
-        : <nav className="button-row items-center" aria-label="Paginile listei ANAF">
+        : <nav className="flex flex-wrap gap-[.6rem] items-center" aria-label="Paginile listei ANAF">
           <PageButton label="Pagina anterioară" page={candidates.previous} disabled={busy} goTo={model.goTo} />
-          <span className="hint">{candidates.pageLabel}</span>
+          <Hint as="span">{candidates.pageLabel}</Hint>
           <PageButton label="Pagina următoare" page={candidates.next} disabled={busy} goTo={model.goTo} />
         </nav>}
     </>}

@@ -9,9 +9,7 @@ type CardProps = HTMLAttributes<HTMLElement> & {
 }
 
 // `data-card` lets the primitives inside read as the legacy `.card p` / `.card h2` did (`in-data-[card]:`).
-// The `.alert`/`.empty-state`/`.center-state` lines bridge `AsyncState`, still on the legacy classes, until it moves.
 const CARD = "p-6 border border-invoice-border rounded-invoice-panel shadow-invoice-panel"
-  + " [&_.alert_p]:text-invoice-muted [&_.alert_p]:leading-[1.6] [&_.center-state_p]:leading-[1.6] [&_.empty-state]:leading-[1.6]"
 
 // The surface is a tone's, not the base's: two background utilities in one list would be decided by Tailwind's order.
 const TONES = {
