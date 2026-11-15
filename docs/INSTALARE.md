@@ -19,7 +19,7 @@ Plugin-uri opționale, toate pornite implicit (`RFI_PLUGINS`): `payments` (plă�
 
 ## 2. Cerințe
 
-- Server Linux `amd64` sau `arm64`; câteva sute de MB de disc ajung pentru ani de facturi.
+- Server Linux `amd64` (pe `arm64` construiești imaginea din sursă: README, „Quick start (self-host)”); câteva sute de MB de disc ajung pentru ani de facturi.
 - Docker Engine cu Docker Compose v2.
 - Un nume DNS spre server (ex. `facturi.exemplu.ro`) și HTTPS printr-un reverse proxy:
   Caddy-ul inclus (profilul `proxy`, ocupă porturile 80 și 443 și obține singur
