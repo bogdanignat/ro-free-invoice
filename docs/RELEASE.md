@@ -1,6 +1,6 @@
 # Release bundle — install, upgrade, backup, restore, rollback
 
-Each versioned release publishes one image, for `linux/amd64` + `linux/arm64`, to the GHCR path of the repository that ran the release workflow (for this repository `ghcr.io/bogdanignat/ro-free-invoice:<version>`). The image is the kernel: it serves the UI (the Vite build in `frontend/dist`, `RFI_UI_DIR`) and `/api` on one origin, `PUBLIC_ORIGIN`. `image-digests.txt` lists its multi-arch digest; set `RFI_IMAGE` to the registry path and pin `IMAGE_TAG` to that digest. The release should ship:
+Each versioned release publishes one image, for `linux/amd64` (another architecture builds it from a checkout, below), to the GHCR path of the repository that ran the release workflow (for this repository `ghcr.io/bogdanignat/ro-free-invoice:<version>`). The image is the kernel: it serves the UI (the Vite build in `frontend/dist`, `RFI_UI_DIR`) and `/api` on one origin, `PUBLIC_ORIGIN`. `image-digests.txt` lists its digest; set `RFI_IMAGE` to the registry path and pin `IMAGE_TAG` to that digest. The release should ship:
 
 ```text
 compose.prod.yaml
