@@ -3,6 +3,8 @@ import type { AriaRole, ReactNode } from "react"
 import { cx } from "./cx.ts"
 
 export type CardTextTone = "muted" | "title" | "strong"
+export type CardTextSize = "body" | "small"
+export type CardTextLayout = "flow" | "status"
 
 const TONES: Readonly<Record<CardTextTone, string>> = {
   muted: "in-data-[card]:text-invoice-muted",
@@ -12,11 +14,23 @@ const TONES: Readonly<Record<CardTextTone, string>> = {
   strong: "font-bold in-data-[card]:text-invoice-muted",
 }
 
+const SIZES: Readonly<Record<CardTextSize, string>> = {
+  body: "",
+  // A side line under a document's head (the invoice a correction reverses).
+  small: "text-[.85rem]",
+}
+
+const LAYOUTS: Readonly<Record<CardTextLayout, string>> = {
+  flow: "",
+  // Badges as a wrapping row over the actions that follow, as the legacy `.conversion-state`.
+  status: "flex flex-wrap gap-[.6rem] items-center mb-4",
+}
+
 /** A paragraph that reads, inside a card, as the legacy `.card p` did: muted, line height 1.6. */
-export const CardText = ({ tone = "muted", role, className, children }: {
+export const CardText = ({ tone = "muted", size = "body", layout = "flow", role, children }: {
   readonly tone?: CardTextTone
+  readonly size?: CardTextSize
+  readonly layout?: CardTextLayout
   readonly role?: AriaRole
-  /** Spacing or size from the layout around it, never the colour. */
-  readonly className?: string
   readonly children: ReactNode
-}) => <p role={role} className={cx("m-0 in-data-[card]:leading-[1.6]", TONES[tone], className)}>{children}</p>
+}) => <p role={role} className={cx("m-0 in-data-[card]:leading-[1.6]", TONES[tone], SIZES[size], LAYOUTS[layout])}>{children}</p>

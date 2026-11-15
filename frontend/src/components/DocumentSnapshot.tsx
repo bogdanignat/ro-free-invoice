@@ -9,7 +9,7 @@ export const DocumentSnapshot = ({ view }: { readonly view: DocumentSnapshotView
   <DocumentHead heading={view.heading} facts={view.facts} />
   {view.originalInvoice === null
     ? null
-    : <CardText className="text-[.85rem]"><AppLink href={view.originalInvoice.href}>{view.originalInvoice.label}</AppLink></CardText>}
+    : <CardText size="small"><AppLink href={view.originalInvoice.href}>{view.originalInvoice.label}</AppLink></CardText>}
   <DocumentParties parties={view.parties} />
   <Table>
     <caption className="sr-only">Linii document</caption>

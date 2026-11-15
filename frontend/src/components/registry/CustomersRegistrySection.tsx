@@ -1,5 +1,6 @@
 import { Button } from "../ui/Button.tsx"
 import { Card } from "../ui/Card.tsx"
+import { Count } from "../ui/Count.tsx"
 import { EmptyState } from "../AsyncState.tsx"
 import { LoadMore } from "../LoadMore.tsx"
 import { SectionHeading } from "../ui/SectionHeading.tsx"
@@ -30,7 +31,7 @@ export const CustomersRegistrySection = (props: CustomersRegistrySectionProps) =
   <Card>
     <SectionHeading title="Clienți salvați"
       description="Documentele deja emise păstrează copia proprie a cumpărătorului: o modificare aici nu le schimbă."
-      aside={<span className="px-[.65rem] py-[.3rem] rounded-invoice-control text-invoice-label bg-invoice-badge-surface text-[.8rem] font-bold whitespace-nowrap">{props.customers.length}</span>} />
+      aside={<Count>{props.customers.length}</Count>} />
     {props.customers.length === 0
       ? <EmptyState>Nu există încă clienți salvați.</EmptyState>
       : <Table>

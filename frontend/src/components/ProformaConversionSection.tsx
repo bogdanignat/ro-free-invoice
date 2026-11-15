@@ -3,6 +3,7 @@ import { Badge } from "./ui/Badge.tsx"
 import { Button, buttonClass } from "./ui/Button.tsx"
 import { ButtonRow } from "./ui/ButtonRow.tsx"
 import { Card } from "./ui/Card.tsx"
+import { CardText } from "./ui/CardText.tsx"
 import { Field } from "./ui/Field.tsx"
 import { SectionHeading } from "./ui/SectionHeading.tsx"
 import { Select } from "./ui/Select.tsx"
@@ -67,9 +68,7 @@ export const ProformaConversionSection = ({ conversion }: { readonly conversion:
         </ButtonRow>
       </>
       : <>
-        <p className="flex flex-wrap gap-[.6rem] items-center mb-4 in-data-[card]:leading-[1.6]">
-          <Badge tone={outcome.status.tone}>{outcome.status.label}</Badge>
-        </p>
+        <CardText layout="status"><Badge tone={outcome.status.tone}>{outcome.status.label}</Badge></CardText>
         <AppLink className={buttonClass({ variant: "secondary" })} href={outcome.href}>{outcome.label}</AppLink>
       </>}
   </Card>

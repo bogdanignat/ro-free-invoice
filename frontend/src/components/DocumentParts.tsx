@@ -20,8 +20,9 @@ export const DocumentParties = ({ parties }: {
 }) => <div className="grid gap-5 grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
   {parties.map((party) => <section key={party.heading}>
     <h3 className={SMALL_TITLE}>{party.heading}</h3>
-    <CardText tone="strong" className="mb-[.35rem]">{party.name}</CardText>
-    <ul className="text-invoice-muted text-[.84rem] leading-[1.55]">
+    <CardText tone="strong">{party.name}</CardText>
+    {/* The gap the legacy `.party-name` margin left under the name. */}
+    <ul className="mt-[.35rem] text-invoice-muted text-[.84rem] leading-[1.55]">
       {party.details.map((detail, index) => <li key={`${String(index)}:${detail}`}>{detail}</li>)}
     </ul>
   </section>)}

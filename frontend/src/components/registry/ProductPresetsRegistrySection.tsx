@@ -1,5 +1,6 @@
 import { Button } from "../ui/Button.tsx"
 import { Card } from "../ui/Card.tsx"
+import { Count } from "../ui/Count.tsx"
 import { EmptyState } from "../AsyncState.tsx"
 import { LoadMore } from "../LoadMore.tsx"
 import { SectionHeading } from "../ui/SectionHeading.tsx"
@@ -30,7 +31,7 @@ export const ProductPresetsRegistrySection = (props: ProductPresetsRegistrySecti
   <Card>
     <SectionHeading title="Produse salvate"
       description="Completează o linie de document dintr-un singur clic. Liniile deja scrise pe documente nu se schimbă când produsul se modifică."
-      aside={<span className="px-[.65rem] py-[.3rem] rounded-invoice-control text-invoice-label bg-invoice-badge-surface text-[.8rem] font-bold whitespace-nowrap">{props.rows.length}</span>} />
+      aside={<Count>{props.rows.length}</Count>} />
     {props.rows.length === 0
       ? <EmptyState>Nu există încă produse salvate.</EmptyState>
       : <Table>
