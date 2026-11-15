@@ -3,6 +3,8 @@ import { Button } from "../components/ui/Button.tsx"
 import { Card } from "../components/ui/Card.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
+import { SetupNote } from "../components/ui/SetupNote.tsx"
+import { SplitLayout } from "../components/ui/SplitLayout.tsx"
 import { StatusNote } from "../components/ui/StatusNote.tsx"
 import { ProductPresetEditorSection } from "../components/registry/ProductPresetEditorSection.tsx"
 import { ProductPresetsRegistrySection } from "../components/registry/ProductPresetsRegistrySection.tsx"
@@ -35,21 +37,18 @@ export const ProductsView = () => {
           {catalogue.editing === undefined && catalogue.error !== null && catalogue.error !== undefined
             ? <ErrorAlert error={catalogue.error} />
             : null}
-          <div className="grid gap-6 grid-cols-[minmax(0,2.1fr)_minmax(15rem,1fr)] items-start stacked:grid-cols-[1fr]">
+          <SplitLayout side={catalogue.form === undefined
+            ? <Card><SetupNote>Alege un produs din listă ca să îl modifici, sau adaugă unul nou.</SetupNote></Card>
+            : <ProductPresetEditorSection form={catalogue.form} editingId={catalogue.editing?.id}
+              units={catalogue.units} vatOptions={catalogue.vatOptions} issue={catalogue.issue}
+              pending={catalogue.pending} error={catalogue.error}
+              onChange={catalogue.change} onSubmit={catalogue.submit} onClose={catalogue.close} />}>
             <ProductPresetsRegistrySection rows={catalogue.rows} editingId={catalogue.editing?.id}
               disabled={catalogue.pending} hasMore={catalogue.hasMore} loadingMore={catalogue.loadingMore}
               onLoadMore={catalogue.loadMore}
               onEdit={(row) => { catalogue.startEdit(row.preset) }}
               onDelete={(row) => { catalogue.remove(row.preset) }} />
-            <div className="grid gap-6 sticky top-6 stacked:static">
-              {catalogue.form === undefined
-                ? <Card><p className="m-0 p-5 border-l-3 border-l-invoice-primary-hover rounded-invoice-control text-invoice-muted bg-invoice-secondary-surface leading-[1.6]">Alege un produs din listă ca să îl modifici, sau adaugă unul nou.</p></Card>
-                : <ProductPresetEditorSection form={catalogue.form} editingId={catalogue.editing?.id}
-                  units={catalogue.units} vatOptions={catalogue.vatOptions} issue={catalogue.issue}
-                  pending={catalogue.pending} error={catalogue.error}
-                  onChange={catalogue.change} onSubmit={catalogue.submit} onClose={catalogue.close} />}
-            </div>
-          </div>
+          </SplitLayout>
         </>
         : null}
     </Page>

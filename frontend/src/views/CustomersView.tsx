@@ -5,6 +5,8 @@ import { Button } from "../components/ui/Button.tsx"
 import { Card } from "../components/ui/Card.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
+import { SetupNote } from "../components/ui/SetupNote.tsx"
+import { SplitLayout } from "../components/ui/SplitLayout.tsx"
 import { StatusNote } from "../components/ui/StatusNote.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"
 import { useCustomerRegistry } from "../hooks/use-customer-registry.ts"
@@ -32,20 +34,17 @@ export const CustomersView = () => {
           {registry.editing === undefined && registry.error !== null && registry.error !== undefined
             ? <ErrorAlert error={registry.error} />
             : null}
-          <div className="grid gap-6 grid-cols-[minmax(0,2.1fr)_minmax(15rem,1fr)] items-start stacked:grid-cols-[1fr]">
+          <SplitLayout side={registry.form === undefined
+            ? <Card><SetupNote>Alege un client din listă ca să îl modifici, sau adaugă unul nou.</SetupNote></Card>
+            : <CustomerEditorSection form={registry.form} editingId={registry.editing?.id}
+              sectorRequired={registry.sectorRequired} issue={registry.issue} pending={registry.pending}
+              error={registry.error} onChange={registry.change}
+              onPartyTypeChange={registry.changePartyType} onIdentifierChange={registry.changeIdentifier}
+              onCountyChange={registry.changeCounty} onSubmit={registry.submit} onClose={registry.close} />}>
             <CustomersRegistrySection customers={registry.customers} editingId={registry.editing?.id}
               disabled={registry.pending} hasMore={registry.hasMore} loadingMore={registry.loadingMore}
               onLoadMore={registry.loadMore} onEdit={registry.startEdit} onDelete={registry.remove} />
-            <div className="grid gap-6 sticky top-6 stacked:static">
-              {registry.form === undefined
-                ? <Card><p className="m-0 p-5 border-l-3 border-l-invoice-primary-hover rounded-invoice-control text-invoice-muted bg-invoice-secondary-surface leading-[1.6]">Alege un client din listă ca să îl modifici, sau adaugă unul nou.</p></Card>
-                : <CustomerEditorSection form={registry.form} editingId={registry.editing?.id}
-                  sectorRequired={registry.sectorRequired} issue={registry.issue} pending={registry.pending}
-                  error={registry.error} onChange={registry.change}
-                  onPartyTypeChange={registry.changePartyType} onIdentifierChange={registry.changeIdentifier}
-                  onCountyChange={registry.changeCounty} onSubmit={registry.submit} onClose={registry.close} />}
-            </div>
-          </div>
+          </SplitLayout>
         </>
         : null}
     </Page>

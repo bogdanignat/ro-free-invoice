@@ -17,9 +17,10 @@ const LABEL = "narrow:grid narrow:gap-[.1rem] narrow:px-0 narrow:py-[.3rem] narr
   + " narrow:before:content-[attr(data-label)] narrow:before:text-invoice-muted narrow:before:text-invoice-caption"
   + " narrow:before:font-extrabold narrow:before:tracking-invoice-caps narrow:before:uppercase"
 
+// `relative`: the cells' absolutely placed `sr-only` text is clipped by this box instead of widening the page.
 /** A table that scrolls sideways inside its own box instead of widening the page. */
 export const Table = ({ className, ...props }: ComponentPropsWithoutRef<"table">) =>
-  <div className="overflow-x-auto"><table {...props} className={cx(TABLE, className)} /></div>
+  <div className="relative overflow-x-auto"><table {...props} className={cx(TABLE, className)} /></div>
 
 type CellProps<Cell extends "th" | "td"> = ComponentPropsWithoutRef<Cell> & { readonly numeric?: boolean | undefined }
 

@@ -1,4 +1,5 @@
 import type { SubmitEvent, ReactNode } from "react"
+import { SplitLayout } from "../ui/SplitLayout.tsx"
 
 /**
  * The authoring form's frame: the sections on the left, the totals and actions
@@ -9,7 +10,8 @@ export const AuthoringLayout = ({ side, onSubmit, children }: {
   readonly side: ReactNode
   readonly onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
   readonly children: ReactNode
-}) => <form className="grid gap-6 grid-cols-[minmax(0,2.1fr)_minmax(15rem,1fr)] items-start stacked:grid-cols-[1fr]" onSubmit={onSubmit}>
-  <div className="grid gap-6">{children}</div>
-  <div className="grid gap-6 sticky top-6 stacked:static">{side}</div>
+}) => <form onSubmit={onSubmit}>
+  <SplitLayout side={side}>
+    <div className="grid gap-6">{children}</div>
+  </SplitLayout>
 </form>
