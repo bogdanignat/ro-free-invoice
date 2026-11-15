@@ -82,6 +82,6 @@ export const activeHttpApi = (plugins: PluginSelection) => {
   return application(plugins["company-lookup"] ? withCompanyLookup(billed) : billed).annotateContext(OpenApi.annotations({
     title: "RO Free Invoice API",
     description: "Kernel invoice-core, PDF artifact, and browser-session HTTP contract.",
-    version: "0.1.0",
+    version: "1.0.0",
   }))
 }
