@@ -2,6 +2,7 @@ import { ErrorAlert } from "../components/AsyncState.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
 import { ReceivedFetchPanel } from "../components/received/ReceivedFetchPanel.tsx"
+import { SetupNote } from "../components/ui/SetupNote.tsx"
 import { ReceivedList } from "../components/received/ReceivedList.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"
 import { useReceivedFetch } from "../hooks/use-received-fetch.ts"
@@ -16,8 +17,8 @@ export const ReceivedView = () => {
     <Page title="Facturi primite" eyebrow="e-Factura">
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}
       {fetch === undefined || list === undefined
-        ? <p className="setup-note">Această instalare nu are pornit pluginul e-Factura, deci nu preia facturi primite.</p>
-        : <div className="section-stack">
+        ? <SetupNote>Această instalare nu are pornit pluginul e-Factura, deci nu preia facturi primite.</SetupNote>
+        : <div className="grid gap-6">
           <ReceivedFetchPanel model={fetch} />
           <ReceivedList list={list} />
         </div>}

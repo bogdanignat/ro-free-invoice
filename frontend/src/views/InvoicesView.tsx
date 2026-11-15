@@ -1,5 +1,8 @@
 import { AppLink } from "../components/ui/AppLink.tsx"
 import { buttonClass } from "../components/ui/Button.tsx"
+import { Card } from "../components/ui/Card.tsx"
+import { Count } from "../components/ui/Count.tsx"
+import { SectionHeading } from "../components/ui/SectionHeading.tsx"
 import { ErrorAlert } from "../components/AsyncState.tsx"
 import { DraftsSection } from "../components/DraftsSection.tsx"
 import { Page } from "../components/Page.tsx"
@@ -18,20 +21,13 @@ export const InvoicesView = () => {
     <Page title="Registru de facturi" eyebrow="Documente emise"
       actions={<AppLink className={buttonClass()} href="/invoices/new">Factură nouă</AppLink>}>
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}
-      <div className="section-stack">
-        <section className="card">
-          <div className="section-heading">
-            <div>
-              <h2>Facturi și storno</h2>
-              <p>Snapshot-uri fiscale imuabile, ordonate după emitere.</p>
-            </div>
-            {register.rows === undefined
-              ? null
-              : <span className="count" aria-live="polite">{register.rows.length} încărcate</span>}
-          </div>
+      <div className="grid gap-6">
+        <Card>
+          <SectionHeading title="Facturi și storno" description="Snapshot-uri fiscale imuabile, ordonate după emitere."
+            aside={register.rows === undefined ? undefined : <Count aria-live="polite">{register.rows.length} încărcate</Count>} />
           <RegisterFilters filters={register.filters} eFactura={register.eFacturaColumn} />
           <RegisterResults register={register} />
-        </section>
+        </Card>
         <DraftsSection drafts={drafts} />
       </div>
     </Page>

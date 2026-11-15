@@ -1,4 +1,6 @@
 import { AppLink } from "../ui/AppLink.tsx"
+import { Badge } from "../ui/Badge.tsx"
+import { Table, Td, Th } from "../ui/Table.tsx"
 import type { ReceivedRow } from "../../lib/received-projection.ts"
 
 /**
@@ -6,33 +8,31 @@ import type { ReceivedRow } from "../../lib/received-projection.ts"
  * `data-label` so the narrow layout stacks the row into a card.
  */
 export const ReceivedTable = ({ rows }: { readonly rows: ReadonlyArray<ReceivedRow> }) =>
-  <div className="table-wrap">
-    <table>
-      <caption className="sr-only">Facturi primite din SPV</caption>
-      <thead>
-        <tr>
-          <th>Număr</th><th>Furnizor</th><th>CIF</th><th>Data</th><th>Scadență</th>
-          <th>Total</th><th>TVA</th><th>Monedă</th><th>Citire</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => <tr key={row.key}>
-          <td data-label="Număr">
-            <AppLink href={row.href} aria-label={row.linkName}><strong>{row.label}</strong></AppLink>
-            {row.kindLabel === null ? null : <small className="badge storno">{row.kindLabel}</small>}
-          </td>
-          <td data-label="Furnizor">{row.supplierName}</td>
-          <td data-label="CIF">{row.supplierCif}</td>
-          <td data-label="Data">{row.issueDate}</td>
-          <td data-label="Scadență">{row.dueDate}</td>
-          <td data-label="Total" className="numeric">{row.total}</td>
-          <td data-label="TVA" className="numeric">{row.vat}</td>
-          <td data-label="Monedă">{row.currency}</td>
-          <td data-label="Citire">
-            <span className={row.readable ? "badge positive" : "badge text-invoice-danger-text"}>{row.readLabel}</span>
-            {row.notes.map((note) => <small key={note} className="block">{note}</small>)}
-          </td>
-        </tr>)}
-      </tbody>
-    </table>
-  </div>
+  <Table>
+    <caption className="sr-only">Facturi primite din SPV</caption>
+    <thead>
+      <tr>
+        <Th>Număr</Th><Th>Furnizor</Th><Th>CIF</Th><Th>Data</Th><Th>Scadență</Th>
+        <Th>Total</Th><Th>TVA</Th><Th>Monedă</Th><Th>Citire</Th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => <tr key={row.key}>
+        <Td label="Număr">
+          <AppLink href={row.href} aria-label={row.linkName}><strong>{row.label}</strong></AppLink>
+          {row.kindLabel === null ? null : <Badge tone="storno">{row.kindLabel}</Badge>}
+        </Td>
+        <Td label="Furnizor">{row.supplierName}</Td>
+        <Td label="CIF">{row.supplierCif}</Td>
+        <Td label="Data">{row.issueDate}</Td>
+        <Td label="Scadență">{row.dueDate}</Td>
+        <Td label="Total" numeric>{row.total}</Td>
+        <Td label="TVA" numeric>{row.vat}</Td>
+        <Td label="Monedă">{row.currency}</Td>
+        <Td label="Citire">
+          <Badge tone={row.readable ? "positive" : "danger"}>{row.readLabel}</Badge>
+          {row.notes.map((note) => <small key={note} className="block">{note}</small>)}
+        </Td>
+      </tr>)}
+    </tbody>
+  </Table>

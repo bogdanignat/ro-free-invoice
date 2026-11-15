@@ -1,5 +1,8 @@
 import { useId, type ReactNode } from "react"
 
+import { Field } from "./ui/Field.tsx"
+import { Hint } from "./ui/Hint.tsx"
+import { Input } from "./ui/Input.tsx"
 import type { ReportRange } from "../lib/report-period.ts"
 
 interface DateRangeFieldsProps {
@@ -16,7 +19,9 @@ interface DateRangeFieldsProps {
   readonly children?: ReactNode
 }
 
-/** The two dates of an interval, laid out by the caller's `.custom-range` container. */
+const DATE_FIELD = "min-w-[10.5rem] narrow:min-w-0 narrow:flex-[1_1_9rem]"
+
+/** The two dates of an interval, laid out by the caller's flex container. */
 export const DateRangeFields = ({ range, error, onEdit, required = false, hint, min, children }: DateRangeFieldsProps) => {
   const hintId = useId()
   const errorId = useId()
@@ -24,16 +29,16 @@ export const DateRangeFields = ({ range, error, onEdit, required = false, hint, 
   const describedIds = [...(hint === undefined ? [] : [hintId]), ...(refused ? [errorId] : [])]
   const described = describedIds.length === 0 ? undefined : describedIds.join(" ")
   return <>
-    <label>De la
-      <input type="date" value={range.from} required={required} min={min} aria-invalid={refused} aria-describedby={described}
+    <Field label="De la" className={DATE_FIELD}>
+      <Input type="date" value={range.from} required={required} min={min} aria-invalid={refused} aria-describedby={described}
         onChange={(event) => { onEdit("from", event.target.value) }} />
-    </label>
-    <label>Până la
-      <input type="date" value={range.to} required={required} min={min} aria-invalid={refused} aria-describedby={described}
+    </Field>
+    <Field label="Până la" className={DATE_FIELD}>
+      <Input type="date" value={range.to} required={required} min={min} aria-invalid={refused} aria-describedby={described}
         onChange={(event) => { onEdit("to", event.target.value) }} />
-    </label>
+    </Field>
     {children}
-    {hint === undefined ? null : <p className="hint" id={hintId}>{hint}</p>}
-    {refused ? <p className="hint warning" id={errorId} role="alert">{error}</p> : null}
+    {hint === undefined ? null : <Hint id={hintId} className="basis-full">{hint}</Hint>}
+    {refused ? <Hint tone="warning" id={errorId} role="alert" className="basis-full">{error}</Hint> : null}
   </>
 }

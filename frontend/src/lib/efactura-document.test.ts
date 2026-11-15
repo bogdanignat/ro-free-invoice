@@ -21,7 +21,8 @@ void test("the document reads its current submission; validating and uploading a
 
 void test("not sent and connected: the one button that sends", () => {
   const view = panelView("invoice", historyOf(null), "connected")
-  assert.deepEqual([view.buttonLabel, view.canSubmit, view.reason, view.badgeLabel], ["Trimite în e-Factura", true, undefined, "Netrimisă"])
+  assert.deepEqual([view.buttonLabel, view.canSubmit, view.reason, view.badgeLabel, view.badgeTone],
+    ["Trimite în e-Factura", true, undefined, "Netrimisă", "muted"])
 })
 
 void test("not sent without a usable connection: disabled, and the reason names Integrări", () => {
@@ -44,7 +45,8 @@ void test("„not known yet” only while the connection is read; a failed read 
 void test("queued or processing: disabled, „Se procesează la ANAF”, and why a queued one waits", () => {
   for (const state of ["queued", "validating", "uploading", "processing"] as const) {
     const view = panelView("invoice", historyOf(submission(state)), "connected")
-    assert.deepEqual([view.buttonLabel, view.canSubmit, view.badgeLabel], ["Se procesează la ANAF", false, "În procesare"], state)
+    assert.deepEqual([view.buttonLabel, view.canSubmit, view.badgeLabel, view.badgeTone],
+      ["Se procesează la ANAF", false, "În procesare", "info"], state)
   }
   const waiting = panelView("invoice", historyOf(submission("queued", { errors: ["conexiune_alt_cif"] })), "connected")
   assert.match(waiting.reason ?? "", /alt CIF/u)
@@ -53,7 +55,8 @@ void test("queued or processing: disabled, „Se procesează la ANAF”, and why
 
 void test("accepted: registered, with the upload index and ANAF's ZIP once stored", () => {
   const view = panelView("invoice", historyOf(submission("accepted", { archiveState: "stored" })), "disconnected")
-  assert.deepEqual([view.buttonLabel, view.canSubmit, view.registered, view.responseStored], ["Înregistrată în e-Factura", false, true, true])
+  assert.deepEqual([view.buttonLabel, view.canSubmit, view.registered, view.responseStored, view.badgeTone],
+    ["Înregistrată în e-Factura", false, true, true, "positive"])
   assert.match(view.reason ?? "", /indexul de încărcare 5001/u)
   assert.equal(panelView("invoice", historyOf(submission("accepted", { archiveState: "pending" })), "connected").responseStored, false)
 })
@@ -70,7 +73,8 @@ void test("rejected or refused: ANAF's errors and „Retrimite”, which needs t
   for (const state of ["rejected", "refused"] as const) {
     const current = submission(state, { errors: ["E1: lipsă"] })
     const view = panelView("correction", historyOf(current), "connected")
-    assert.deepEqual([view.buttonLabel, view.canSubmit, view.errors, view.errorsTitle], ["Retrimite în e-Factura", true, ["E1: lipsă"], "Erorile ANAF"], state)
+    assert.deepEqual([view.buttonLabel, view.canSubmit, view.errors, view.errorsTitle, view.badgeTone],
+      ["Retrimite în e-Factura", true, ["E1: lipsă"], "Erorile ANAF", "danger"], state)
     assert.match(view.reason ?? "", /factura storno/u)
     const blocked = panelView("correction", historyOf(current), "disconnected")
     assert.equal(blocked.canSubmit, false)
@@ -81,7 +85,8 @@ void test("rejected or refused: ANAF's errors and „Retrimite”, which needs t
 
 void test("unknown: never sendable from the head; it explains and opens the reconciliation", () => {
   const view = panelView("invoice", historyOf(submission("unknown", { errors: ["întrerupt"] })), "connected")
-  assert.deepEqual([view.canSubmit, view.reconcile, view.badgeLabel, view.errorsTitle], [false, true, "Necunoscut", "Motiv"])
+  assert.deepEqual([view.canSubmit, view.reconcile, view.badgeLabel, view.errorsTitle, view.badgeTone],
+    [false, true, "Necunoscut", "Motiv", "danger"])
   assert.match(view.reason ?? "", /^Nu știm dacă factura a ajuns la ANAF/u)
   assert.equal(panelView("invoice", historyOf(null), "connected").reconcile, false)
 })

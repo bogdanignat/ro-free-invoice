@@ -1,7 +1,12 @@
 import { AppLink } from "./ui/AppLink.tsx"
+import { Badge } from "./ui/Badge.tsx"
 import { Button, buttonClass } from "./ui/Button.tsx"
+import { ButtonRow } from "./ui/ButtonRow.tsx"
+import { Card } from "./ui/Card.tsx"
 import { Field } from "./ui/Field.tsx"
+import { SectionHeading } from "./ui/SectionHeading.tsx"
 import { Select } from "./ui/Select.tsx"
+import { StatusNote } from "./ui/StatusNote.tsx"
 import type { ProformaConversionModel } from "../hooks/use-proforma-conversion.ts"
 import { CONVERSION_SERIES_MISSING } from "../lib/proforma-conversion.ts"
 
@@ -23,19 +28,15 @@ export const ProformaConversionSection = ({ conversion }: { readonly conversion:
     conversion.seriesMissing ? SERIES_NOTE : undefined,
     conversion.dueDateIssue === null ? undefined : DUE_DATE_NOTE,
   ].filter((id) => id !== undefined).join(" ")
-  return <section className="card">
-    <div className="section-heading">
-      <div>
-        <h2>Emitere factură</h2>
-        <p>Factura preia exact datele și totalurile acestei proforme și primește propriul număr fiscal. O proformă se convertește o singură dată.</p>
-      </div>
-    </div>
+  return <Card>
+    <SectionHeading title="Emitere factură"
+      description="Factura preia exact datele și totalurile acestei proforme și primește propriul număr fiscal. O proformă se convertește o singură dată." />
     {conversion.unconfirmedMessage === undefined
       ? null
-      : <p className="status-note warning">{conversion.unconfirmedMessage}</p>}
+      : <StatusNote tone="warning" role={null}>{conversion.unconfirmedMessage}</StatusNote>}
     {conversion.alreadyConverted === undefined
       ? null
-      : <p className="status-note warning" role="alert">{conversion.alreadyConverted}</p>}
+      : <StatusNote tone="warning">{conversion.alreadyConverted}</StatusNote>}
     {outcome.kind === "available"
       ? <>
         <Field label="Serie factură" required>
@@ -49,9 +50,11 @@ export const ProformaConversionSection = ({ conversion }: { readonly conversion:
             {conversion.seriesOptions.map((series) => <option key={series} value={series}>{series}</option>)}
           </Select>
         </Field>
-        {conversion.seriesMissing ? <p className="status-note warning" id={SERIES_NOTE}>{CONVERSION_SERIES_MISSING} <AppLink href="/settings">Deschide Setări</AppLink></p> : null}
-        {conversion.dueDateIssue === null ? null : <p className="status-note warning" id={DUE_DATE_NOTE}>{conversion.dueDateIssue}</p>}
-        <div className="button-row">
+        {conversion.seriesMissing
+          ? <StatusNote tone="warning" role={null} id={SERIES_NOTE}>{CONVERSION_SERIES_MISSING} <AppLink href="/settings">Deschide Setări</AppLink></StatusNote>
+          : null}
+        {conversion.dueDateIssue === null ? null : <StatusNote tone="warning" role={null} id={DUE_DATE_NOTE}>{conversion.dueDateIssue}</StatusNote>}
+        <ButtonRow>
           <Button
             disabled={!conversion.canIssueInvoice} onClick={conversion.issueInvoice}
             aria-describedby={conversion.dueDateIssue === null ? undefined : DUE_DATE_NOTE}
@@ -61,13 +64,13 @@ export const ProformaConversionSection = ({ conversion }: { readonly conversion:
           <Button variant="secondary" disabled={!conversion.canCreateDraft} onClick={conversion.createDraft}>
             Creează draft de factură
           </Button>
-        </div>
+        </ButtonRow>
       </>
       : <>
-        <p className="conversion-state">
-          <span className={`badge ${outcome.status.tone}`}>{outcome.status.label}</span>
+        <p className="flex flex-wrap gap-[.6rem] items-center mb-4 in-data-[card]:leading-[1.6]">
+          <Badge tone={outcome.status.tone}>{outcome.status.label}</Badge>
         </p>
         <AppLink className={buttonClass({ variant: "secondary" })} href={outcome.href}>{outcome.label}</AppLink>
       </>}
-  </section>
+  </Card>
 }

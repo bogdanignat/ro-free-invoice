@@ -4,6 +4,7 @@ import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
 import { ReceivedDocument } from "../components/received/ReceivedDocument.tsx"
 import { AppLink } from "../components/ui/AppLink.tsx"
+import { SetupNote } from "../components/ui/SetupNote.tsx"
 import { StatusNote } from "../components/ui/StatusNote.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"
 import { useReceivedDetail, type ReceivedDetailModel } from "../hooks/use-received-detail.ts"
@@ -23,9 +24,9 @@ export const ReceivedDetailView = ({ id }: { readonly id: string }) => {
   return <PrivateScreen shell={shell}>
     <Page title="Factură primită" eyebrow="e-Factura"
       actions={model?.loaded === true ? <DocumentDownloads actions={[model.archive]} /> : undefined}>
-      <p className="back-link"><AppLink href="/received">← Înapoi la facturile primite</AppLink></p>
+      <p className="mb-4 text-[.85rem]"><AppLink href="/received">← Înapoi la facturile primite</AppLink></p>
       {model === undefined
-        ? <p className="setup-note">Această instalare nu are pornit pluginul e-Factura.</p>
+        ? <SetupNote>Această instalare nu are pornit pluginul e-Factura.</SetupNote>
         : <>
           {model.archive.error === null ? null : <ErrorAlert error={model.archive.error} />}
           <ReceivedBody model={model} />

@@ -1,5 +1,8 @@
 import { AppLink } from "../components/ui/AppLink.tsx"
 import { buttonClass } from "../components/ui/Button.tsx"
+import { Card } from "../components/ui/Card.tsx"
+import { Count } from "../components/ui/Count.tsx"
+import { SectionHeading } from "../components/ui/SectionHeading.tsx"
 import { EmptyState, ErrorAlert, Loading } from "../components/AsyncState.tsx"
 import { LoadMore } from "../components/LoadMore.tsx"
 import { Page } from "../components/Page.tsx"
@@ -25,20 +28,15 @@ export const ProformasView = () => {
         ? proformas.isPending
           ? <Loading label="Se încarcă proformele…" />
           : <ErrorAlert error={proformas.error} onRetry={proformas.retry} />
-        : <section className="card">
-          <div className="section-heading">
-            <div>
-              <h2>Registru de proforme</h2>
-              <p>Documente comerciale nefiscale, ordonate după emitere. O proformă poate deveni factură sau draft de factură, o singură dată.</p>
-            </div>
-            <span className="count">{proformas.rows.length}</span>
-          </div>
+        : <Card>
+          <SectionHeading title="Registru de proforme" aside={<Count>{proformas.rows.length}</Count>}
+            description="Documente comerciale nefiscale, ordonate după emitere. O proformă poate deveni factură sau draft de factură, o singură dată." />
           {proformas.error === null ? null : <ErrorAlert error={proformas.error} onRetry={proformas.retry} />}
           {proformas.rows.length === 0
             ? <EmptyState>Nu există încă proforme emise.</EmptyState>
             : <ProformaRegisterTable rows={proformas.rows} />}
           <LoadMore visible={proformas.hasMore} pending={proformas.loadingMore} onClick={proformas.loadMore} />
-        </section>}
+        </Card>}
     </Page>
   </PrivateScreen>
 }

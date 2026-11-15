@@ -23,7 +23,7 @@ export const RegisterPeriodFilter = ({ filters }: { readonly filters: RegisterFi
       </Select>
     </Field>
     {filters.period === "custom"
-      ? <div className="custom-range">
+      ? <div className="flex flex-wrap gap-x-4 gap-y-3 items-end">
         <DateRangeFields range={filters.customRange} error={filters.customIssue} onEdit={filters.editCustom}
           hint="Lista se actualizează când datele sunt complete." min={EARLIEST_REGISTER_DATE} />
       </div>

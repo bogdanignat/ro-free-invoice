@@ -7,7 +7,7 @@ interface LoadMoreProps {
 }
 
 export const LoadMore = ({ visible, pending, onClick }: LoadMoreProps) => visible
-  ? <div className="load-more">
+  ? <div className="flex justify-center mt-[1.1rem]">
     <Button variant="secondary" disabled={pending} onClick={onClick}>
       {pending ? "Se încarcă…" : "Încarcă mai multe"}
     </Button>
