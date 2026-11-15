@@ -9,7 +9,7 @@ export const AuthoringLayout = ({ side, onSubmit, children }: {
   readonly side: ReactNode
   readonly onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
   readonly children: ReactNode
-}) => <form className="grid gap-6 grid-cols-[minmax(0,2.1fr)_minmax(15rem,1fr)] items-start stacked:grid-cols-1" onSubmit={onSubmit}>
+}) => <form className="grid gap-6 grid-cols-[minmax(0,2.1fr)_minmax(15rem,1fr)] items-start stacked:grid-cols-[1fr]" onSubmit={onSubmit}>
   <div className="grid gap-6">{children}</div>
   <div className="grid gap-6 sticky top-6 stacked:static">{side}</div>
 </form>
