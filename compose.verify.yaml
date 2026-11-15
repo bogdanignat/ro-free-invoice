@@ -6,7 +6,7 @@
 #
 # No PostgreSQL of its own: the suite runs on the project's cluster (`db` of
 # compose.yaml, over its network), in throwaway databases named `rfi_t_<run>_…`
-# that the rig creates from `postgres` and drops again; `qwbe_invoicing` is never
+# that the rig creates from `postgres` and drops again; `rfi_dev` is never
 # used. Use `compose.test.yaml` for the fast test-only loop; this file exists so
 # the whole gate runs in one command.
 name: ro-free-invoice-verify

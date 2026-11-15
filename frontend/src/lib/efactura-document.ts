@@ -2,7 +2,7 @@ import type { EFacturaConnectionStatus } from "./efactura-connection.ts"
 import type { EFacturaHistory, EFacturaSubmission, SubmittedKind } from "./efactura-submissions.ts"
 import { waitReason } from "./efactura-wait-codes.ts"
 import type { EFacturaStatus } from "./invoice-register.ts"
-import { badgeClass, eFacturaStatusLabel, eFacturaStatusTone } from "./invoice-register-projection.ts"
+import { eFacturaStatusLabel, eFacturaStatusTone, type BadgeTone } from "./invoice-register-projection.ts"
 
 /**
  * What a document's e-Factura panel shows and allows, decided from the
@@ -37,7 +37,7 @@ export type ConnectionRead = EFacturaConnectionStatus | "loading" | "unreadable"
 export interface EFacturaPanelView {
   readonly status: EFacturaStatus
   readonly badgeLabel: string
-  readonly badgeClass: string
+  readonly badgeTone: BadgeTone
   /** The header button: its label, whether it submits, and the sentence that says why not. */
   readonly buttonLabel: string
   readonly canSubmit: boolean
@@ -103,7 +103,7 @@ export const panelView = (
   return {
     status,
     badgeLabel: eFacturaStatusLabel(status),
-    badgeClass: badgeClass(eFacturaStatusTone(status)),
+    badgeTone: eFacturaStatusTone(status),
     buttonLabel: BUTTON_LABELS[status],
     canSubmit: sendable && connectionReason === undefined,
     registered: status === "accepted",

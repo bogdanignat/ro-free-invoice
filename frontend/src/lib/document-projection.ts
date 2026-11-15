@@ -4,6 +4,7 @@ import { eFacturaStatusLabel, invoiceDetailHref } from "./invoice-register-proje
 import { vatTreatmentLabel } from "./vat-snapshots.ts"
 import { identifiersLabel } from "./item-identifiers.ts"
 import { customerView, issuerView, type PartyView } from "./document-party-projection.ts"
+import type { RomanianCounty } from "./romanian-counties.ts"
 import type {
   CorrectionDocument, DocumentBody, DocumentLine, IssuedInvoice, VatBreakdownEntry,
 } from "./document-snapshot.ts"
@@ -86,9 +87,10 @@ const totals = (
  */
 export const documentBodyView = (
   document: DocumentBody,
+  counties: ReadonlyArray<RomanianCounty>,
 ): Pick<DocumentSnapshotView, "heading" | "parties" | "lines" | "vatRows" | "totals"> => ({
   heading: `${document.series} ${String(document.number)}`,
-  parties: [issuerView(document.issuer), customerView(document.customer)],
+  parties: [issuerView(document.issuer, counties), customerView(document.customer, counties)],
   lines: document.lines.map((line) => lineView(line, document.currency)),
   vatRows: document.vatBreakdown.map((entry) => vatRowView(entry, document.currency)),
   totals: totals(document),
@@ -98,8 +100,10 @@ export const documentBodyView = (
 const supplyDateFacts = ({ supplyDate, issueDate }: IssuedInvoice) =>
   supplyDate === issueDate ? [] : [{ label: "Data livrării/prestării", value: supplyDate }]
 
-export const projectIssuedInvoice = (invoice: IssuedInvoice): DocumentSnapshotView => ({
-  ...documentBodyView(invoice),
+export const projectIssuedInvoice = (
+  invoice: IssuedInvoice, counties: ReadonlyArray<RomanianCounty>,
+): DocumentSnapshotView => ({
+  ...documentBodyView(invoice, counties),
   facts: [
     { label: "Emisă", value: invoice.issueDate },
     ...supplyDateFacts(invoice),
@@ -118,8 +122,10 @@ export const projectIssuedInvoice = (invoice: IssuedInvoice): DocumentSnapshotVi
  * backend, and flipping or absolutizing them for display would misstate a
  * fiscal document.
  */
-export const projectCorrectionDocument = (correction: CorrectionDocument): DocumentSnapshotView => ({
-  ...documentBodyView(correction),
+export const projectCorrectionDocument = (
+  correction: CorrectionDocument, counties: ReadonlyArray<RomanianCounty>,
+): DocumentSnapshotView => ({
+  ...documentBodyView(correction, counties),
   facts: [
     { label: "Emisă", value: correction.issueDate },
     { label: "Monedă", value: correction.currency },

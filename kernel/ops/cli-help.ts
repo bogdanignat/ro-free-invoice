@@ -4,12 +4,16 @@ export const helpText = `RO Free Invoice operational CLI
 Usage:
   ro-free-invoice serve
   ro-free-invoice doctor [--json]
+  ro-free-invoice doctor --efactura [--json]
   ro-free-invoice migrate [--apply] [--confirm-production] [--json]
   ro-free-invoice artifacts [--limit 50] [--apply] [--confirm-production] [--json]
   ro-free-invoice backup --output <path.tar.gz|dir> [--json]
   ro-free-invoice restore --input <path.tar.gz|dir> [--apply] [--confirm-production] [--json]
   ro-free-invoice backup-inspect --input <path.tar.gz|dir> [--json]
 
+doctor --efactura reads, without calling ANAF, the e-Factura health of ORGANIZATION_ID: the connection state
+and refresh token expiry (never a token), rejected, refused and unknown submissions, and documents past or near
+the operational deadline. Exit 1 when its "problems" list is not empty; plain doctor stays the readiness check.
 migrate is a dry-run by default. --apply writes pending schema migrations.
 artifacts reports invoices and proformas without PDFs by default. --apply renders at most
 --limit documents; failures are counted and successful items remain committed for a
@@ -18,7 +22,7 @@ backup writes a pg_dump of the database plus the DATA_DIR artifacts to a .tar.gz
 the database and writes only the archive, and repeating it produces the same contents; it takes the maintenance
 barrier EXCLUSIVE, so it refuses while serve is running.
 restore is a dry-run by default. --apply restores the artifacts into DATA_DIR and executes the archived
-database.sql through psql as the schema owner role (qwbe_owner), NOSUPERUSER, so only an archive you trust
+database.sql through psql as the schema owner role (rfi_owner), NOSUPERUSER, so only an archive you trust
 may be applied. A database.sql not wrapped whole in pg_dump's \\restrict ... \\unrestrict is refused, by the
 dry run and by backup-inspect too, so psql runs none of its backslash meta-commands.
 It takes the same barrier EXCLUSIVE and needs an EMPTY target database: create a fresh one,

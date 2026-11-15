@@ -1,9 +1,9 @@
-import type { Customer, DraftInvoice, Issuer, UnitOfMeasure, VatCatalogue } from "./draft-models.ts"
+import type { Customer, DraftInvoice, Issuer, UnitOfMeasure } from "./draft-models.ts"
 import type { EditableInvoiceLine, InvoiceAuthoringForm } from "./invoice-authoring-model.ts"
 import { newEditableInvoiceLine, preferredUnitOfMeasure } from "./invoice-authoring-model.ts"
 import { draftLinesForEditing } from "./document-authoring-options.ts"
 import { formFromDraft, newAuthoringForm, proposeMissingDueDate } from "./document-authoring-transitions.ts"
-import { defaultVatCode } from "./vat-defaults.ts"
+import { periodOn } from "./vat-defaults.ts"
 
 /**
  * What the authoring screen opens with: a blank document dated today, or the
@@ -16,7 +16,6 @@ export interface AuthoringOpeningInput {
   /** The draft's saved buyer, read by id; absent when not needed or not readable (the issuer's term applies). */
   readonly draftBuyer: Customer | undefined
   readonly issuer: Issuer
-  readonly vatCatalogue: VatCatalogue
   readonly customers: ReadonlyArray<Customer>
   readonly invoiceSeries: ReadonlyArray<string>
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
@@ -38,7 +37,7 @@ export const openingAuthoringLines = (
 ): ReadonlyArray<EditableInvoiceLine> => input.initialDraft === undefined
   ? [newEditableInvoiceLine(
       key,
-      defaultVatCode(input.vatCatalogue, input.issuer, today),
+      periodOn(input.issuer.vatPeriods, today)?.defaultCode ?? "",
       preferredUnitOfMeasure(input.unitOfMeasures),
     )]
   : draftLinesForEditing(input.initialDraft)

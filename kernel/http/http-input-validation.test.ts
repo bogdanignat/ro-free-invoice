@@ -4,10 +4,11 @@ import { join } from "node:path"
 import test from "node:test"
 
 import { OpenApi } from "@effect/platform"
-import { Either, ParseResult, Schema } from "effect"
+import { Effect, Either, ParseResult, Schema } from "effect"
 
 import { ValidationFailure } from "../../cubes/invoicing/index.ts"
 import * as A from "../api/api-inputs.test-support.ts"
+import { idempotent } from "../api/api-operation-inputs.ts"
 import { handleApiRequest } from "../api/api.test-support.ts"
 import { createRequestAuthenticator } from "../auth/auth.ts"
 import { applicationHttpApi } from "../api/http-api.ts"
@@ -20,7 +21,7 @@ const customer = { partyType: "company", name: "Client", fiscalIdentifier: " 876
 const source = { app: "shop", kind: "order", id: "123" }
 const line = { description: "Servicii", quantity: "1", unitPrice: "10.00",
   unitOfMeasure: { code: "HUR", name: "oră" }, vatRateCode: "RO_STANDARD", itemCode: "SRV", barcode: "00012345600012" }
-const draft = { customerId: "customer-1", series: "QWBE", issueDate: "2026-09-01" }
+const draft = { customerId: "customer-1", series: "RFI", issueDate: "2026-09-01" }
 const authoring = { ...draft, currency: "RON", lines: [line] }
 const issuer = { name: "Furnizor", fiscalIdentifier: " 12345674 ", address: customer.address,
   legalForm: "srl" as const, tradeRegistryNumber: " j22/123/2020 ", iban: " ro49 aaaa 1b31 0075 9384 0000 ",
@@ -39,9 +40,9 @@ const inputs: ReadonlyArray<InputCase> = [
   { name: "issuer", schema: S.IssuerInput, decode: A.issuerInput, value: issuer },
   { name: "customer", schema: S.CustomerInput, decode: A.customerInput, value: customer },
   { name: "preset", schema: S.ProductPresetInput, decode: A.productPresetInput, value: { ...line, code: "SRV", kind: "service" } },
-  { name: "series", schema: S.DocumentSeriesInput, decode: A.documentSeriesInput, value: { documentType: "invoice", series: "QWBE" } },
-  { name: "series archived", schema: S.DocumentSeriesArchivedInput, decode: (value) => A.documentSeriesArchivedInput("invoice", "QWBE", value),
-    value: { archived: true }, ids: { documentType: "invoice", series: "QWBE" } },
+  { name: "series", schema: S.DocumentSeriesInput, decode: A.documentSeriesInput, value: { documentType: "invoice", series: "RFI" } },
+  { name: "series archived", schema: S.DocumentSeriesArchivedInput, decode: (value) => A.documentSeriesArchivedInput("invoice", "RFI", value),
+    value: { archived: true }, ids: { documentType: "invoice", series: "RFI" } },
   { name: "draft", schema: S.DraftInput, decode: A.draftInput, value: draft },
   { name: "update draft", schema: S.UpdateDraftInput, decode: (value) => A.updateDraftInput("draft-1", value), value: draft, ids: { draftId: "draft-1" } },
   { name: "line", schema: S.DraftLineInput, decode: (value) => A.lineInput("draft-1", value), value: line, ids: { draftId: "draft-1" } },
@@ -215,6 +216,16 @@ void test("source query requires all three fields exactly once and maps them to 
   }
 })
 
+void test("an idempotent request refuses a malformed key and a body it cannot fingerprint, each with its code", () => {
+  const codeOf = (key: string, input: unknown) => {
+    const result = Effect.runSync(Effect.either(idempotent(key, "create", input)))
+    assert.ok(Either.isLeft(result))
+    return result.left.details.map((detail) => detail.code)
+  }
+  assert.deepEqual(codeOf("sp ace", {}), ["idempotency_key_invalid"])
+  assert.deepEqual(codeOf("k-1", { amount: 1n }), ["request_not_fingerprintable"])
+})
+
 void test("Swagger exposes one buyer object plus notes and limit constraints", () => {
   const spec = OpenApi.fromApi(applicationHttpApi)
   for (const [path, method] of [["/api/drafts", "post"], ["/api/drafts/{id}", "put"], ["/api/invoices", "post"], ["/api/proformas", "post"]] as const) {
@@ -247,7 +258,8 @@ void test("HTTP maps schema failures to the existing 400 envelope before domain 
     }
     const raw = { ...customer, name: 1, address: { ...customer.address, city: null } }
     const response = await handleApiRequest({ method: "POST", url: "/api/customers", authorization: `Bearer ${token}`, body: raw }, runtime)
-    assert.deepEqual(response, { status: 400, body: { error: "ValidationFailure", issues: schemaIssues(S.CustomerInput, raw) } })
+    assert.deepEqual(response, { status: 400, body: { error: "ValidationFailure", issues: schemaIssues(S.CustomerInput, raw),
+      details: [{ code: "invalid_input", field: "name" }, { code: "invalid_input", field: "address.city" }] } })
     for (const url of ["/api/drafts?sourceApp=shop", "/api/invoices?limit=1e2", "/api/proformas?limit=1&limit=2"]) {
       const result = await handleApiRequest({ method: "GET", url, authorization: `Bearer ${token}`, body: undefined }, runtime)
       assert.equal(result.status, 400)

@@ -1,8 +1,8 @@
 /**
  * A populated schema, built with the SQL the application would send.
  *
- * Every row here is accepted by the translated baseline, so the seed itself is
- * the accept half of the parity matrix: if a translated CHECK, trigger or
+ * Every row here is accepted by the migrated schema, so the seed itself is
+ * the accept half of the behaviour matrix: if a CHECK, trigger or
  * foreign key were tightened by accident, seeding fails before a single reject
  * case runs.
  */

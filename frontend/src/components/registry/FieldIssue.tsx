@@ -1,3 +1,4 @@
+import { Hint } from "../ui/Hint.tsx"
 import { registryIssueId } from "../../lib/registry-fields.ts"
 import type { RegistryEditorIssue } from "../../hooks/use-registry-editor.ts"
 
@@ -17,5 +18,5 @@ interface FieldIssueProps<Field extends string> {
  */
 export const FieldIssue = <Field extends string>({ issue, field, form }: FieldIssueProps<Field>) =>
   issue?.field === field
-    ? <p id={registryIssueId(form, field)} role="alert" className="hint warning">{issue.message}</p>
+    ? <Hint tone="warning" id={registryIssueId(form, field)} role="alert">{issue.message}</Hint>
     : null

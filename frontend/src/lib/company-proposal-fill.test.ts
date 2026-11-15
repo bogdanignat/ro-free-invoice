@@ -7,6 +7,7 @@ import { proposalHeadline, proposalVatLine, proposalWarnings, suggestionLabel } 
 import { newCustomerForm } from "./customer-form.ts"
 import { issuerFormOf } from "./issuer-form.ts"
 import type { DocumentAuthoringForm } from "./document-authoring-form-model.ts"
+import { COUNTIES } from "./romanian-counties.test-support.ts"
 
 // The two shapes the backend answers (cubes/invoicing/company-lookup/domain/proposal.ts).
 const anaf = decodeProposal({
@@ -87,8 +88,8 @@ void test("issuer: identity, trade register and address; the VAT regime is never
 })
 
 void test("the card's words: county name, warnings, VAT suggested or informative", () => {
-  assert.equal(proposalHeadline(anaf), "Am găsit: Exemplu Construct SRL, București")
-  assert.equal(suggestionLabel({ cui: "1", name: "Exemplu" }), "Exemplu")
+  assert.equal(proposalHeadline(anaf, COUNTIES), "Am găsit: Exemplu Construct SRL, București")
+  assert.equal(suggestionLabel({ cui: "1", name: "Exemplu" }, COUNTIES), "Exemplu")
   assert.deepEqual(proposalWarnings(anaf), [])
   assert.deepEqual(proposalWarnings(openapi), ["Atenție: firma figurează ca radiată."])
   assert.deepEqual(proposalWarnings({ ...anaf, inactive: true }), ["Atenție: firma este declarată inactivă fiscal."])

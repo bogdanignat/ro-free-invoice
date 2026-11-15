@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 
 import { useAuth } from "./auth-context.ts"
+import { useConfirm } from "./use-confirm.ts"
 import { invoicePaymentsQueries, type InvoicePaymentsModel, type PaymentWrite } from "./invoice-payments-query.ts"
 import { invalidateCollections } from "./report-queries.ts"
 import { retryAction } from "./use-document-detail.ts"
@@ -9,6 +10,7 @@ import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { usePluginEnabled } from "./use-plugin-enabled.ts"
 import { SESSION_CLOSED } from "./use-registry-writes.ts"
 import { isTransientFailure } from "../lib/api-errors.ts"
+import { confirmWhile } from "../lib/confirm-controller.ts"
 import { correctionsView } from "../lib/correction-state.ts"
 import { createOperationIdempotency, operationFingerprint } from "../lib/operation-idempotency.ts"
 import {
@@ -52,6 +54,7 @@ export const useInvoicePayments = (invoiceId: string): InvoicePaymentsModel | un
   const [idempotency] = useState(() => createOperationIdempotency())
   const [notice, setNotice] = useState<string | undefined>(undefined)
   const inFlight = useRef(false)
+  const confirm = useConfirm()
   // The dashboard's collections read the same ledger, so they go stale with it.
   const refresh = (): void => {
     void queryClient.invalidateQueries({ queryKey: queries.ledger.queryKey })
@@ -80,6 +83,14 @@ export const useInvoicePayments = (invoiceId: string): InvoicePaymentsModel | un
     setNotice(undefined)
     mutation.mutate(write)
   }
+  const reverse = async (paymentId: string): Promise<void> => {
+    const ask = () => confirm(REVERSAL_CONFIRM, { confirmLabel: "Anulează plata", tone: "danger" })
+    if (!await confirmWhile(() => !inFlight.current, ask)) return
+    submit({
+      operation: "reverse", fingerprint: operationFingerprint({ paymentId }), notice: PAYMENT_REVERSED,
+      send: (csrfToken, key) => clients.payments.reverse(csrfToken, invoiceId, paymentId, key),
+    })
+  }
   if (!enabled) return undefined
   return {
     view,
@@ -96,12 +107,6 @@ export const useInvoicePayments = (invoiceId: string): InvoicePaymentsModel | un
         send: (csrfToken, key) => clients.payments.record(csrfToken, invoiceId, body, key),
       })
     },
-    reverse: (paymentId) => {
-      if (inFlight.current || !window.confirm(REVERSAL_CONFIRM)) return
-      submit({
-        operation: "reverse", fingerprint: operationFingerprint({ paymentId }), notice: PAYMENT_REVERSED,
-        send: (csrfToken, key) => clients.payments.reverse(csrfToken, invoiceId, paymentId, key),
-      })
-    },
+    reverse: (paymentId) => { void reverse(paymentId) },
   }
 }

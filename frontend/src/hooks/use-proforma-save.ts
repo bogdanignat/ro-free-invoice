@@ -3,10 +3,12 @@ import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
 import { useAuth } from "./auth-context.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { proformasQueryKey } from "./proforma-query-keys.ts"
 import { lifetimeMountEffect, lifetimeRequestsEffect } from "../lib/authoring-lifetime-wiring.ts"
 import { createOperationLifetime } from "../lib/authoring-operation-lifetime.ts"
+import { confirmWhile } from "../lib/confirm-controller.ts"
 import { issuanceAllowed } from "../lib/invoice-authoring-derived.ts"
 import type { KnownWrite } from "../lib/operation-recovery-view.ts"
 import type { RecoveryPort } from "../lib/operation-recovery-port.ts"
@@ -52,6 +54,7 @@ export const useProformaSave = (input: ProformaSaveInput): ProformaSaveModel => 
   const clients = useInvoicingClients()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [lifetime] = useState(createOperationLifetime)
   useEffect(() => lifetimeMountEffect(lifetime), [lifetime])
   useEffect(() => lifetimeRequestsEffect(lifetime), [lifetime, auth.status])
@@ -101,16 +104,18 @@ export const useProformaSave = (input: ProformaSaveInput): ProformaSaveModel => 
   const outcomeError = outcome === undefined
     ? null
     : outcome.kind === "error" ? outcome.error : (outcome.kind === "saved" ? outcome.effectsError ?? null : null)
+  const latestCanSave = useLatest(canSave)
+  const save = async (): Promise<void> => {
+    const ask = () => confirm(PROFORMA_SAVE_CONFIRM, { confirmLabel: "Salvează proforma" })
+    if (await confirmWhile(() => latestCanSave.current, ask)) mutation.mutate()
+  }
   return {
     pending: mutation.isPending,
     error: outcomeError ?? mutation.error,
     knownResult,
     canSave,
     unconfirmedMessage: controller.unconfirmedSave(),
-    save: () => {
-      if (!canSave) return
-      if (window.confirm(PROFORMA_SAVE_CONFIRM)) mutation.mutate()
-    },
+    save: () => { void save() },
     reset: () => { mutation.reset() },
   }
 }

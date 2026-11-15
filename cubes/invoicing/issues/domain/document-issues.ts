@@ -6,7 +6,7 @@ export const documentWithoutLines = (): IssueDetail => issue("document_without_l
 export const documentTotalsInconsistent = (): IssueDetail => issue("document_totals_inconsistent")
 export const linesRequired = (kind: string): IssueDetail => issue("lines_required", undefined, { kind })
 export const customerChoice = (): IssueDetail => issue("customer_choice")
-export const currencyNotRon = (): IssueDetail => issue("currency_not_ron", "currency")
+export const currencyNotRon = (field = "currency"): IssueDetail => issue("currency_not_ron", field)
 export const currencyMismatch = (): IssueDetail => issue("currency_mismatch", "currency")
 export const dueDateBeforeIssue = (): IssueDetail => issue("due_date_before_issue", "dueDate")
 export const dueDateRequired = (): IssueDetail => issue("due_date_required", "dueDate")

@@ -4,6 +4,7 @@ import { EFacturaCard } from "../components/integrations/EFacturaCard.tsx"
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
 import { AppLink } from "../components/ui/AppLink.tsx"
+import { StatusNote } from "../components/ui/StatusNote.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"
 import { useCompanyLookupSettings } from "../hooks/use-company-lookup-settings.ts"
 import { useEFacturaConnection } from "../hooks/use-efactura-connection.ts"
@@ -22,12 +23,12 @@ export const IntegrationsView = () => {
     <Page title="Integrări" eyebrow="Configurare">
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}
       {load.kind === "off" && eFactura === undefined
-        ? <p className="status-note">Această instalare nu are integrări pornite. <AppLink href="/settings">Înapoi la datele firmei</AppLink></p>
+        ? <StatusNote role={null}>Această instalare nu are integrări pornite. <AppLink href="/settings">Înapoi la datele firmei</AppLink></StatusNote>
         : null}
       <div className="grid gap-6">
         {eFactura === undefined ? null : <EFacturaCard model={eFactura} />}
         {load.kind === "loading" ? <Loading label="Se încarcă integrările…" /> : null}
-        {load.kind === "denied" ? <p className="status-note warning" role="alert">{load.message}</p> : null}
+        {load.kind === "denied" ? <StatusNote tone="warning">{load.message}</StatusNote> : null}
         {load.kind === "error" ? <ErrorAlert error={new Error(load.message)} onRetry={model.retry} /> : null}
         {load.kind === "ready" ? <CompanyLookupCard model={model} settings={load.settings} /> : null}
       </div>

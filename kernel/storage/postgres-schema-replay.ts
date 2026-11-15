@@ -21,7 +21,7 @@ import { migrationKey, migrationScopes } from "./postgres-migration-plans.ts"
  * so the scratch schema would escape the transaction and survive.
  *
  * Running DDL on the application's own connection is a deliberate, approved
- * decision: the application role (qwbe_app) owns no object in `public`, but it has
+ * decision: the application role (rfi_app) owns no object in `public`, but it has
  * CREATE on the database for exactly this scratch schema (deploy/postgres/grants.sql),
  * the only way to answer "is the live schema what the ledger says" without trusting
  * a stored checksum.
@@ -34,7 +34,7 @@ const statementsFor = (keys: ReadonlyArray<string>): ReadonlyArray<string> => {
     .flatMap(({ statements }) => statements))
 }
 
-const scratchName = (): string => `qwbe_drift_${randomBytes(6).toString("hex")}`
+const scratchName = (): string => `rfi_drift_${randomBytes(6).toString("hex")}`
 
 /**
  * A ROLLBACK that itself failed. The connection's transaction state is unknown

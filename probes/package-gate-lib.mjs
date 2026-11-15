@@ -5,11 +5,7 @@ import { PACKAGE_MANIFEST, discoverCubeUnits, loadCube, readPackageManifest } fr
 
 const isText = (value) => typeof value === "string" && value.trim() !== ""
 
-const packageFailures = (manifest) => [
-  ...(isText(manifest.name) ? [] : ["package name is required"]),
-  ...(manifest.kind === "plugin" ? [] : ['package kind must be "plugin"']),
-  ...(isText(manifest.summary) ? [] : ["package summary is required"]),
-]
+const packageFailures = (manifest) => isText(manifest.summary) ? [] : ["package summary is required"]
 
 // The closest listed ancestor is the parent a child cube has to name.
 const parentOf = (unit, units) => units

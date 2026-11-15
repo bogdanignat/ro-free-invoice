@@ -4,7 +4,7 @@
 # real server, so `node --test` means nothing on the host alone. No PostgreSQL of
 # its own: the suite reaches the project's `db` (compose.yaml) over its network
 # and works only in throwaway databases named `rfi_t_<run>_…`, created from
-# `postgres` and dropped again; `qwbe_invoicing` is never used. No port is
+# `postgres` and dropped again; `rfi_dev` is never used. No port is
 # published, no application volume is referenced and `down` is never given `-v`.
 # The dependency volumes are the verifier's, read-write because `install`
 # populates them.

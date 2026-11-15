@@ -9,7 +9,7 @@ const SAVED = {
   address: { countryCode: "RO", city: "Cluj-Napoca", street: "Str. Mică 1", county: "RO-CJ" },
   legalForm: "srl", tradeRegistryNumber: "J12/1234/2020", iban: "RO49AAAA1B31007593840000", bankName: "Banca Test",
   socialCapital: "200.00", defaultCurrency: "RON", defaultPaymentTermDays: 15,
-  vatConfigurations: [], currentVat: null, branding: null,
+  vatConfigurations: [], currentVat: null, vatPeriods: [], branding: null,
 }
 
 void test("the save answer keeps its warnings next to the profile", () => {
@@ -42,5 +42,7 @@ void test("the refusals of a fiscal change read as Romanian sentences, never as 
   assert.match(unavailable.message, /nu răspunde acum.*Încearcă mai târziu/u)
   assert.equal(unavailable.status, 503)
   const mismatch = "ANAF arată că CIF-ul 12345674 nu este înregistrat în scopuri de TVA la 2026-09-01."
-  assert.equal(parseApiFailure({ error: "ValidationFailure", issues: [mismatch] }, 400).message, mismatch)
+  assert.equal(parseApiFailure({ error: "ValidationFailure", issues: ["x"],
+    details: [{ code: "vat_registry_not_registered", params: { cif: "12345674", date: "2026-09-01" } }] }, 400).message,
+  `${mismatch.slice(0, -1)}; firma nu poate fi salvată ca plătitoare de TVA.`)
 })

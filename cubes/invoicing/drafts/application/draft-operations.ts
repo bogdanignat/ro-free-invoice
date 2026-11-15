@@ -11,6 +11,7 @@ import { buyerFrom, dates, documentSource, findEditable, withTotals, type Author
 import { activeDocumentSeries } from "./active-series.ts"
 import { createDraftOperation } from "./draft-creation.ts"
 import { lineVat } from "./supply-date.ts"
+import { previewTotals, type TotalsPreview, type TotalsPreviewInput } from "./totals-preview.ts"
 
 export interface DraftDocumentOperations {
   readonly createDraft: (input: Idempotent<CreateDraftInput>) => Effect.Effect<DraftInvoice, InvoicingFailure>
@@ -18,6 +19,7 @@ export interface DraftDocumentOperations {
   readonly listDrafts: (source?: DocumentSource, page?: PageRequest) => Effect.Effect<Page<DraftInvoice>, InvoicingFailure>
   readonly updateDraft: (input: UpdateDraftInput) => Effect.Effect<DraftInvoice, InvoicingFailure>
   readonly deleteDraft: (id: string) => Effect.Effect<void, InvoicingFailure>
+  readonly previewDraftTotals: (input: TotalsPreviewInput) => Effect.Effect<TotalsPreview, InvoicingFailure>
 }
 
 export const createDraftDocumentOperations = (
@@ -78,5 +80,12 @@ export const createDraftDocumentOperations = (
       yield* transaction.deleteDraft(context.organization.id, id)
     }))
   })
-  return { createDraft, getDraft, listDrafts, updateDraft, deleteDraft }
+  const previewDraftTotals = (input: TotalsPreviewInput) => Effect.gen(function*() {
+    const context = yield* authorize(permissions.draftInvoices)
+    // Only the issuer is read under the business lock; the lines are calculated after it is released.
+    const issuer = yield* dependencies.store.transaction((transaction) => transaction.findIssuer(context.organization.id))
+    if (issuer === undefined) return yield* Effect.fail(missing("issuer", context.organization.id))
+    return yield* previewTotals(issuer, input)
+  })
+  return { createDraft, getDraft, listDrafts, updateDraft, deleteDraft, previewDraftTotals }
 }

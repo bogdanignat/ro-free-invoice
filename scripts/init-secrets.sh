@@ -1,8 +1,8 @@
 #!/bin/sh
 # Create the six secret files a Compose stack mounts, at the paths named in `.env`:
 # AUTH_TOKEN_PATH (API token), the PostgreSQL passwords of the three roles
-# (PG_SUPERUSER_PASSWORD_PATH for `postgres`, PG_OWNER_PASSWORD_PATH for qwbe_owner,
-# PG_APP_PASSWORD_PATH for qwbe_app; deploy/postgres/grants.sql),
+# (PG_SUPERUSER_PASSWORD_PATH for `postgres`, PG_OWNER_PASSWORD_PATH for rfi_owner,
+# PG_APP_PASSWORD_PATH for rfi_app; deploy/postgres/grants.sql),
 # COMPANY_LOOKUP_KEY_PATH (company-lookup master key) and ANAF_TOKEN_KEY_PATH (the key
 # that seals the ANAF e-Factura tokens, mounted by compose.anaf.yaml). Each one is 32
 # random bytes as 64 hex characters, mode 0600, in a directory created 0700 when it is

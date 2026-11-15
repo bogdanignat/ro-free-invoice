@@ -21,11 +21,11 @@ void test("revenue nets invoices and their corrections by issue month, for one o
     legalForm: "srl", tradeRegistryNumber: "J40/123/2020", socialCapital: "200.00", iban: "", bankName: "",
     defaultCurrency: "RON", defaultPaymentTermDays: 15, vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   const customer = { partyType: "company" as const, name: "Client SRL", fiscalIdentifier: "87654329", vatRegistered: true,
     address: { countryCode: "RO", city: "Iași", street: "Strada Mică 2", county: "RO-IS" } }
   const issue = (issueDate: string, unitPrice: string) => Effect.runPromise(service.issueInvoice(idempotent({
-    customer, series: "QWBE", issueDate, dueDate: issueDate, currency: "RON" as const,
+    customer, series: "RFI", issueDate, dueDate: issueDate, currency: "RON" as const,
     lines: [{ description: "Servicii", quantity: "1", unitPrice, unitOfMeasure: each, vatRateCode: "RO_STANDARD" }],
   })))
   const july = await issue("2026-07-10", "100.00")

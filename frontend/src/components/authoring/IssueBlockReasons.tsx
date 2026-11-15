@@ -1,3 +1,5 @@
+import { StatusNote } from "../ui/StatusNote.tsx"
+
 /** The id the issue button points `aria-describedby` at while it is closed. */
 export const ISSUE_BLOCK_REASONS_ID = "invoice-issue-block-reasons"
 
@@ -8,6 +10,6 @@ export const ISSUE_BLOCK_REASONS_ID = "invoice-issue-block-reasons"
  */
 export const IssueBlockReasons = ({ reasons }: { readonly reasons: ReadonlyArray<string> }) =>
   reasons.length === 0 ? null
-    : <div className="status-note warning" id={ISSUE_BLOCK_REASONS_ID}>
+    : <StatusNote tone="warning" block role={null} id={ISSUE_BLOCK_REASONS_ID}>
       <ul className="m-0 grid list-none gap-1 p-0">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-    </div>
+    </StatusNote>

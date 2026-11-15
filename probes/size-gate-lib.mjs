@@ -92,10 +92,12 @@ export const stripCommentsAndBlankLines = (source, fileName = "source.ts") => {
   return result.split("\n").filter((line) => line.trim() !== "").join("\n")
 }
 
-export const measureFile = (path) => {
-  const raw = readFileSync(path, "utf8")
-  return { raw: raw.length, code: stripCommentsAndBlankLines(raw, path).length }
+export const countCodeLines = (source, fileName) => {
+  const code = stripCommentsAndBlankLines(source, fileName)
+  return code === "" ? 0 : code.split("\n").length
 }
+
+export const measureFile = (path) => ({ lines: countCodeLines(readFileSync(path, "utf8"), path) })
 
 const containedPath = (root, path) => {
   if (typeof path !== "string" || path.length === 0 || isAbsolute(path)) {
@@ -150,8 +152,7 @@ export const inspectSizes = async (root, { fileRoots = [], excludedDirectories =
     return {
       id: unit.id,
       files: measured.length,
-      code: measured.reduce((total, file) => total + file.code, 0),
-      raw: measured.reduce((total, file) => total + file.raw, 0),
+      lines: measured.reduce((total, file) => total + file.lines, 0),
     }
   })
   const excluded = new Set(excludedDirectories.map((path) => containedPath(root, path)))
@@ -170,9 +171,20 @@ export const inspectSizes = async (root, { fileRoots = [], excludedDirectories =
   return { files: files.sort((left, right) => left.path.localeCompare(right.path)), units: measuredUnits }
 }
 
-export const sizeViolations = (measurement, caps) => ({
-  files: measurement.files.filter((file) => file.code > caps.maxCharsPerFile),
-  units: measurement.units.filter(
-    (unit) => unit.code > caps.maxCharsPerUnit || unit.files > caps.maxFilesPerUnit,
-  ),
-})
+const CAPS = ["maxCodeLinesPerFile", "maxCodeLinesPerUnit", "maxFilesPerUnit"]
+
+// A missing or misspelled cap would compare against `undefined` and pass everything.
+const validCaps = (caps) => {
+  for (const name of CAPS) {
+    if (!Number.isInteger(caps?.[name]) || caps[name] < 1) throw new Error(`Invalid size cap ${name}: ${String(caps?.[name])}`)
+  }
+  return caps
+}
+
+export const sizeViolations = (measurement, caps) => {
+  const { maxCodeLinesPerFile, maxCodeLinesPerUnit, maxFilesPerUnit } = validCaps(caps)
+  return {
+    files: measurement.files.filter((file) => file.lines > maxCodeLinesPerFile),
+    units: measurement.units.filter((unit) => unit.lines > maxCodeLinesPerUnit || unit.files > maxFilesPerUnit),
+  }
+}

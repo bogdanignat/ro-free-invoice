@@ -48,7 +48,7 @@ const prepared = async (pool: Parameters<typeof createPostgresStore>[0]) => {
     legalForm: "srl", tradeRegistryNumber: "J22/123/2020", socialCapital: "1000", iban: "", bankName: "",
     defaultCurrency: "RON", defaultPaymentTermDays: 15, vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   }))
-  await Effect.runPromise(invoicing.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(invoicing.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   await Effect.runPromise(invoicing.addDocumentSeries({ documentType: "proforma", series: "PRO" }))
   return invoicing
 }
@@ -56,7 +56,7 @@ const prepared = async (pool: Parameters<typeof createPostgresStore>[0]) => {
 void test("each line table keeps the identifiers as written and an absent one as NULL, storno included", () =>
   withMigrated("item_lines", async ({ pool, sql }) => {
     const invoicing = await prepared(pool)
-    const draft = await Effect.runPromise(invoicing.createDraft({ request: { ...header, series: "QWBE", lines: [coded, manual] },
+    const draft = await Effect.runPromise(invoicing.createDraft({ request: { ...header, series: "RFI", lines: [coded, manual] },
       idempotency: attempt("draft-1") }))
     const invoice = await Effect.runPromise(invoicing.issueInvoice({ request: { draftId: draft.id },
       idempotency: attempt("issue-1") }))
@@ -90,7 +90,7 @@ void test("every line table checks the identifiers with the catalog's own expres
       assert.equal(await definition(`${table}_barcode_gtin`), barcode, table)
     }
     const invoicing = await prepared(pool)
-    const draft = await Effect.runPromise(invoicing.createDraft({ request: { ...header, series: "QWBE", lines: [manual] },
+    const draft = await Effect.runPromise(invoicing.createDraft({ request: { ...header, series: "RFI", lines: [manual] },
       idempotency: attempt("draft-1") }))
     for (const [column, value, constraint] of [
       ["barcode", "4006381333932", "draft_lines_barcode_gtin"], ["barcode", "", "draft_lines_barcode_gtin"],

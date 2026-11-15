@@ -49,10 +49,14 @@ no additional checkbox or manual legal-basis selection (T-1370). VAT-registered 
 forbids that property, including an explicit null. The fiscal basis is stored
 as the complete configuration tuple (code/category/rate/reason). `currentVat` projects
 its basis from that validated tuple, not from the registration boolean or zero rate
-alone. Automatic UI generation is the product rule for the supported Article 310
+alone. `vatPeriods` is the issuer's whole timeline: a period starts at every boundary of its
+configurations and of the legal catalogue, and carries `registered` (`null` for an
+inconsistent regime), the `rates` both saving and issuance accept and `defaultCode`.
+Automatic UI generation is the product rule for the supported Article 310
 workflow, not an external verification of a company's fiscal status. Other
 non-registration grounds and E/Z/AE/other categories are unsupported. Client entry
-and prefix handling are unchanged; external CUI verification is deferred to T-1371.
+and prefix handling are unchanged; looking a company up by CUI is the `company-lookup`
+plugin ([ANAF.md](./ANAF.md)).
 
 Issuer configuration is dated. An invoice's VAT regime and rates are read at its
 supply date (`supplyDate`, the issue date when none is given), in authoring and at
@@ -121,7 +125,7 @@ and its dates are not used, their semantics being unverified.
 
 | Answer | When |
 | --- | --- |
-| `400 ValidationFailure`, issue in Romanian | ANAF contradicts the regime chosen on either day, or does not know the CIF (`notFound`) |
+| `400 ValidationFailure`, `vat_registry_not_registered`, `vat_registry_registered` or `vat_registry_unknown_cif` (shown in Romanian) | ANAF contradicts the regime chosen on either day, or does not know the CIF (`notFound`) |
 | `409 DomainConflict` `vat_change_affects_issued_documents` | an invoice or storno of the organization is dated on or after `effectiveFrom` |
 | `409 DomainConflict` `fiscal_identifier_change_has_issued_documents` | the CIF changes and the organization has issued any invoice or storno, whatever its date |
 | `409 DomainConflict` `issuer_changed_concurrently` | the CIF or the VAT history changed between the read and the save |

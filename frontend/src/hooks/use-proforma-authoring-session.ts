@@ -1,7 +1,7 @@
 import { useState } from "react"
 
 import { useAuthoringRecovery } from "./use-authoring-recovery.ts"
-import { createInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
+import { useInvoiceAuthoringEditorActions } from "./use-invoice-authoring-editor-actions.ts"
 import { useProformaSave } from "./use-proforma-save.ts"
 import type {
   ProformaAuthoringSession, ProformaAuthoringSessionInput,
@@ -11,13 +11,12 @@ import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
 import {
   newEditableInvoiceLine, preferredUnitOfMeasure, type EditableInvoiceLine,
 } from "../lib/invoice-authoring-model.ts"
-import { documentNotesMaxLength } from "../lib/invoice-notes-validation.ts"
 import { issuerIssuanceWarning } from "../lib/invoice-authoring-workflow.ts"
 import { knownResultNotice } from "../lib/operation-recovery-view.ts"
 import { proformaAuthoringPayload } from "../lib/proforma-authoring-payload.ts"
 import { proformaSaveReadiness } from "../lib/proforma-authoring-readiness.ts"
 import { countyRequiresSector } from "../lib/romanian-counties.ts"
-import { defaultVatCode, vatRatesForIssuer } from "../lib/vat-defaults.ts"
+import { periodOn } from "../lib/vat-defaults.ts"
 import { issuerForIssueDate } from "../lib/vat-snapshots.ts"
 
 /**
@@ -38,13 +37,13 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   ))
   const [lines, setLines] = useState<ReadonlyArray<EditableInvoiceLine>>(() => [newEditableInvoiceLine(
     crypto.randomUUID(),
-    defaultVatCode(input.vatCatalogue, input.issuer, openedOn),
+    periodOn(input.issuer.vatPeriods, openedOn)?.defaultCode ?? "",
     preferredUnitOfMeasure(input.unitOfMeasures),
   )])
   const recovery = useAuthoringRecovery()
   const payload = proformaAuthoringPayload(form, lines)
   const readiness = proformaSaveReadiness({
-    form, lines, seriesOptions: input.proformaSeries,
+    form, lines, seriesOptions: input.proformaSeries, notesMaxLength: input.notesMaxLength,
     pending: recovery.pending, blocked: recovery.blocked,
   })
   const save = useProformaSave({
@@ -55,22 +54,22 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
   // confirmed-but-unfollowed save only needs to be read and acknowledged.
   const knownNotice = knownResultNotice(save.knownResult)
   const notice = recovery.notice ?? knownNotice
-  const editorActions = createInvoiceAuthoringEditorActions({
-    issuer: input.issuer, vatCatalogue: input.vatCatalogue, unitOfMeasures: input.unitOfMeasures,
-    productPresets: input.productPresets, customers: input.customers,
+  const editor = useInvoiceAuthoringEditorActions({
+    issuer: input.issuer, unitOfMeasures: input.unitOfMeasures,
+    customers: input.customers,
     vatDate: form.issueDate, deriveDueDate: true, setForm, setLines,
   })
   const pending = save.pending || recovery.pending
   return {
     document: {
       issuer: issuerForIssueDate(input.issuer, form.issueDate),
-      customers: input.customers, customersHasMore: input.customersHasMore,
+      customers: input.customers, chosenCustomer: editor.chosenCustomer, customersHasMore: input.customersHasMore,
       customersLoadingMore: input.customersLoadingMore, customersLoadMore: input.customersLoadMore,
       proformaSeries: input.proformaSeries, unitOfMeasures: input.unitOfMeasures, form, lines,
       buyerSectorRequired: countyRequiresSector(form.county), productPresets: input.productPresets,
       presetsHasMore: input.presetsHasMore, presetsLoadingMore: input.presetsLoadingMore,
       presetsLoadMore: input.presetsLoadMore,
-      vatRates: vatRatesForIssuer(input.vatCatalogue, input.issuer, form.issueDate),
+      vatRates: periodOn(input.issuer.vatPeriods, form.issueDate)?.rates ?? [],
     },
     feedback: {
       backgroundErrors: input.backgroundErrors,
@@ -80,7 +79,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
       unconfirmedMessage: save.unconfirmedMessage,
       issuerWarning: issuerIssuanceWarning(input.issuer),
       notesIssue: readiness.notesIssue,
-      notesMaxLength: documentNotesMaxLength,
+      notesMaxLength: input.notesMaxLength,
       dueDateNote: readiness.dueDateNote,
       recoveryNotice: notice,
     },
@@ -91,7 +90,7 @@ export const useProformaAuthoringSession = (input: ProformaAuthoringSessionInput
       recoveryPending: recovery.pending,
     },
     actions: {
-      ...editorActions,
+      ...editor.actions,
       deleteLine: (line) => { setLines((current) => current.filter((item) => item.key !== line.key)) },
       save: save.save,
       replayRecovery: recovery.replay,

@@ -15,7 +15,7 @@ import { createPostgresStore, type ApplicationTransaction } from "./postgres-sto
 const dayBefore = (date: string): string => new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
 
 const createDraft = async ({ call }: Served, key: string): Promise<string> =>
-  String((await ok(call("POST", "/api/drafts", { customer, series: "QWBE", issueDate, dueDate, lines }, key), "draft")).id)
+  String((await ok(call("POST", "/api/drafts", { customer, series: "RFI", issueDate, dueDate, lines }, key), "draft")).id)
 
 const issueDraft = async ({ call }: Served, draftId: string): Promise<string> =>
   String((await ok(call("POST", `/api/drafts/${draftId}/issue`, {}, `issue-${draftId}`), "issue")).id)

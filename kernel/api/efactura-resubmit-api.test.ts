@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { conflict, count, resubmit, unknownSubmission, withRig } from "./efactura-reconciliation.test-support.ts"
+import { codes, conflict, count, resubmit, unknownSubmission, withRig } from "./efactura-reconciliation.test-support.ts"
 
 /**
  * `POST /api/efactura/submissions/{id}/resubmit`: one new submission in place
@@ -15,7 +15,10 @@ void test("concurrent resubmits make one new submission; the old one stays unkno
   () => withRig("efr_resubmit", async (rig) => {
     await rig.connect()
     const { invoiceId, id } = await unknownSubmission(rig, "inv-1")
-    for (const body of [{}, { confirmed: false }]) assert.equal((await resubmit(rig, id, body)).status, 400, JSON.stringify(body))
+    for (const [body, code] of [[{}, "invalid_input"], [{ confirmed: false }, "confirmation_required"]] as const) {
+      const refused = await resubmit(rig, id, body)
+      assert.deepEqual([refused.status, codes(refused)], [400, [code]], JSON.stringify(body))
+    }
     assert.equal(await count(rig, "efactura_submissions"), 1, "nothing without the confirmation")
 
     const replies = await Promise.all([1, 2, 3, 4].map(() => resubmit(rig, id)))

@@ -1,6 +1,7 @@
-import { ValidationFailure } from "../../contracts/failures.ts"
+import { validationFailure } from "../../contracts/failures.ts"
 import type { BuyerSnapshot } from "../../domain/invoice.ts"
 import { maximumPaymentTermDays } from "../../domain/validation.ts"
+import { integerOutOfRange } from "../../issues/index.ts"
 import { validateBuyer } from "../../parties/index.ts"
 
 export interface Customer extends BuyerSnapshot {
@@ -23,6 +24,6 @@ export const validateCustomer = (customer: CustomerInput): void => {
   if (customer.defaultPaymentTermDays !== undefined
     && (!Number.isInteger(customer.defaultPaymentTermDays) || customer.defaultPaymentTermDays < 0
       || customer.defaultPaymentTermDays > maximumPaymentTermDays)) {
-    throw new ValidationFailure({ issues: [`defaultPaymentTermDays must be an integer between 0 and ${String(maximumPaymentTermDays)}`] })
+    throw validationFailure([integerOutOfRange("defaultPaymentTermDays", 0, maximumPaymentTermDays)])
   }
 }

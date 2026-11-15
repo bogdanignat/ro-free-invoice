@@ -6,7 +6,7 @@ export {
   VatRate, VatCatalogue, IssuerInput, Issuer, ConfiguredIssuer, DocumentSeriesInput, DocumentSeries, DocumentSeriesArchivedInput,
 } from "./schema-issuer.ts"
 export {
-  CustomerInput, Customer, CustomerPage, ProductPresetInput, ProductPreset, ProductPresetPage,
+  CustomerInput, Customer, CustomerPage, ProductPresetInput, ProductPreset, ProductPresetPage, ReferenceData,
 } from "./schema-customers-catalog.ts"
 export {
   DraftLine, VatBreakdown, DraftInvoice, DraftInvoicePage, DraftInput, UpdateDraftInput, DraftLineInput,

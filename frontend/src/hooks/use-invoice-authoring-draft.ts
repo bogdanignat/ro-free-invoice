@@ -3,10 +3,12 @@ import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react"
 
 import { useAuth } from "./auth-context.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { draftsQueryKey, draftQueryKey } from "./use-drafts.ts"
 import { createOperationLifetime } from "../lib/authoring-operation-lifetime.ts"
 import { lifetimeMountEffect, lifetimeRequestsEffect } from "../lib/authoring-lifetime-wiring.ts"
+import { confirmWhile } from "../lib/confirm-controller.ts"
 import { createInvoiceDraftSaveController, type InvoiceDraftSaveController } from "../lib/invoice-draft-save-controller.ts"
 import type { SaveOutcome } from "../lib/draft-save-types.ts"
 import type { DraftInvoice } from "../lib/draft-models.ts"
@@ -55,6 +57,7 @@ export const useInvoiceAuthoringDraft = (input: AuthoringDraftInput): AuthoringD
   const clients = useInvoicingClients()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [draft, setDraft] = useState(input.initialDraft)
   const [notice, setNotice] = useState<string | null>(null)
   // The reconciliation read is tracked: its request dies with the screen or
@@ -105,6 +108,20 @@ export const useInvoiceAuthoringDraft = (input: AuthoringDraftInput): AuthoringD
   const unconfirmedMessage = controller.unconfirmedMessage()
   const error = outcomeError(save.data) ?? outcomeError(removeLine.data) ?? outcomeError(removeDraft.data)
     ?? save.error ?? removeLine.error ?? removeDraft.error
+  // The draft the dialog was opened on may have been saved meanwhile: the latest one is sent.
+  const latestDraft = useLatest(draft)
+  const hasDraft = (): boolean => latestDraft.current !== undefined
+  const deleteLine = async (line: EditableInvoiceLine): Promise<void> => {
+    const ask = () => confirm(`Ștergi linia „${line.description}” din draft?`, { confirmLabel: "Șterge linia", tone: "danger" })
+    if (!await confirmWhile(hasDraft, ask)) return
+    // Checked again only so the type narrows; `hasDraft` already answered.
+    if (latestDraft.current !== undefined) removeLine.mutate({ draft: latestDraft.current, line })
+  }
+  const deleteDraft = async (): Promise<void> => {
+    const ask = () => confirm("Ștergi definitiv acest draft?", { confirmLabel: "Șterge draftul", tone: "danger" })
+    if (!await confirmWhile(hasDraft, ask)) return
+    if (latestDraft.current !== undefined) removeDraft.mutate(latestDraft.current)
+  }
 
   return {
     draft,
@@ -130,17 +147,11 @@ export const useInvoiceAuthoringDraft = (input: AuthoringDraftInput): AuthoringD
         setLines((current) => current.filter((item) => item.key !== line.key))
         return
       }
-      if (draft !== undefined && window.confirm(`Ștergi linia „${line.description}” din draft?`)) {
-        removeLine.mutate({ draft, line })
-      }
+      void deleteLine(line)
     },
     // The deletion policy (derived and issued drafts are not deletable) lives
     // in the controller, so every caller gets the same refusal without a
     // request; this hook only asks the user to confirm.
-    deleteDraft: () => {
-      if (draft !== undefined && window.confirm("Ștergi definitiv acest draft?")) {
-        removeDraft.mutate(draft)
-      }
-    },
+    deleteDraft: () => { void deleteDraft() },
   }
 }

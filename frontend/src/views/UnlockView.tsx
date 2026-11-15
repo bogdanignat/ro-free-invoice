@@ -1,8 +1,9 @@
 import { ErrorAlert, Loading } from "../components/AsyncState.tsx"
-import { Button } from "../components/Button.tsx"
+import { Button } from "../components/ui/Button.tsx"
 import { Page } from "../components/Page.tsx"
 import { SessionRecovery } from "../components/SessionRecovery.tsx"
 import { Shell } from "../components/Shell.tsx"
+import { UnlockCard, UnlockText } from "../components/UnlockCard.tsx"
 import { useTokenInputFocus } from "../hooks/use-token-input-focus.ts"
 import { useUnlockViewModel } from "../hooks/use-unlock-view-model.ts"
 
@@ -16,15 +17,15 @@ export const UnlockView = () => {
     return <Shell unlocked={false}><SessionRecovery error={model.error} onRetry={model.retryRestore} /></Shell>
   }
   return <Shell unlocked={false}><Page title="Bine ai revenit" eyebrow="RO Free Invoice">
-    <section className="unlock-card">
-      <div className="unlock-icon" aria-hidden="true">⌁</div>
-      <p>Introdu tokenul API local. Browserul va păstra numai sesiunea opacă HttpOnly; tokenul nu este salvat în JavaScript, URL sau storage.</p>
+    <UnlockCard>
+      <div className="grid place-items-center size-12 rounded-invoice-container text-invoice-primary bg-invoice-primary-soft text-[1.6rem]" aria-hidden="true">⌁</div>
+      <UnlockText>Introdu tokenul API local. Browserul va păstra numai sesiunea opacă HttpOnly; tokenul nu este salvat în JavaScript, URL sau storage.</UnlockText>
       {model.error === undefined ? null : <ErrorAlert error={model.error} />}
       <form action={model.submit}>
         <label htmlFor="api-token">Token API</label>
         <input ref={inputRef} id="api-token" name="token" type="password" autoComplete="off" required />
         <Button type="submit" disabled={model.pending}>{model.pending ? "Se verifică…" : "Deblochează aplicația"}</Button>
       </form>
-    </section>
+    </UnlockCard>
   </Page></Shell>
 }

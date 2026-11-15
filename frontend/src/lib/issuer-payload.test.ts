@@ -4,6 +4,7 @@ import test from "node:test"
 import { issuerPayload, type IssuerField } from "./issuer-payload.ts"
 import type { BrandingImageDraft } from "./issuer-branding.ts"
 import type { IssuerSettingsForm } from "./issuer-form.ts"
+import { COUNTIES } from "./romanian-counties.test-support.ts"
 
 const FORM: IssuerSettingsForm = {
   name: "  Firma Test SRL  ",
@@ -29,12 +30,12 @@ const IMAGE: BrandingImageDraft = {
 }
 
 const refusal = (form: Partial<IssuerSettingsForm>): IssuerField | "ready" => {
-  const validation = issuerPayload({ ...FORM, ...form }, null)
+  const validation = issuerPayload({ ...FORM, ...form }, null, COUNTIES)
   return validation.kind === "ready" ? "ready" : validation.field
 }
 
 void test("issuer payload — sends every field of the profile the PUT replaces, normalized", () => {
-  const validation = issuerPayload(FORM, null)
+  const validation = issuerPayload(FORM, null, COUNTIES)
   assert.equal(validation.kind, "ready")
   assert.deepEqual(validation.payload, {
     name: "Firma Test SRL",
@@ -56,7 +57,7 @@ void test("issuer payload — sends every field of the profile the PUT replaces,
 })
 
 void test("issuer payload — sends the regime change, and the exemption basis when it is dropped", () => {
-  const validation = issuerPayload({ ...FORM, vatRegistered: false, vatEffectiveFrom: "2026-09-25" }, null)
+  const validation = issuerPayload({ ...FORM, vatRegistered: false, vatEffectiveFrom: "2026-09-25" }, null, COUNTIES)
   assert.equal(validation.kind, "ready")
   assert.deepEqual(validation.payload.vatChange, {
     registered: false, effectiveFrom: "2026-09-25", nonVatBasis: "article_310",
@@ -64,7 +65,7 @@ void test("issuer payload — sends the regime change, and the exemption basis w
 })
 
 void test("issuer payload — omits an address field the profile has nothing to say about", () => {
-  const validation = issuerPayload({ ...FORM, county: "RO-CJ", sector: "3", postalCode: "  " }, null)
+  const validation = issuerPayload({ ...FORM, county: "RO-CJ", sector: "3", postalCode: "  " }, null, COUNTIES)
   assert.equal(validation.kind, "ready")
   assert.deepEqual(validation.payload.address, {
     countryCode: "RO", city: "București", street: "Calea Victoriei 1", county: "RO-CJ",
@@ -72,36 +73,36 @@ void test("issuer payload — omits an address field the profile has nothing to 
 })
 
 void test("issuer payload — keeps the chosen logo's bytes and its brand line together", () => {
-  const withImage = issuerPayload(FORM, IMAGE)
+  const withImage = issuerPayload(FORM, IMAGE, COUNTIES)
   assert.equal(withImage.kind, "ready")
   assert.deepEqual(withImage.payload.branding, { text: "Marca", image: { dataBase64: "AAA" } })
-  const textless = issuerPayload({ ...FORM, brandText: "   " }, IMAGE)
+  const textless = issuerPayload({ ...FORM, brandText: "   " }, IMAGE, COUNTIES)
   assert.equal(textless.kind, "ready")
   assert.deepEqual(textless.payload.branding, { text: null, image: { dataBase64: "AAA" } })
 })
 
 void test("issuer payload — an empty brand text with no logo is no branding at all", () => {
-  const validation = issuerPayload({ ...FORM, brandText: "   " }, null)
+  const validation = issuerPayload({ ...FORM, brandText: "   " }, null, COUNTIES)
   assert.equal(validation.kind, "ready")
   assert.equal(validation.payload.branding, null)
 })
 
 void test("issuer payload — refuses each field with the sentence shown under it", () => {
-  assert.deepEqual(issuerPayload({ ...FORM, name: "  " }, null), {
+  assert.deepEqual(issuerPayload({ ...FORM, name: "  " }, null, COUNTIES), {
     kind: "issue", field: "name", message: "Denumirea legală este obligatorie.",
   })
-  assert.deepEqual(issuerPayload({ ...FORM, fiscalIdentifier: "RO12345674" }, null), {
+  assert.deepEqual(issuerPayload({ ...FORM, fiscalIdentifier: "RO12345674" }, null, COUNTIES), {
     kind: "issue", field: "fiscalIdentifier",
     message: "CUI-ul este numeric, fără prefixul RO, și nu începe cu zero.",
   })
-  assert.deepEqual(issuerPayload({ ...FORM, sector: "7" }, null), {
+  assert.deepEqual(issuerPayload({ ...FORM, sector: "7" }, null, COUNTIES), {
     kind: "issue", field: "sector", message: "Adresele din București au un sector, de la 1 la 6.",
   })
-  assert.deepEqual(issuerPayload({ ...FORM, defaultPaymentTermDays: "3651" }, null), {
+  assert.deepEqual(issuerPayload({ ...FORM, defaultPaymentTermDays: "3651" }, null, COUNTIES), {
     kind: "issue", field: "defaultPaymentTermDays",
     message: "Termenul de plată este un număr întreg de zile, între 0 și 3650.",
   })
-  assert.deepEqual(issuerPayload({ ...FORM, vatEffectiveFrom: "" }, null), {
+  assert.deepEqual(issuerPayload({ ...FORM, vatEffectiveFrom: "" }, null, COUNTIES), {
     kind: "issue", field: "vatEffectiveFrom", message: "Alege data de la care se aplică regimul TVA.",
   })
 })
@@ -131,5 +132,5 @@ void test("issuer payload — a sector is only refused where sectors exist", () 
 
 void test("issuer payload — never refuses the logo: the image is refused while it is read", () => {
   assert.notEqual(refusal({}), "brandImage")
-  assert.equal(issuerPayload(FORM, IMAGE).kind, "ready")
+  assert.equal(issuerPayload(FORM, IMAGE, COUNTIES).kind, "ready")
 })

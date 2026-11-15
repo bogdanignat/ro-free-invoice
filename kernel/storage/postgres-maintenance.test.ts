@@ -198,9 +198,9 @@ void test("drift is empty on a freshly migrated database and the replay leaves n
     const applied = await appliedOrder(runtime.pool)
     assert.ok(applied.length > 0, "the ledger should list the applied migrations")
     assert.deepEqual(await schemaDrift(runtime.pool), [])
-    // The scratch schema was rolled back: no qwbe_drift_* schema survives.
+    // The scratch schema was rolled back: no rfi_drift_* schema survives.
     const { rows } = await runtime.pool.query<{ readonly count: string }>(
-      "SELECT count(*) AS count FROM pg_namespace WHERE nspname LIKE 'qwbe_drift_%'",
+      "SELECT count(*) AS count FROM pg_namespace WHERE nspname LIKE 'rfi_drift_%'",
     )
     assert.equal(rows[0]?.count, "0")
   } finally {
@@ -215,13 +215,13 @@ void test("an edited trigger function body is reported as drift", async () => {
     assert.deepEqual(await schemaDrift(runtime.pool), [])
     // The foundation function, replaced behind the ledger's back.
     await runtime.pool.query(
-      "CREATE OR REPLACE FUNCTION qwbe_abort() RETURNS trigger LANGUAGE plpgsql AS $qwbe$"
-      + " BEGIN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='edited'; END $qwbe$",
+      "CREATE OR REPLACE FUNCTION rfi_abort() RETURNS trigger LANGUAGE plpgsql AS $rfi$"
+      + " BEGIN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='edited'; END $rfi$",
     )
     resetFingerprintCache()
     const drifted = await schemaDrift(runtime.pool)
     assert.ok(
-      drifted.some((name) => name.startsWith("function:qwbe_abort")),
+      drifted.some((name) => name.startsWith("function:rfi_abort")),
       `the function body should be reported as drift, got ${JSON.stringify(drifted)}`,
     )
   } finally {

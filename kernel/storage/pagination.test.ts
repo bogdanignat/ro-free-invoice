@@ -30,13 +30,13 @@ void test("the registries page with a keyset cursor in issue-date, number and id
       defaultCurrency: "RON", defaultPaymentTermDays: 15,
       vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
     }))
-    await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+    await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
     const customer = { partyType: "company" as const, name: "Client SRL", fiscalIdentifier: "87654329", vatRegistered: true,
       address: { countryCode: "RO", city: "Iași", street: "Strada 2", county: "RO-IS" } }
     const issued: Array<IssuedInvoice> = []
     for (const issueDate of ["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-03", "2026-09-03"]) {
       issued.push(await Effect.runPromise(service.issueInvoice(idempotent({
-        customer, series: "QWBE", issueDate, dueDate: "2026-09-20", currency: "RON" as const,
+        customer, series: "RFI", issueDate, dueDate: "2026-09-20", currency: "RON" as const,
         lines: [{ description: "Servicii", quantity: "1", unitPrice: "10", unitOfMeasure: each, vatRateCode: "RO_STANDARD" }],
       }))))
     }

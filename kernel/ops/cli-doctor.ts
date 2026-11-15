@@ -4,7 +4,10 @@ import type { Pool, PoolClient } from "pg"
 
 import type { RuntimeConfig } from "../config.ts"
 import { artifactsDirectoryReady, ledgerReady, planMigrations, schemaDriftOnClient } from "../storage/migrations.ts"
+import { createQueryRuntime } from "../storage/postgres-pool.ts"
 import { ScratchNotRolledBack } from "../storage/postgres-schema-fingerprint.ts"
+import { print, type CommandContext, type CommandOf } from "./cli.ts"
+import { runEFacturaDoctor } from "./cli-doctor-efactura.ts"
 import { extraSchemas } from "./postgres-backup-guards.ts"
 
 /**
@@ -31,7 +34,7 @@ export interface DoctorReport {
   readonly extraSchemas: ReadonlyArray<string>
   /**
    * Extensions besides `plpgsql`. The schema needs none, but CREATE on the database lets
-   * `qwbe_app` install a trusted one, whose objects land in `public` without a new schema.
+   * `rfi_app` install a trusted one, whose objects land in `public` without a new schema.
    */
   readonly extraExtensions: ReadonlyArray<string>
   readonly organizationId: string | null
@@ -111,5 +114,18 @@ export const doctorReport = async (config: RuntimeConfig, pool: Pool): Promise<D
     authTokenReadable: readable(config.authTokenFile),
     nodeVersion: process.versions.node,
     ready: writable && ready,
+  }
+}
+
+export const runDoctor = async (command: CommandOf<"doctor">, context: CommandContext) => {
+  if (command.efactura) return runEFacturaDoctor(command, context)
+  const { config, settings } = context
+  const runtime = createQueryRuntime(settings)
+  try {
+    const report = await doctorReport(config, runtime.pool)
+    print(report, command.json)
+    if (!report.ready) process.exitCode = 1
+  } finally {
+    await runtime.close()
   }
 }

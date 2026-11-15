@@ -1,10 +1,15 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
+import { ButtonRow } from "../ui/ButtonRow.tsx"
+import { Card } from "../ui/Card.tsx"
 import { CustomerAddressFields } from "./CustomerAddressFields.tsx"
 import { CustomerIdentityFields } from "./CustomerIdentityFields.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
 import { Field } from "../ui/Field.tsx"
 import { FieldIssue } from "./FieldIssue.tsx"
+import { Fieldset } from "../ui/Fieldset.tsx"
+import { FormGrid } from "../ui/FormGrid.tsx"
 import { Input } from "../ui/Input.tsx"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
 import { useEditorHeadingFocus } from "../../hooks/use-editor-heading-focus.ts"
 import { useRefusedFieldFocus } from "../../hooks/use-refused-field-focus.ts"
 import { CUSTOMER_FORM, registryFieldAria } from "../../lib/registry-fields.ts"
@@ -29,6 +34,10 @@ interface CustomerEditorSectionProps {
   readonly onClose: () => void
 }
 
+// One party type as a pill; the checked one takes the primary tint.
+const CHOICE = "flex gap-[.4rem] items-center px-[.8rem] py-[.45rem] border border-invoice-control-border rounded-invoice-control"
+  + " text-[.85rem] font-semibold cursor-pointer has-checked:border-invoice-primary has-checked:bg-invoice-primary-soft"
+
 /** The customer editor: the party, its identity (completable from a CUI), its address and the payment term. */
 export const CustomerEditorSection = (props: CustomerEditorSectionProps) => {
   const { editingId, form, issue, pending } = props
@@ -36,20 +45,18 @@ export const CustomerEditorSection = (props: CustomerEditorSectionProps) => {
   useRefusedFieldFocus(CUSTOMER_FORM, issue?.field)
   const aria = registryFieldAria(CUSTOMER_FORM, issue?.field)
   const company = form.partyType === "company"
-  return <section className="card">
-    <div className="section-heading"><div>
-      <h2 ref={headingRef} tabIndex={-1}>{editingId === undefined ? "Client nou" : "Editezi clientul"}</h2>
-      <p>Datele sunt copiate pe document în momentul emiterii.</p>
-    </div></div>
+  return <Card>
+    <SectionHeading titleRef={headingRef} title={editingId === undefined ? "Client nou" : "Editezi clientul"}
+      description="Datele sunt copiate pe document în momentul emiterii." />
     {props.error === null || props.error === undefined ? null : <ErrorAlert error={props.error} />}
-    <form className="authoring-section" onSubmit={(event) => { event.preventDefault(); props.onSubmit() }}>
-      <div className="form-grid">
-        <fieldset className="segmented-fieldset span-two"><legend>Tip persoană</legend><div className="segmented-control">
-          <label><input type="radio" name="customerPartyType" value="company" checked={company} disabled={pending}
+    <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); props.onSubmit() }}>
+      <FormGrid>
+        <Fieldset legend="Tip persoană" className="col-span-full"><div className="flex flex-wrap gap-[.4rem]">
+          <label className={CHOICE}><input className="w-auto min-h-0" type="radio" name="customerPartyType" value="company" checked={company} disabled={pending}
             onChange={() => { props.onPartyTypeChange("company") }} /><span>Persoană juridică (PJ)</span></label>
-          <label><input type="radio" name="customerPartyType" value="individual" checked={!company} disabled={pending}
+          <label className={CHOICE}><input className="w-auto min-h-0" type="radio" name="customerPartyType" value="individual" checked={!company} disabled={pending}
             onChange={() => { props.onPartyTypeChange("individual") }} /><span>Persoană fizică (PF)</span></label>
-        </div></fieldset>
+        </div></Fieldset>
         <CustomerIdentityFields form={form} editingId={editingId} disabled={pending} issue={issue} aria={aria}
           onChange={props.onChange} onIdentifierChange={props.onIdentifierChange} />
         <CustomerAddressFields form={form} disabled={pending} sectorRequired={props.sectorRequired}
@@ -61,11 +68,11 @@ export const CustomerEditorSection = (props: CustomerEditorSectionProps) => {
             onChange={(event) => { props.onChange({ defaultPaymentTermDays: event.currentTarget.value }) }} />
           <FieldIssue issue={issue} field="defaultPaymentTermDays" form={CUSTOMER_FORM} />
         </Field>
-      </div>
-      <div className="button-row">
+      </FormGrid>
+      <ButtonRow>
         <Button type="submit" disabled={pending}>{pending ? "Se salvează…" : "Salvează clientul"}</Button>
-        <Button className="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
-      </div>
+        <Button variant="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
+      </ButtonRow>
     </form>
-  </section>
+  </Card>
 }

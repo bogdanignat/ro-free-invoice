@@ -1,0 +1,20 @@
+{
+  "sizeFileRoots": [
+    "kernel",
+    "cubes",
+    "frontend/src",
+    "probes",
+    "bin"
+  ],
+  "sizeGeneratedFiles": [
+    {
+      "path": "frontend/src/routeTree.gen.ts",
+      "reason": "written by @tanstack/router-plugin from frontend/src/routes/; checked by regenerating it (frontend scripts/route-tree.ts), not by reading it"
+    }
+  ],
+  "caps": {
+    "maxCodeLinesPerFile": 200,
+    "maxCodeLinesPerUnit": 800,
+    "maxFilesPerUnit": 15
+  }
+}

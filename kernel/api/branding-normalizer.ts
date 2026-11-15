@@ -1,16 +1,15 @@
 import { Effect } from "effect"
 import sharp from "sharp"
 
-import { ValidationFailure } from "../../cubes/invoicing/contracts/failures.ts"
+import { validationFailure, type ValidationFailure } from "../../cubes/invoicing/contracts/failures.ts"
+import { brandingImageUnreadable } from "../../cubes/invoicing/issues/index.ts"
 import type { BrandingNormalizer } from "../../cubes/invoicing/issuer/index.ts"
 
 const maxBytes = 256 * 1024
 const maxPixels = 4_000_000
 const maxDimension = 2048
 const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
-const invalidImage = (): ValidationFailure => new ValidationFailure({
-  issues: ["branding.image must be a valid static PNG or JPEG, at most 256 KiB and 2048 px per axis (4 megapixels), including its normalized PNG"],
-})
+const invalidImage = (): ValidationFailure => validationFailure([brandingImageUnreadable()])
 
 // Framing only: prevents animated/ambiguous input reaching the native decoder.
 // Pixel decoding, CRC validation and encoding are handled by sharp/libvips.

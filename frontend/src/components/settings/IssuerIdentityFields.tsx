@@ -1,9 +1,11 @@
 import { CompanyNameField } from "../company-lookup/CompanyNameField.tsx"
 import { CompanyProposalCard } from "../company-lookup/CompanyProposalCard.tsx"
 import { Field } from "../ui/Field.tsx"
+import { FormGrid } from "../ui/FormGrid.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import { FieldIssue } from "../registry/FieldIssue.tsx"
 import { Input } from "../ui/Input.tsx"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
 import { ISSUER_FORM, type RegistryFieldAria } from "../../lib/registry-fields.ts"
 import { FISCAL_IDENTIFIER_MAX_LENGTH, type IssuerField } from "../../lib/issuer-payload.ts"
@@ -30,11 +32,12 @@ interface IssuerIdentityFieldsProps {
  * the VAT regime cannot, it stays the VAT section's.
  */
 export const IssuerIdentityFields = (props: IssuerIdentityFieldsProps) => {
+  const limits = useTextLimits()
   const { form, disabled, issue, aria } = props
   const { lookup, nameRef } = useCompanyLookup("issuer", true)
-  return <div className="form-grid">
+  return <FormGrid>
     <CompanyNameField lookup={lookup} inputRef={nameRef} label="Denumire legală" value={form.name} disabled={disabled}
-      maxLength={CIUS_TEXT_LIMITS.partyName} controlAria={aria("name")} onChange={(name) => { props.onChange({ name }) }}>
+      maxLength={limits?.partyName} controlAria={aria("name")} onChange={(name) => { props.onChange({ name }) }}>
       <FieldIssue issue={issue} field="name" form={ISSUER_FORM} />
     </CompanyNameField>
     <Field label="CUI / identificator fiscal" required>
@@ -46,7 +49,7 @@ export const IssuerIdentityFields = (props: IssuerIdentityFieldsProps) => {
     </Field>
     <CompanyProposalCard lookup={lookup} vat="informative" disabled={disabled}
       onApply={(proposal) => { props.onChange(issuerFill(form, proposal)) }} />
-    <p className="hint span-two">CUI-ul este salvat numeric; prefixul RO introdus este eliminat fără a modifica regimul TVA. Cifra de control este verificată la salvare.</p>
+    <Hint className="col-span-full">CUI-ul este salvat numeric; prefixul RO introdus este eliminat fără a modifica regimul TVA. Cifra de control este verificată la salvare.</Hint>
     <Field label="Formă juridică" required>
       <Select required disabled={disabled} value={form.legalForm} {...aria("legalForm")}
         onChange={(event) => { props.onChange({ legalForm: legalFormValue(event.currentTarget.value) }) }}>
@@ -74,10 +77,10 @@ export const IssuerIdentityFields = (props: IssuerIdentityFieldsProps) => {
         onChange={(event) => { props.onChange({ iban: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="iban" form={ISSUER_FORM} />
     </Field>
-    <Field label="Bancă" optional className="span-two">
+    <Field label="Bancă" optional className="col-span-full">
       <Input disabled={disabled} value={form.bankName} {...aria("bankName")} maxLength={BANK_NAME_MAX_CODE_POINTS}
         onChange={(event) => { props.onChange({ bankName: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="bankName" form={ISSUER_FORM} />
     </Field>
-  </div>
+  </FormGrid>
 }

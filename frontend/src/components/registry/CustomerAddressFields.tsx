@@ -1,9 +1,8 @@
 import { FieldIssue } from "./FieldIssue.tsx"
 import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { useCounties, useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
-import { ROMANIAN_COUNTIES } from "../../lib/romanian-counties.ts"
 import { CUSTOMER_FORM, type RegistryFieldAria } from "../../lib/registry-fields.ts"
 import type { CustomerField } from "../../lib/customer-payload.ts"
 import type { CustomerForm } from "../../lib/customer-form.ts"
@@ -26,16 +25,18 @@ interface CustomerAddressFieldsProps {
  * renders a field the payload would not carry.
  */
 export const CustomerAddressFields = (props: CustomerAddressFieldsProps) => {
+  const limits = useTextLimits()
+  const counties = useCounties()
   const { form, disabled, issue, aria } = props
   return <>
     <Field label="Țară"><Select value="RO" disabled><option value="RO">România (RO)</option></Select></Field>
     <Field label="Localitate" required>
-      <Input required disabled={disabled} value={form.city} maxLength={CIUS_TEXT_LIMITS.city} {...aria("city")}
+      <Input required disabled={disabled} value={form.city} maxLength={limits?.city} {...aria("city")}
         onChange={(event) => { props.onChange({ city: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="city" form={CUSTOMER_FORM} />
     </Field>
-    <Field label="Stradă și număr" required className="span-two">
-      <Input required disabled={disabled} value={form.street} maxLength={CIUS_TEXT_LIMITS.street} {...aria("street")}
+    <Field label="Stradă și număr" required className="col-span-full">
+      <Input required disabled={disabled} value={form.street} maxLength={limits?.street} {...aria("street")}
         onChange={(event) => { props.onChange({ street: event.currentTarget.value }) }} />
       <FieldIssue issue={issue} field="street" form={CUSTOMER_FORM} />
     </Field>
@@ -43,7 +44,7 @@ export const CustomerAddressFields = (props: CustomerAddressFieldsProps) => {
       <Select required disabled={disabled} value={form.county} {...aria("county")}
         onChange={(event) => { props.onCountyChange(event.currentTarget.value) }}>
         <option value="" disabled>Alege județul</option>
-        {ROMANIAN_COUNTIES.map((county) => <option key={county.code} value={county.code}>{county.name}</option>)}
+        {counties.map((county) => <option key={county.code} value={county.code}>{county.name}</option>)}
       </Select>
       <FieldIssue issue={issue} field="county" form={CUSTOMER_FORM} />
     </Field>
@@ -58,7 +59,7 @@ export const CustomerAddressFields = (props: CustomerAddressFieldsProps) => {
       </Field>
       : null}
     <Field label="Cod poștal" optional>
-      <Input disabled={disabled} value={form.postalCode} maxLength={CIUS_TEXT_LIMITS.postalCode}
+      <Input disabled={disabled} value={form.postalCode} maxLength={limits?.postalCode}
         onChange={(event) => { props.onChange({ postalCode: event.currentTarget.value }) }} />
     </Field>
   </>

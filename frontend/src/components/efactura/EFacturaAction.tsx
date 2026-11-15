@@ -1,4 +1,4 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
 import type { EFacturaDocumentModel } from "../../hooks/use-efactura-document.ts"
 
 export const EFACTURA_REASON_ID = "efactura-reason"

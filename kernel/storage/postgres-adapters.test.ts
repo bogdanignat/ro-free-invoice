@@ -70,10 +70,10 @@ void test("every port round-trips through the real schema, and money keeps its e
       store: createPostgresStore(runtime.pool), branding, cubeIdentity: "invoicing",
     })
     await Effect.runPromise(service.configureIssuer(issuerRequest))
-    await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+    await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
     await Effect.runPromise(service.addDocumentSeries({ documentType: "proforma", series: "PRO" }))
     const duplicateSeries = await Effect.runPromise(Effect.flip(
-      service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }),
+      service.addDocumentSeries({ documentType: "invoice", series: "RFI" }),
     ))
     assert.equal(duplicateSeries instanceof DomainConflict && duplicateSeries.code === "document_series_exists", true)
 
@@ -91,7 +91,7 @@ void test("every port round-trips through the real schema, and money keeps its e
     assert.deepEqual(await Effect.runPromise(service.listProductPresets()), { items: [preset], nextCursor: null })
 
     const draft = await Effect.runPromise(service.createDraft(idempotent({
-      customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "QWBE",
+      customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "RFI",
       source: { app: "crm", kind: "contract", id: "contract-1" },
     })))
     await Effect.runPromise(service.addDraftLine({
@@ -134,7 +134,7 @@ void test("every port round-trips through the real schema, and money keeps its e
     assert.deepEqual(await Effect.runPromise(payments.recordPayment(attempt)), payment)
 
     const proformaDraft = await Effect.runPromise(service.createDraft(idempotent({
-      customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "QWBE",
+      customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "RFI",
       source: { app: "crm", kind: "offer", id: "offer-1" },
     })))
     const authored = await Effect.runPromise(service.addDraftLine({
@@ -146,14 +146,14 @@ void test("every port round-trips through the real schema, and money keeps its e
     })))
     assert.equal(proforma.convertedDraftId, null)
     const converted = await Effect.runPromise(service.issueInvoiceFromProforma(idempotent({
-      proformaId: proforma.id, invoiceSeries: "QWBE",
+      proformaId: proforma.id, invoiceSeries: "RFI",
     })))
     assert.deepEqual(converted.lines, authored.lines)
     assert.equal((await Effect.runPromise(service.getProforma(proforma.id))).convertedInvoiceId, converted.id)
     // The conversion ledger's unique key is what refuses the second conversion,
     // and its SQLSTATE is mapped to the domain's own code, not to a 500.
     const duplicate = await Effect.runPromise(Effect.flip(service.issueInvoiceFromProforma(idempotent({
-      proformaId: proforma.id, invoiceSeries: "QWBE",
+      proformaId: proforma.id, invoiceSeries: "RFI",
     }))))
     assert.equal(duplicate instanceof DomainConflict && duplicate.code === "proforma_already_converted", true)
 
@@ -165,7 +165,7 @@ void test("every port round-trips through the real schema, and money keeps its e
       lines: [{ description: "Direct", quantity: "1", unitPrice: "75", unitOfMeasure: each, vatRateCode: "RO_STANDARD" }],
     })))
     const directInvoice = await Effect.runPromise(service.issueInvoiceFromProforma(idempotent({
-      proformaId: direct.id, invoiceSeries: "QWBE",
+      proformaId: direct.id, invoiceSeries: "RFI",
     })))
     assert.equal(directInvoice.sourceProformaId, direct.id)
 
@@ -203,7 +203,7 @@ void test("every composed keyset pages correctly on the engine, with a source fi
     })
     const store = createPostgresStore(runtime.pool)
     await Effect.runPromise(service.configureIssuer(issuerRequest))
-    await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+    await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
     await Effect.runPromise(service.addDocumentSeries({ documentType: "proforma", series: "PRO" }))
     const customer = await Effect.runPromise(service.createCustomer({
       partyType: "company", name: "Client SRL", fiscalIdentifier: "87654329", vatRegistered: true,
@@ -214,7 +214,7 @@ void test("every composed keyset pages correctly on the engine, with a source fi
 
     const draftOn = async (issueDate: string, documentSource: typeof source) => {
       const draft = await Effect.runPromise(service.createDraft(idempotent({
-        customerId: customer.id, issueDate, dueDate: "2026-09-30", series: "QWBE", source: documentSource,
+        customerId: customer.id, issueDate, dueDate: "2026-09-30", series: "RFI", source: documentSource,
       })))
       await Effect.runPromise(service.addDraftLine({
         draftId: draft.id, description: "Servicii", quantity: "1", unitPrice: "100.00",
@@ -357,7 +357,7 @@ void test("a trigger, a CHECK and a type error all become a 409-shaped conflict"
     // SQLITE_CONSTRAINT_DATATYPE, and both have to reach the same 409.
     const typeError = await errorOf(
       "INSERT INTO invoice_sequences(organization_id,document_type,series,last_number) VALUES($1,$2,$3,$4)",
-      ["org-1", "invoice", "QWBE", "not-a-number"],
+      ["org-1", "invoice", "RFI", "not-a-number"],
     )
     assert.equal((typeError as { readonly code?: string }).code, "22P02")
     const mappedType = writeFailure(typeError, "allocate document number")

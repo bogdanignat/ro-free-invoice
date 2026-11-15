@@ -1,5 +1,7 @@
 import { useAuthoringPagedList } from "./use-authoring-paged-list.ts"
+import { useConfirm } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
+import { NO_COUNTIES, useReferenceData } from "./use-reference-data.ts"
 import { useRegistryEditor, type RegistryEditorIssue } from "./use-registry-editor.ts"
 import { useRegistryWrites } from "./use-registry-writes.ts"
 import {
@@ -56,11 +58,16 @@ export const useCustomerRegistry = (): CustomerRegistryModel => {
   )
   const writes = useRegistryWrites(["customers"], customerNotice)
   const editor = useRegistryEditor<CustomerForm, CustomerField>()
+  const confirm = useConfirm()
   const editing = editor.editing
-  const load = registryLoad([["customers", { data: list.items, isPending: list.isPending, error: list.error }]])
+  const reference = useReferenceData()
+  const load = registryLoad([
+    ["customers", { data: list.items, isPending: list.isPending, error: list.error }],
+    ["reference", { data: reference.data, isPending: reference.isPending, error: reference.error }],
+  ])
   const submit = (): void => {
     if (editing === undefined) return
-    const validation = customerPayload(editing.form)
+    const validation = customerPayload(editing.form, reference.data?.counties ?? NO_COUNTIES)
     if (validation.kind === "issue") {
       editor.refuse({ field: validation.field, message: validation.message })
       return
@@ -75,9 +82,20 @@ export const useCustomerRegistry = (): CustomerRegistryModel => {
       onDone: editor.close,
     })
   }
+  const remove = async (customer: Customer): Promise<void> => {
+    if (!await confirm(customerDeleteConfirm(customer.name), { confirmLabel: "Șterge", tone: "danger" })) return
+    writes.submit({
+      write: "deleted",
+      run: (csrfToken) => clients.registry.deleteCustomer(csrfToken, customer.id),
+      onDone: () => { editor.closeRecord(customer.id) },
+    })
+  }
   return {
     load,
-    retry: registryReload(load, { customers: () => { list.refetch() } }),
+    retry: registryReload(load, {
+      customers: () => { list.refetch() },
+      reference: () => { void reference.refetch() },
+    }),
     customers: list.items ?? [],
     hasMore: list.hasMore,
     loadingMore: list.loadingMore,
@@ -99,13 +117,6 @@ export const useCustomerRegistry = (): CustomerRegistryModel => {
     },
     changeCounty: (county) => { editor.apply((form) => chooseCustomerCounty(form, county)) },
     submit,
-    remove: (customer) => {
-      if (!window.confirm(customerDeleteConfirm(customer.name))) return
-      writes.submit({
-        write: "deleted",
-        run: (csrfToken) => clients.registry.deleteCustomer(csrfToken, customer.id),
-        onDone: () => { editor.closeRecord(customer.id) },
-      })
-    },
+    remove: (customer) => { void remove(customer) },
   }
 }

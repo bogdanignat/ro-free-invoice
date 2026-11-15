@@ -9,7 +9,7 @@ import { logInternalFailure } from "../failure-log.ts"
 type Wire =
   | { readonly error: "AuthenticationRequired" | "OrganizationContextMissing" | "PermissionDenied" | "DocumentsPermissionDenied" }
   | { readonly error: "ValidationFailure"; readonly issues: ReadonlyArray<string>
-    readonly details: ReadonlyArray<IssueDetail | { readonly code: "unclassified" }> }
+    readonly details: ReadonlyArray<IssueDetail> }
   | { readonly error: "ResourceNotFound" | "DocumentNotFound" | "ArtifactConflict" | "PersistenceFailure"
     | "DocumentPersistenceFailure" | "DocumentRenderingFailure" | "internal_failure" }
   | { readonly error: "DomainConflict"; readonly code: string; readonly message?: string }
@@ -33,8 +33,7 @@ const publicConflictMessages: ReadonlySet<string> = new Set([productPresetCodeTa
 
 const toWire = (failure: ApiFailure): Wire => {
   switch (failure._tag) {
-    case "ValidationFailure": return { error: "ValidationFailure", issues: failure.issues,
-      details: failure.issues.map((_, index) => failure.details?.[index] ?? { code: "unclassified" as const }) }
+    case "ValidationFailure": return { error: "ValidationFailure", issues: failure.issues, details: failure.details }
     case "DomainConflict": return { error: "DomainConflict", code: failure.code,
       ...(publicConflictMessages.has(failure.code) ? { message: failure.message } : {}) }
     case "RenderingFailure": return { error: "internal_failure" }

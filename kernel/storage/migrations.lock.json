@@ -4,7 +4,7 @@
     "migrations": [
       {
         "name": "000-foundation",
-        "sha256": "ead0eacc9f1674d0c91549341407bf71947b7f05d219de271fcce8612634be38"
+        "sha256": "0772eb4012a4acab86dd0a8f33bfc1b779c3ba4d25a6759f400ec73cd52ad42f"
       }
     ]
   },
@@ -40,15 +40,15 @@
     "migrations": [
       {
         "name": "invoicing-001-baseline",
-        "sha256": "a36c4b0db74bcda0bde9a0f891c4218fe441367131f8ac0257924591ba7a21ee"
+        "sha256": "44b02672674716556631a3534ed22e2462ea7638482210f6842f8e452da23431"
       },
       {
         "name": "invoicing-002-seal-issued-documents",
-        "sha256": "fd0a23defc3547de061f1804537cf3a523525d6e5287d57273182335e204dcaa"
+        "sha256": "28fdfa935f3a5f8963d2eb217ff9f5ec55a2df433e6d3f2dfece0001a6cc405b"
       },
       {
         "name": "invoicing-003-supply-date",
-        "sha256": "4fe1e5aa6fa3919e3216257e22f449c49eb2dc98805cff572e97f91818b1c2a8"
+        "sha256": "e419e1f9fb74bd765db5ef3527b7d60dfe739bb323c23a53afb33250beab4900"
       }
     ]
   },
@@ -57,7 +57,7 @@
     "migrations": [
       {
         "name": "payments-001-baseline",
-        "sha256": "c9d655f1350e7a8900e84d018518b046dcb74a021176081284d3f9b37e4e6526"
+        "sha256": "4401573e77259210d92e8d84abbcc8da15a35719af95f2ff92dcd464720bf195"
       }
     ]
   },
@@ -66,7 +66,7 @@
     "migrations": [
       {
         "name": "documents-001-baseline",
-        "sha256": "1ed8ceb90cc5bc1055fac88ff29bb89c1eb67455e868125f35fb0cfc54132961"
+        "sha256": "d72ff8fad4ffc200cfb8252400edf874da3231b05e2b0ab6cde2fb63401a1353"
       }
     ]
   },
@@ -93,7 +93,7 @@
     "migrations": [
       {
         "name": "efactura-submissions-001-baseline",
-        "sha256": "5a6b5d14a1fe341fc233481b3f08c841612c8e6513ee105ace1b09cf6ee187f1"
+        "sha256": "486508684cd72da5993dc922f3f3bcc2cd00bba216de3bb9d32f92397c2d2df2"
       }
     ]
   },
@@ -102,7 +102,7 @@
     "migrations": [
       {
         "name": "efactura-received-001-baseline",
-        "sha256": "693199962ad7888b0274e80237ecff1c4484062ccbbf043dbca12dad1033f438"
+        "sha256": "ea4362f9f6714166a47dbf4bd6aa7db9c80ce947aa3be8aa4a3febf44cd361f4"
       }
     ]
   },

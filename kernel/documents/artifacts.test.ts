@@ -58,7 +58,7 @@ const issueFixture = async (pool: Pool): Promise<{ readonly invoiceId: string; r
     vatChange: { registered: true, effectiveFrom: "2025-08-01" },
     branding: null,
   }))
-  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "QWBE" }))
+  await Effect.runPromise(service.addDocumentSeries({ documentType: "invoice", series: "RFI" }))
   await Effect.runPromise(service.addDocumentSeries({ documentType: "proforma", series: "PRO" }))
   const customer = await Effect.runPromise(service.createCustomer({
     partyType: "company",
@@ -68,7 +68,7 @@ const issueFixture = async (pool: Pool): Promise<{ readonly invoiceId: string; r
     address: { countryCode: "RO", city: "Iași", street: "Șoseaua Națională 2", county: "RO-IS" },
   }))
   const draft = await Effect.runPromise(service.createDraft(idempotent("fixture-draft-1", {
-    customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "QWBE",
+    customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "RFI",
   })))
   await Effect.runPromise(service.addDraftLine({
     draftId: draft.id,
@@ -80,7 +80,7 @@ const issueFixture = async (pool: Pool): Promise<{ readonly invoiceId: string; r
   }))
   const invoiceId = (await Effect.runPromise(service.issueInvoice(idempotent("fixture-invoice", { draftId: draft.id })))).id
   const proformaDraft = await Effect.runPromise(service.createDraft(idempotent("fixture-draft-2", {
-    customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "QWBE",
+    customerId: customer.id, issueDate: "2026-09-01", dueDate: "2026-09-16", series: "RFI",
   })))
   await Effect.runPromise(service.addDraftLine({
     draftId: proformaDraft.id, description: "Avans", quantity: "1", unitPrice: "50", unitOfMeasure: each, vatRateCode: "RO_STANDARD",

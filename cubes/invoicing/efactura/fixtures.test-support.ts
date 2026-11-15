@@ -136,7 +136,7 @@ const base = {
 /** Standard rated, two rates, company to company. */
 export const standardB2B: EFacturaDocument = {
   ...base,
-  id: "QWBE 1001",
+  id: "RFI 1001",
   seller: vatRegisteredSeller,
   buyer: companyBuyer,
   lines: [
@@ -157,7 +157,7 @@ export const standardB2B: EFacturaDocument = {
 /** Standard rated, sold to a private individual identified by a placeholder. */
 export const standardB2C: EFacturaDocument = {
   ...standardB2B,
-  id: "QWBE 1002",
+  id: "RFI 1002",
   buyer: individualBuyer,
   lines: [line("1", "Abonament lunar", "1.0000", "MON", "99.00", "99.00", "S", "21.00")],
   taxSubtotals: [subtotal("99.00", "20.79", "S", "21.00", null, null)],
@@ -172,21 +172,21 @@ export const standardB2C: EFacturaDocument = {
  * validator says which identifier it wants, rather than us assuming. */
 export const consumerWithCnp: EFacturaDocument = {
   ...standardB2C,
-  id: "QWBE 1007",
+  id: "RFI 1007",
   buyer: { ...individualBuyer, legalRegistrationIdentifier: "1960101221141" },
 }
 
 /** A Bucharest buyer, to confirm how the sector is expected in BT-52/BT-54. */
 export const bucharestBuyerInvoice: EFacturaDocument = {
   ...standardB2C,
-  id: "QWBE 1003",
+  id: "RFI 1003",
   buyer: bucharestBuyer,
 }
 
 /** A rated sale to a company with no VAT registration of its own. */
 export const saleToUnregisteredCompany: EFacturaDocument = {
   ...standardB2C,
-  id: "QWBE 1008",
+  id: "RFI 1008",
   buyer: unregisteredCompanyBuyer,
 }
 
@@ -194,7 +194,7 @@ export const saleToUnregisteredCompany: EFacturaDocument = {
  * zero percent, legal reference as BT-120 text. */
 export const article310AsExempt: EFacturaDocument = {
   ...base,
-  id: "QWBE 1004",
+  id: "RFI 1004",
   seller: unregisteredSeller,
   buyer: companyBuyer,
   lines: [line("1", "Servicii de consultanta", "5.0000", "HUR", "120.00", "600.00", "E", "0.00")],
@@ -212,7 +212,7 @@ export const article310AsExempt: EFacturaDocument = {
  * document that is not subject to VAT. */
 export const article310AsNotSubject: EFacturaDocument = {
   ...article310AsExempt,
-  id: "QWBE 1005",
+  id: "RFI 1005",
   notes: [ARTICLE_310],
   buyer: companyBuyerWithoutVatId,
   lines: [line("1", "Servicii de consultanta", "5.0000", "HUR", "120.00", "600.00", "O", null)],
@@ -233,9 +233,9 @@ const composedNotes = (own: string): ReadonlyArray<string> => [ARTICLE_310, own]
 export const fullCreditNote: EFacturaDocument = {
   ...standardB2B,
   kind: "credit_note",
-  id: "QWBE-STORNO 7",
+  id: "RFI-STORNO 7",
   dueDate: null,
-  notes: ["Stornare integrala a facturii QWBE 1001"],
+  notes: ["Stornare integrala a facturii RFI 1001"],
   precedingInvoice: { id: standardB2B.id, issueDate: standardB2B.issueDate },
 }
 
@@ -249,7 +249,7 @@ export interface EFacturaFixture {
 export const article310CreditNote: EFacturaDocument = {
   ...article310AsNotSubject,
   kind: "credit_note",
-  id: "QWBE-STORNO 9",
+  id: "RFI-STORNO 9",
   dueDate: null,
   notes: composedNotes("Stornare integrala: serviciile nu au fost livrate"),
   precedingInvoice: { id: article310AsNotSubject.id, issueDate: article310AsNotSubject.issueDate },
@@ -260,7 +260,7 @@ export const article310CreditNote: EFacturaDocument = {
  * document rather than as an afterthought to a delivery note. */
 export const article310WithRemarks: EFacturaDocument = {
   ...article310AsNotSubject,
-  id: "QWBE 1010",
+  id: "RFI 1010",
   notes: composedNotes("Livrare in transe conform contractului 42/2026. Garantie 24 de luni."),
 }
 

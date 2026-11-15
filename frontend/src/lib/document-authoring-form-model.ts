@@ -1,6 +1,9 @@
 import type { DraftLineInput, UnitOfMeasure } from "./draft-models.ts"
 import type { BuyerSnapshot } from "./document-snapshot.ts"
 
+/** An authored document is always in lei (`AuthoringDocumentInput.currency`). */
+export const AUTHORING_CURRENCY = "RON"
+
 /**
  * The shape an authoring screen edits, for any document that has a buyer, a
  * series, dates and lines.

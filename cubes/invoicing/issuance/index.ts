@@ -16,10 +16,7 @@ export const cube = {
     summary: "Numbered issuance of invoices and proformas with immutable snapshots and idempotent replay",
     required: true,
     tables: [],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export type IssuanceOperations = InvoiceOperations & ProformaOperations & ProformaConversionOperations & DocumentSeriesOperations

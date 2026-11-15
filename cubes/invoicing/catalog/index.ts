@@ -7,10 +7,7 @@ export const cube = {
     summary: "Saved products and services of an organization and the unit-of-measure list they are chosen from",
     required: true,
     tables: ["product_presets"],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { createCatalogOperations } from "./application/catalog.ts"

@@ -21,11 +21,11 @@ const spvChoices: ReadonlyArray<{ readonly value: RegisterSpvFilter; readonly la
 /** `eFactura`: the SPV filter exists only with the e-Factura plugin on. */
 export const RegisterFilters = ({ filters, eFactura }: { readonly filters: RegisterFiltersModel; readonly eFactura: boolean }) => {
   const searchId = useId()
-  return <div className="filters">
+  return <div className="flex flex-wrap gap-x-6 gap-y-4 items-end mb-[1.2rem]">
     <RegisterPeriodFilter filters={filters} />
     <ChoiceGroup legend="Tip document" choices={kinds} value={filters.kind} onChange={filters.setKind} />
     {eFactura ? <ChoiceGroup legend="Stare SPV" choices={spvChoices} value={filters.spv} onChange={filters.setSpv} /> : null}
-    <div className="filter-search">
+    <div className="grid gap-[.42rem] min-w-[min(20rem,100%)]">
       <label htmlFor={searchId}>Caută după număr sau client</label>
       <Input
         id={searchId}

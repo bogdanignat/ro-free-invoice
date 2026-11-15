@@ -23,7 +23,7 @@ const saved = {
   organizationId: "org-1", name: input.name, fiscalIdentifier: input.fiscalIdentifier, address, legalForm: "srl",
   tradeRegistryNumber: input.tradeRegistryNumber, iban: input.iban, bankName: input.bankName,
   socialCapital: "200.00", defaultCurrency: "RON", defaultPaymentTermDays: 15,
-  vatConfigurations: [], currentVat: null, branding: null,
+  vatConfigurations: [], currentVat: null, vatPeriods: [], branding: null,
 }
 
 const answering = (answer: () => unknown) => {

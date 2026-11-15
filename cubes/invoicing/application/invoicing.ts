@@ -13,6 +13,7 @@ import { createDraftOperations, type DraftOperations } from "../drafts/index.ts"
 import { createIssuanceOperations, type IssuanceOperations, type ProformaTransaction } from "../issuance/index.ts"
 import { createIssuerOperations, type BrandingNormalizer, type IssuerOperations, type IssuerTransaction, type VatRegistry } from "../issuer/index.ts"
 import type { InvoicingTransaction } from "./ports.ts"
+import { createReferenceDataOperations, type ReferenceDataOperations } from "./reference-data.ts"
 
 export interface InvoicingDependencies {
   readonly context: RequestContextProvider
@@ -27,7 +28,7 @@ export interface InvoicingDependencies {
   readonly cubeIdentity: string
 }
 
-export interface InvoicingService extends IssuerOperations, CustomerOperations, CatalogOperations, DraftOperations, IssuanceOperations, CorrectionOperations, InvoiceRegisterOperations, RevenueReportOperations {}
+export interface InvoicingService extends IssuerOperations, CustomerOperations, CatalogOperations, DraftOperations, IssuanceOperations, CorrectionOperations, InvoiceRegisterOperations, RevenueReportOperations, ReferenceDataOperations {}
 
 // Composition root: every component receives the same dependencies, permission names and
 // authorization check, and the service is the union of their operations.
@@ -48,6 +49,7 @@ export const createInvoicingService = (dependencies: InvoicingDependencies): Inv
     ...createCorrectionOperations(dependencies, permissions, authorized),
     ...createInvoiceRegisterOperations(dependencies, permissions, authorized),
     ...createRevenueReportOperations(dependencies, permissions, authorized),
+    ...createReferenceDataOperations(permissions, authorized),
   }
 }
 

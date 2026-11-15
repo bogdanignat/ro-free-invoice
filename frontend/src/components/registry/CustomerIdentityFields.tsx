@@ -1,10 +1,11 @@
+import { Checkbox } from "../ui/Checkbox.tsx"
 import { CompanyNameField } from "../company-lookup/CompanyNameField.tsx"
 import { CompanyProposalCard } from "../company-lookup/CompanyProposalCard.tsx"
 import { Field } from "../ui/Field.tsx"
 import { FieldIssue } from "./FieldIssue.tsx"
 import { Input } from "../ui/Input.tsx"
 import { useCompanyLookup } from "../../hooks/use-company-lookup.ts"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { customerFill } from "../../lib/company-proposal-fill.ts"
 import { identifierLabel } from "../../lib/document-authoring-transitions.ts"
 import { CUSTOMER_FORM, type RegistryFieldAria } from "../../lib/registry-fields.ts"
@@ -30,12 +31,13 @@ interface CustomerIdentityFieldsProps {
  * another party type drops whatever was being looked up.
  */
 export const CustomerIdentityFields = (props: CustomerIdentityFieldsProps) => {
+  const limits = useTextLimits()
   const { form, disabled, issue, aria } = props
   const company = form.partyType === "company"
   const { lookup, nameRef } = useCompanyLookup(`${props.editingId ?? "new"}:${form.partyType}`, company)
   return <>
     <CompanyNameField lookup={lookup} inputRef={nameRef} label={company ? "Denumire" : "Nume complet"} value={form.name} disabled={disabled}
-      maxLength={CIUS_TEXT_LIMITS.partyName} controlAria={aria("name")} onChange={(name) => { props.onChange({ name }) }}>
+      maxLength={limits?.partyName} controlAria={aria("name")} onChange={(name) => { props.onChange({ name }) }}>
       <FieldIssue issue={issue} field="name" form={CUSTOMER_FORM} />
     </CompanyNameField>
     <Field label={identifierLabel(form.partyType)} optional={!company} required={company}>
@@ -50,8 +52,8 @@ export const CustomerIdentityFields = (props: CustomerIdentityFieldsProps) => {
     <CompanyProposalCard lookup={lookup} vat="suggested" disabled={disabled}
       onApply={(proposal) => { props.onChange(customerFill(form, proposal)) }} />
     {company
-      ? <label className="checkbox-label"><input type="checkbox" checked={form.vatRegistered} disabled={disabled}
-        onChange={(event) => { props.onChange({ vatRegistered: event.currentTarget.checked }) }} /> Client înregistrat în scopuri de TVA</label>
+      ? <Checkbox checked={form.vatRegistered} disabled={disabled}
+        onChange={(event) => { props.onChange({ vatRegistered: event.currentTarget.checked }) }}> Client înregistrat în scopuri de TVA</Checkbox>
       : null}
   </>
 }

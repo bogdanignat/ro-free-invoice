@@ -1,7 +1,8 @@
 import { Effect } from "effect"
 
 import { checked, copyParty, missing, type Authorize } from "../../application/support.ts"
-import { ValidationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { validationFailure, type InvoicingFailure } from "../../contracts/failures.ts"
+import { brandingEmpty } from "../../issues/index.ts"
 import type { InvoicingPermissions } from "../../contracts/permissions.ts"
 import type { VatRegistryUnavailable } from "../contracts/fiscal-guard.ts"
 import type { ConfigureIssuerInput } from "../domain/issuer.ts"
@@ -43,7 +44,7 @@ export const createIssuerOperations = (
       defaultCurrency: input.defaultCurrency, defaultPaymentTermDays: input.defaultPaymentTermDays, branding: null }
     yield* checked(() => { validateIssuerProfile(profile) })
     if (input.branding !== null && text === null && rawImage === null) {
-      return yield* Effect.fail(new ValidationFailure({ issues: ["branding must contain text, image, or both"] }))
+      return yield* Effect.fail(validationFailure([brandingEmpty()]))
     }
     const image = rawImage === null ? null : yield* dependencies.branding.normalize(rawImage)
     if (image !== null) yield* checked(() => { validateCanonicalImage(image) })

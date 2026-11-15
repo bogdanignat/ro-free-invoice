@@ -1,5 +1,3 @@
-import { efacturaPermissions } from "../connection/index.ts"
-
 /**
  * Invoices received through the SPV, fetched only when a user asks: the fetch
  * request and its window, the coverage rule, and what is kept of each archive
@@ -17,10 +15,7 @@ export const cube = {
       "efactura_received_fetches", "efactura_received_messages", "efactura_received_archives", "efactura_received_invoices",
       "efactura_received_unreadable", "efactura_received_coverage",
     ],
-    requiresAuth: true,
-    permissions: [{ name: efacturaPermissions("efactura").receive, roles: ["admin"] }],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { receivedMigrations, type ReceivedMigration } from "./contracts/migrations.ts"

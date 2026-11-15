@@ -29,7 +29,7 @@ const buyer: EFacturaParty = {
 /** A standard-rated single-line invoice: 100.00 net, 21% VAT, 121.00 payable. */
 const invoice = (overrides: Partial<EFacturaDocument> = {}): EFacturaDocument => ({
   kind: "invoice",
-  id: "QWBE 42",
+  id: "RFI 42",
   issueDate: "2026-09-17",
   dueDate: "2026-10-17",
   actualDeliveryDate: null,
@@ -78,7 +78,7 @@ void test("accepts the supported document shapes", () => {
   validateEFacturaDocument(invoice())
   validateEFacturaDocument(exemptInvoice())
   validateEFacturaDocument(invoice({
-    kind: "credit_note", dueDate: null, precedingInvoice: { id: "QWBE 41", issueDate: "2026-09-01" },
+    kind: "credit_note", dueDate: null, precedingInvoice: { id: "RFI 41", issueDate: "2026-09-01" },
   }))
 })
 
@@ -230,9 +230,9 @@ void test("rounds BR-CO-17 half up: just below, at and just above the half cent"
 
 void test("holds a credit note to its own shape: a reference, and no due date", () => {
   rejects(invoice({ kind: "credit_note", dueDate: null, precedingInvoice: null }), /BG-3/u)
-  rejects(invoice({ kind: "credit_note", dueDate: "2026-10-17", precedingInvoice: { id: "QWBE 41", issueDate: "2026-09-01" } }), /BT-9/u)
+  rejects(invoice({ kind: "credit_note", dueDate: "2026-10-17", precedingInvoice: { id: "RFI 41", issueDate: "2026-09-01" } }), /BT-9/u)
   rejects(invoice({ kind: "credit_note", dueDate: null, precedingInvoice: { id: " ", issueDate: "2026-09-01" } }), /BT-25/u)
-  rejects(invoice({ kind: "credit_note", dueDate: null, precedingInvoice: { id: "QWBE 41", issueDate: "2026-02-30" } }), /BT-26/u)
+  rejects(invoice({ kind: "credit_note", dueDate: null, precedingInvoice: { id: "RFI 41", issueDate: "2026-02-30" } }), /BT-26/u)
 })
 
 void test("refuses dates that look right but are not real days", () => {
@@ -245,7 +245,7 @@ void test("states a delivery date only when it is a real day before the issue da
   assert.doesNotThrow(() => { validateEFacturaDocument(invoice({ actualDeliveryDate: "2026-09-16" })) })
   for (const date of ["2026-09-17", "2026-09-18", "2026-02-30", ""]) rejects(invoice({ actualDeliveryDate: date }), /BT-72/u)
   rejects(invoice({ kind: "credit_note", dueDate: null, actualDeliveryDate: "2026-09-16",
-    precedingInvoice: { id: "QWBE 41", issueDate: "2026-09-01" } }), /BT-72/u)
+    precedingInvoice: { id: "RFI 41", issueDate: "2026-09-01" } }), /BT-72/u)
 })
 
 void test("refuses a currency other than RON, because nothing converts it yet", () => {
@@ -539,8 +539,8 @@ void test("holds BT-22 to its own occurrence rules", () => {
 
 void test("refuses a document number that names no number, before ANAF does", () => {
   // BR-RO-010 runs ahead of every fiscal rule in the official validator.
-  rejects(invoice({ id: "QWBE-FARA-NUMAR" }), /id must contain at least one digit \(BR-RO-010\)/u)
-  rejects(invoice({ id: `QWBE ${"9".repeat(200)}` }), /id exceeds 200 characters/u)
+  rejects(invoice({ id: "RFI-FARA-NUMAR" }), /id must contain at least one digit \(BR-RO-010\)/u)
+  rejects(invoice({ id: `RFI ${"9".repeat(200)}` }), /id exceeds 200 characters/u)
 })
 
 void test("refuses a stated but blank article code and a GTIN that is not 8, 12, 13 or 14 digits", () => {

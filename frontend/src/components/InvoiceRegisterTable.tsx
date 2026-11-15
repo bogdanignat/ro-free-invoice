@@ -1,5 +1,14 @@
 import { AppLink } from "./ui/AppLink.tsx"
+import { Badge } from "./ui/Badge.tsx"
+import { Table, Td, Th } from "./ui/Table.tsx"
 import type { InvoiceRegisterPresentationRow } from "../lib/invoice-register-projection.ts"
+import type { SpvUrgency } from "../lib/spv-status.ts"
+
+const DEADLINE_CLASS: Readonly<Record<SpvUrgency, string>> = {
+  ok: "text-invoice-muted",
+  imminent: "font-bold text-invoice-danger-text",
+  overdue: "font-bold text-invoice-danger-text",
+}
 
 interface InvoiceRegisterTableProps {
   readonly rows: ReadonlyArray<InvoiceRegisterPresentationRow>
@@ -12,30 +21,28 @@ interface InvoiceRegisterTableProps {
  * stacked card without a second markup path.
  */
 export const InvoiceRegisterTable = ({ rows, eFactura }: InvoiceRegisterTableProps) =>
-  <div className="table-wrap">
-    <table>
-      <caption className="sr-only">Registru de facturi și storno</caption>
-      <thead>
-        <tr><th>Număr</th><th>Client</th><th>Emisă</th><th>Scadență</th><th>Total</th>{eFactura ? <th>e-Factura</th> : null}</tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => <tr key={row.key}>
-          <td data-label="Număr">
-            <AppLink href={row.documentHref}><strong>{row.number}</strong></AppLink>
-            {row.kindLabel === null ? null : <small className="badge storno">{row.kindLabel}</small>}
-            {row.originalInvoice === null
-              ? null
-              : <small><AppLink href={row.originalInvoice.href}>{row.originalInvoice.label}</AppLink></small>}
-          </td>
-          <td data-label="Client">{row.customerName}</td>
-          <td data-label="Emisă">{row.issueDate}</td>
-          <td data-label="Scadență">{row.dueDate}</td>
-          <td data-label="Total" className="numeric">{row.total}</td>
-          {eFactura ? <td data-label="e-Factura">
-            <span className={row.statusClass}>{row.status}</span>
-            {row.deadline === null ? null : <small className={row.deadline.className}>{row.deadline.text}</small>}
-          </td> : null}
-        </tr>)}
-      </tbody>
-    </table>
-  </div>
+  <Table>
+    <caption className="sr-only">Registru de facturi și storno</caption>
+    <thead>
+      <tr><Th>Număr</Th><Th>Client</Th><Th>Emisă</Th><Th>Scadență</Th><Th>Total</Th>{eFactura ? <Th>e-Factura</Th> : null}</tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => <tr key={row.key}>
+        <Td label="Număr">
+          <AppLink href={row.documentHref}><strong>{row.number}</strong></AppLink>
+          {row.kindLabel === null ? null : <Badge tone="storno">{row.kindLabel}</Badge>}
+          {row.originalInvoice === null
+            ? null
+            : <small><AppLink href={row.originalInvoice.href}>{row.originalInvoice.label}</AppLink></small>}
+        </Td>
+        <Td label="Client">{row.customerName}</Td>
+        <Td label="Emisă">{row.issueDate}</Td>
+        <Td label="Scadență">{row.dueDate}</Td>
+        <Td label="Total" numeric>{row.total}</Td>
+        {eFactura ? <Td label="e-Factura">
+          <Badge tone={row.statusTone}>{row.status}</Badge>
+          {row.deadline === null ? null : <small className={DEADLINE_CLASS[row.deadline.urgency]}>{row.deadline.text}</small>}
+        </Td> : null}
+      </tr>)}
+    </tbody>
+  </Table>

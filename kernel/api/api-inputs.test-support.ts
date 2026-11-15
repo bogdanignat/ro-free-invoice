@@ -1,7 +1,11 @@
 import { Either, ParseResult, Schema } from "effect"
 
 import {
+  invalidInput,
+  paginationRepeated,
+  sourceFilterIncomplete,
   ValidationFailure,
+  validationFailure,
   type AddDraftLineInput,
   type AuthoringDocumentInput,
   type AuthoringProformaInput,
@@ -20,9 +24,12 @@ import * as S from "./http-schemas.ts"
 const decode = <A, I>(schema: Schema.Schema<A, I>, value: unknown): A => {
   const result = Schema.decodeUnknownEither(schema, { errors: "all" })(value)
   if (Either.isRight(result)) return result.right
-  const issues = ParseResult.ArrayFormatter.formatErrorSync(result.left).map(({ path, message }) =>
-    path.length === 0 ? message : `${path.join(".")}: ${message}`)
-  throw new ValidationFailure({ issues })
+  // Like api-routing.ts: Effect's text in `issues`, the coded field in `details`.
+  const errors = ParseResult.ArrayFormatter.formatErrorSync(result.left)
+  throw new ValidationFailure({
+    issues: errors.map(({ path, message }) => path.length === 0 ? message : `${path.join(".")}: ${message}`),
+    details: errors.map(({ path }) => invalidInput(path.join("."))),
+  })
 }
 
 export const issuerInput = (value: unknown): ConfigureIssuerInput => decode(S.IssuerInput, value)
@@ -55,14 +62,14 @@ export const authoringProformaInput = (value: unknown): AuthoringProformaInput =
 export const pageRequest = (params: URLSearchParams): PageRequest | undefined => {
   // URLSearchParams multiplicity is transport-level; value rules belong to Schema.
   if (params.getAll("limit").length > 1 || params.getAll("cursor").length > 1) {
-    throw new ValidationFailure({ issues: ["limit and cursor must be supplied at most once"] })
+    throw validationFailure([paginationRepeated()])
   }
   const page = decode(S.PageQuery, Object.fromEntries(params))
   return page.limit === undefined && page.cursor === undefined ? undefined : page
 }
 export const sourceFilter = (params: URLSearchParams): DocumentSource | undefined => {
   if (["sourceApp", "sourceKind", "sourceId"].some((key) => params.getAll(key).length > 1)) {
-    throw new ValidationFailure({ issues: ["sourceApp, sourceKind, and sourceId must be supplied exactly once and together"] })
+    throw validationFailure([sourceFilterIncomplete()])
   }
   const source = decode(S.SourceFilter, Object.fromEntries(params))
   return source.sourceApp === undefined ? undefined : { app: source.sourceApp, kind: source.sourceKind, id: source.sourceId }

@@ -1,9 +1,13 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
+import { ButtonRow } from "../ui/ButtonRow.tsx"
+import { Card } from "../ui/Card.tsx"
 import { UnitOfMeasureOptions } from "../UnitOfMeasureOptions.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
 import { Field } from "../ui/Field.tsx"
+import { FormGrid } from "../ui/FormGrid.tsx"
 import { Input } from "../ui/Input.tsx"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
+import { useTextLimits } from "../../hooks/use-reference-data.ts"
 import { Select } from "../ui/Select.tsx"
 import { FieldIssue } from "./FieldIssue.tsx"
 import { useEditorHeadingFocus } from "../../hooks/use-editor-heading-focus.ts"
@@ -32,19 +36,18 @@ interface ProductPresetEditorSectionProps {
 
 /** The product editor: one controlled form, and the refusal the model named. */
 export const ProductPresetEditorSection = (props: ProductPresetEditorSectionProps) => {
+  const limits = useTextLimits()
   const { editingId, form, issue, pending } = props
   const headingRef = useEditorHeadingFocus(editingId ?? "new")
   useRefusedFieldFocus(PRODUCT_FORM, issue?.field)
   const aria = registryFieldAria(PRODUCT_FORM, issue?.field)
   const refusal = (field: ProductPresetField) => <FieldIssue issue={issue} field={field} form={PRODUCT_FORM} />
-  return <section className="card">
-    <div className="section-heading"><div>
-      <h2 ref={headingRef} tabIndex={-1}>{editingId === undefined ? "Produs nou" : "Editezi produsul"}</h2>
-      <p>Prețul se scrie fără TVA, cu maximum două zecimale.</p>
-    </div></div>
+  return <Card>
+    <SectionHeading titleRef={headingRef} title={editingId === undefined ? "Produs nou" : "Editezi produsul"}
+      description="Prețul se scrie fără TVA, cu maximum două zecimale." />
     {props.error === null || props.error === undefined ? null : <ErrorAlert error={props.error} />}
-    <form className="authoring-section" onSubmit={(event) => { event.preventDefault(); props.onSubmit() }}>
-      <div className="form-grid">
+    <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); props.onSubmit() }}>
+      <FormGrid>
         <Field label="Cod articol" required>
           <Input required disabled={pending} value={form.code} maxLength={50} {...aria("code")}
             onChange={(event) => { props.onChange({ code: event.currentTarget.value }) }} />
@@ -56,8 +59,8 @@ export const ProductPresetEditorSection = (props: ProductPresetEditorSectionProp
             {Object.entries(productKindLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </Select>
         </Field>
-        <Field label="Descriere" required className="span-two">
-          <Input required disabled={pending} value={form.description} maxLength={CIUS_TEXT_LIMITS.lineDescription} {...aria("description")}
+        <Field label="Descriere" required className="col-span-full">
+          <Input required disabled={pending} value={form.description} maxLength={limits?.lineDescription} {...aria("description")}
             onChange={(event) => { props.onChange({ description: event.currentTarget.value }) }} />
           {refusal("description")}
         </Field>
@@ -82,7 +85,7 @@ export const ProductPresetEditorSection = (props: ProductPresetEditorSectionProp
             onChange={(event) => { props.onChange({ barcode: event.currentTarget.value }) }} />
           {refusal("barcode")}
         </Field>
-        <Field label="Cotă TVA preferată" className="span-two">
+        <Field label="Cotă TVA preferată" className="col-span-full">
           <Select disabled={pending} value={form.preferredVatRateCode} {...aria("preferredVatRateCode")}
             onChange={(event) => { props.onChange({ preferredVatRateCode: event.currentTarget.value }) }}>
             {props.vatOptions.map((option) =>
@@ -90,11 +93,11 @@ export const ProductPresetEditorSection = (props: ProductPresetEditorSectionProp
           </Select>
           {refusal("preferredVatRateCode")}
         </Field>
-      </div>
-      <div className="button-row">
+      </FormGrid>
+      <ButtonRow>
         <Button type="submit" disabled={pending}>{pending ? "Se salvează…" : "Salvează produsul"}</Button>
-        <Button className="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
-      </div>
+        <Button variant="secondary" disabled={pending} onClick={props.onClose}>Renunță</Button>
+      </ButtonRow>
     </form>
-  </section>
+  </Card>
 }

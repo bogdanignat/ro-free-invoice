@@ -5,6 +5,7 @@ import {
   projectProforma, projectProformaRegister, projectProformaRegisterRow, proformaDetailHref, proformaStatus,
 } from "./proforma-projection.ts"
 import type { Proforma } from "./proforma-models.ts"
+import { COUNTIES } from "./romanian-counties.test-support.ts"
 
 const proforma: Proforma = {
   id: "prf-1",
@@ -18,7 +19,7 @@ const proforma: Proforma = {
   convertedInvoiceId: null,
   convertedDraftId: null,
   issuer: {
-    name: "Qwbe Software SRL",
+    name: "RFI Software SRL",
     fiscalIdentifier: "12345674",
     address: { countryCode: "RO", city: "București", street: "Str. Lungă 1", county: "RO-B", sector: 3 },
     legalForm: "srl",
@@ -108,7 +109,7 @@ void test("a register projects every row and keeps their order", () => {
 })
 
 void test("the document is projected through the shared body with a head of its own", () => {
-  const view = projectProforma(proforma)
+  const view = projectProforma(proforma, COUNTIES)
 
   assert.equal(view.heading, "PRO 7")
   assert.deepEqual(view.facts, [
@@ -129,7 +130,7 @@ void test("the document is projected through the shared body with a head of its 
 })
 
 void test("the document head reports the conversion, never an e-Factura status", () => {
-  const view = projectProforma({ ...proforma, convertedInvoiceId: "inv-2", notes: null })
+  const view = projectProforma({ ...proforma, convertedInvoiceId: "inv-2", notes: null }, COUNTIES)
 
   assert.deepEqual(view.facts.at(-1), { label: "Status", value: "Facturată" })
   assert.equal(view.facts.some((fact) => fact.label === "e-Factura"), false)
@@ -141,6 +142,6 @@ void test("a line shows the article code and the EAN it was issued with, each on
   assert.ok(line !== undefined)
   const view = projectProforma({ ...proforma, lines: [
     { ...line, itemCode: "SRB-M6", barcode: "00012345600012" }, { ...line, id: "line-2", itemCode: "SRV" }, { ...line, id: "line-3", barcode: "96385074" },
-  ] })
+  ] }, COUNTIES)
   assert.deepEqual(view.lines.map((row) => row.identifiers), ["Cod: SRB-M6 · EAN: 00012345600012", "Cod: SRV", "EAN: 96385074"])
 })

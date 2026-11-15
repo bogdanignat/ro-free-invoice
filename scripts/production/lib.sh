@@ -80,10 +80,7 @@ env_keep() {
 # shellcheck disable=SC2034
 load_env() {
   [[ -f "$ENV_FILE" && ! -L "$ENV_FILE" ]] || die "no regular file at $ENV_FILE (copy .env.example first)"
-  # A stale QWBE_* key is refused here, before any docker call; the kernel refuses it too.
-  local key stale
-  stale="$(sed -nE 's/^[[:space:]]*(export[[:space:]]+)?(QWBE_[A-Za-z0-9_]*).*/\2/p' "$ENV_FILE" | sort -u | paste -sd, -)"
-  [[ -z "$stale" ]] || die "$stale in $ENV_FILE: the QWBE_* variables were renamed to RFI_*; rename or remove them"
+  local key
   while read -r key; do
     case "$key" in PATH | HOME | USER | SHELL | TMPDIR) ;; *) unset "$key" ;; esac
   done < <(sed -nE 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' "$ENV_FILE")

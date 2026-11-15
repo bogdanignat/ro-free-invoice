@@ -15,14 +15,13 @@ const withStatus = <A, I, R>(status: number, schema: Schema.Schema<A, I, R>) =>
   schema.annotations(HttpApiSchema.annotations({ status }))
 const tagged = <const Tag extends string>(status: number, tag: Tag) =>
   withStatus(status, Schema.Struct({ error: Schema.Literal(tag) }))
-// `details` is aligned 1:1 with `issues`; `unclassified` marks a refusal not yet coded. Optional here only
-// because the request-decoding answers (api-routing.ts) still send `issues` alone.
+// `details` is aligned 1:1 with `issues`: the code and field the browser says in Romanian.
 const IssueDetailError = Schema.Struct({
   code: Schema.String, field: optionalString,
   params: optional(Schema.Record({ key: Schema.String, value: Schema.Union(Schema.String, Schema.Number) })),
 })
 export const ValidationError = withStatus(400,
-  Schema.Struct({ error: Schema.Literal("ValidationFailure"), issues: Schema.Array(Schema.String), details: optional(Schema.Array(IssueDetailError)) }))
+  Schema.Struct({ error: Schema.Literal("ValidationFailure"), issues: Schema.Array(Schema.String), details: Schema.Array(IssueDetailError) }))
 export const InvalidJsonError = tagged(400, "invalid_json")
 export const InvalidCredentialsRequestError = tagged(400, "invalid_credentials")
 export const AuthenticationRequiredError = tagged(401, "AuthenticationRequired")

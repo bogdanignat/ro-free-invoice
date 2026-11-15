@@ -4,6 +4,7 @@ import { IssuerSettingsCard } from "../components/settings/IssuerSettingsCard.ts
 import { Page } from "../components/Page.tsx"
 import { PrivateScreen } from "../components/PrivateScreen.tsx"
 import { SettingsHelpDialog } from "../components/settings/SettingsHelpDialog.tsx"
+import { buttonClass } from "../components/ui/Button.tsx"
 import { useAuthenticatedShell } from "../hooks/use-authenticated-shell.ts"
 import { useDocumentSeries } from "../hooks/use-document-series.ts"
 import { useIssuerSettings } from "../hooks/use-issuer-settings.ts"
@@ -23,7 +24,7 @@ export const SettingsView = () => {
   const { load } = issuer
   return <PrivateScreen shell={shell}>
     <Page title="Date firmă" eyebrow="Configurare emitent" actions={<>
-      <a className="button secondary" href="/api" target="_blank" rel="noopener noreferrer">Documentație API<span className="sr-only"> (se deschide într-o fereastră nouă)</span></a>
+      <a className={buttonClass({ variant: "secondary" })} href="/api" target="_blank" rel="noopener noreferrer">Documentație API<span className="sr-only"> (se deschide într-o fereastră nouă)</span></a>
       <SettingsHelpDialog />
     </>}>
       {shell.error === undefined ? null : <ErrorAlert error={shell.error} />}

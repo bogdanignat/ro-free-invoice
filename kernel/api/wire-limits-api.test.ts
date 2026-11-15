@@ -35,7 +35,7 @@ const fixture = async (label: string) => {
     socialCapital: "1000.00", defaultCurrency: "RON", defaultPaymentTermDays: 15,
     vatChange: { registered: true, effectiveFrom: "2025-08-01" }, branding: null,
   })).status, 200)
-  assert.equal((await call("POST", "/api/document-series", { documentType: "invoice", series: "QWBE" })).status, 200)
+  assert.equal((await call("POST", "/api/document-series", { documentType: "invoice", series: "RFI" })).status, 200)
   return { call, close: () => rig.close() }
 }
 
@@ -54,7 +54,7 @@ void test("texts at the domain limit go in and read back, and the name cursor pa
     assert.deepEqual(read.toSorted(), names)
 
     const source = { app: "crm", kind: "contract", id: sourceId }
-    const draft = await value.call("POST", "/api/drafts", { customer: customerNamed(name), source, series: "QWBE", issueDate: "2026-09-05" }, "source-255")
+    const draft = await value.call("POST", "/api/drafts", { customer: customerNamed(name), source, series: "RFI", issueDate: "2026-09-05" }, "source-255")
     assert.equal(draft.status, 200)
     const found = await value.call("GET", `/api/drafts?sourceApp=crm&sourceKind=contract&sourceId=${sourceId}`)
     assert.deepEqual((found.body as { items: ReadonlyArray<{ source: unknown }> }).items.map((item) => item.source), [source])
@@ -65,7 +65,7 @@ void test("a draft grown past 500 lines one at a time still reads back, as does 
   const value = await fixture("lines")
   try {
     const created = await value.call("POST", "/api/drafts", {
-      customer: customerNamed("Client SRL"), series: "QWBE", issueDate: "2026-09-05", dueDate: "2026-09-20", lines: Array.from({ length: 500 }, () => line),
+      customer: customerNamed("Client SRL"), series: "RFI", issueDate: "2026-09-05", dueDate: "2026-09-20", lines: Array.from({ length: 500 }, () => line),
     }, "five-hundred")
     assert.equal(created.status, 200)
     const id = (created.body as { id: string }).id
@@ -83,7 +83,7 @@ void test("a draft grown past 500 lines one at a time still reads back, as does 
 void test("a request past a wire ceiling is a 400 that never quotes the refused value", async () => {
   const value = await fixture("refused")
   try {
-    const draft = { customer: customerNamed("Client SRL"), series: "QWBE", issueDate: "2026-09-05" }
+    const draft = { customer: customerNamed("Client SRL"), series: "RFI", issueDate: "2026-09-05" }
     const refusals = [
       [{ ...draft, customer: customerNamed("Ion Popescu ".repeat(84)) }, "must be at most 1000 characters"],
       [{ ...draft, lines: Array.from({ length: 501 }, () => line) }, "must have at most 500 lines"],

@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query"
 
 import { useAuth } from "./auth-context.ts"
 import { useAuthoringPagedList } from "./use-authoring-paged-list.ts"
+import { useConfirm } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
+import { useReferenceData } from "./use-reference-data.ts"
 import { useRegistryEditor, type RegistryEditorIssue } from "./use-registry-editor.ts"
 import { useRegistryWrites } from "./use-registry-writes.ts"
 import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
@@ -69,8 +71,10 @@ export const useProductPresets = (): ProductCatalogueModel => {
   const vat = useQuery({
     queryKey: ["vat-regimes"], enabled, queryFn: ({ signal }) => clients.reference.getVatCatalogue(signal),
   })
+  const reference = useReferenceData()
   const writes = useRegistryWrites(["product-presets"], productPresetNotice)
   const editor = useRegistryEditor<ProductPresetForm, ProductPresetField>()
+  const confirm = useConfirm()
 
   const unitList = units.data ?? []
   // The server checks a rate against the date in Bucharest; so does this, or a
@@ -80,11 +84,13 @@ export const useProductPresets = (): ProductCatalogueModel => {
     ["presets", { data: list.items, isPending: list.isPending, error: list.error }],
     ["units", { data: units.data, isPending: units.isPending, error: units.error }],
     ["vat", { data: vat.data, isPending: vat.isPending, error: vat.error }],
+    ["reference", { data: reference.data, isPending: reference.isPending, error: reference.error }],
   ])
   const refetch: Readonly<Record<string, () => void>> = {
     presets: () => { list.refetch() },
     units: () => { void units.refetch() },
     vat: () => { void vat.refetch() },
+    reference: () => { void reference.refetch() },
   }
   const editing = editor.editing
   const submit = (): void => {
@@ -102,6 +108,14 @@ export const useProductPresets = (): ProductCatalogueModel => {
         ? clients.registry.createProductPreset(csrfToken, payload)
         : clients.registry.updateProductPreset(csrfToken, id, payload),
       onDone: editor.close,
+    })
+  }
+  const remove = async (preset: ProductPreset): Promise<void> => {
+    if (!await confirm(productPresetDeleteConfirm(preset.description), { confirmLabel: "Șterge", tone: "danger" })) return
+    writes.submit({
+      write: "deleted",
+      run: (csrfToken) => clients.registry.deleteProductPreset(csrfToken, preset.id),
+      onDone: () => { editor.closeRecord(preset.id) },
     })
   }
   return {
@@ -128,13 +142,6 @@ export const useProductPresets = (): ProductCatalogueModel => {
     close: editor.close,
     change: editor.change,
     submit,
-    remove: (preset) => {
-      if (!window.confirm(productPresetDeleteConfirm(preset.description))) return
-      writes.submit({
-        write: "deleted",
-        run: (csrfToken) => clients.registry.deleteProductPreset(csrfToken, preset.id),
-        onDone: () => { editor.closeRecord(preset.id) },
-      })
-    },
+    remove: (preset) => { void remove(preset) },
   }
 }

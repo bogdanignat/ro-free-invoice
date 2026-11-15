@@ -1,5 +1,7 @@
 import { useId, useState, type ComponentPropsWithRef, type KeyboardEvent, type ReactNode } from "react"
 
+import { CONTROL } from "./control.ts"
+import { cx } from "./cx.ts"
 import { comboboxInputAttributes, comboboxKey, comboboxOptionAria } from "../../lib/combobox.ts"
 
 type OwnAria = "role" | "aria-autocomplete" | "aria-expanded" | "aria-controls" | "aria-activedescendant"
@@ -46,14 +48,14 @@ export const Combobox = <Option,>(props: ComboboxProps<Option>) => {
 
   return <div className="relative">
     <input {...input} {...comboboxInputAttributes(suggest, listboxId, options.length, active)}
-      className={["control", className].filter(Boolean).join(" ")}
+      className={cx(CONTROL, "min-h-[2.65rem]", className)}
       onKeyDown={keyDown} onBlur={(event) => { onBlur?.(event); onClose() }} />
     {suggest ? <ul id={listboxId} role="listbox" aria-label={listLabel} hidden={options.length === 0}
       className="absolute inset-x-0 top-full z-10 mt-1 max-h-64 list-none overflow-auto rounded-invoice-control border border-invoice-border bg-invoice-surface p-1 shadow-invoice-panel">
       {options.map((option, index) => <li key={optionKey(option)} {...comboboxOptionAria(listboxId, index, active)}
         ref={index === active ? (element) => { element?.scrollIntoView({ block: "nearest" }) } : undefined}
-        className={["cursor-pointer rounded-invoice-control px-3 py-2 text-sm font-semibold text-invoice-ink",
-          index === active ? "bg-invoice-primary-soft" : "hover:bg-invoice-primary-soft"].join(" ")}
+        className={cx("cursor-pointer rounded-invoice-control px-3 py-2 text-sm font-semibold text-invoice-ink",
+          index === active ? "bg-invoice-primary-soft" : "hover:bg-invoice-primary-soft")}
         onMouseDown={(event) => { event.preventDefault() }}
         onClick={() => { onPick(option) }}>
         {optionLabel(option)}

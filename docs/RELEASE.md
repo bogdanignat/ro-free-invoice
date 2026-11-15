@@ -30,10 +30,11 @@ before building the image. `.github/workflows/verify.yaml` runs the same harness
 `main` and before every release: `release.yaml` calls it, and its `build` job has `needs: verify`, so a
 failed verification publishes nothing. The version is strict semver `X.Y.Z` (tag `vX.Y.Z`, or the
 `version` input of a manual dispatch); anything else fails the release. Actions are pinned to a commit
-SHA: updating one means a new SHA, resolved with `git ls-remote <repo-url> refs/tags/<tag>`. The size gate keeps the existing
-6,000-character file cap and the 40,000-character / 15-file cube caps; it also checks
-production source files under `kernel/` and `frontend/src/` without treating these
-trees as a cube. `bin/` and root tooling/config files are outside that file-only extension.
+SHA: updating one means a new SHA, resolved with `git ls-remote <repo-url> refs/tags/<tag>`. The size gate counts code lines
+(comments and blank lines left out): at most 200 per production source file, and 800 code
+lines / 15 files per cube. The file cap covers `kernel/`, `cubes/`, `frontend/src/`, `probes/`
+and `bin/` (`sizeFileRoots`) without treating these trees as cubes; a missing or empty root list
+fails the gate. Root tooling/config files are outside it.
 
 Host/UI refactors must also preserve the HTTP contract and runtime error/idempotency
 mapping, transaction behavior, session lifetime and PDF assets. Verify browser flows
@@ -143,7 +144,7 @@ The commands below are written for a); with b), replace `--profile proxy` by
 `-f compose.loopback.yaml` wherever the stack is started. Setting `COMPOSE_FILE` and
 `COMPOSE_PROFILES` in `.env` (see `.env.example`) makes both unnecessary.
 
-Requirements enforced by the bundle: `read_only: true` with bounded `tmpfs`, named volume `ro-free-invoice-data`, `depends_on: migrate: service_completed_successfully` (and `migrate` on `db-init`), `HEALTHCHECK` on `/health/ready`, secrets from file, three database roles (`app` connects as `qwbe_app`, DML only; `migrate` as `qwbe_owner`; the `postgres` superuser only in `db` and `db-init`), json-file logs rotated at 10 MB x 5 files per service (`x-logging`), no fallback for `PUBLIC_ORIGIN`, `IMAGE_TAG` or the five secret paths, `cap_drop: [ALL]` and `no-new-privileges` on every service (`db` adds back `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID` for its entrypoint, `db-init` `DAC_READ_SEARCH` to read the secret files as root, Caddy `NET_BIND_SERVICE`), Caddy with a read-only root that writes only to `/data`, `/config` and a 16 MB `/tmp` (a `Caddyfile` `log { output file ... }` must write under `/data`, or use stdout), PostgreSQL and Caddy pinned by version and digest in `compose.prod.yaml` itself (only the application image is in `image-digests.txt`), the project network on fixed IPv4 and IPv6 subnets that `RFI_TRUSTED_PROXY` trusts by default, and HSTS (`max-age=31536000`) sent by the application on an `https:` `PUBLIC_ORIGIN`.
+Requirements enforced by the bundle: `read_only: true` with bounded `tmpfs`, named volume `ro-free-invoice-data`, `depends_on: migrate: service_completed_successfully` (and `migrate` on `db-init`), `HEALTHCHECK` on `/health/ready`, secrets from file, three database roles (`app` connects as `rfi_app`, DML only; `migrate` as `rfi_owner`; the `postgres` superuser only in `db` and `db-init`), json-file logs rotated at 10 MB x 5 files per service (`x-logging`), no fallback for `PUBLIC_ORIGIN`, `IMAGE_TAG` or the five secret paths, `cap_drop: [ALL]` and `no-new-privileges` on every service (`db` adds back `CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `SETGID`, `SETUID` for its entrypoint, `db-init` `DAC_READ_SEARCH` to read the secret files as root, Caddy `NET_BIND_SERVICE`), Caddy with a read-only root that writes only to `/data`, `/config` and a 16 MB `/tmp` (a `Caddyfile` `log { output file ... }` must write under `/data`, or use stdout), PostgreSQL and Caddy pinned by version and digest in `compose.prod.yaml` itself (only the application image is in `image-digests.txt`), the project network on fixed IPv4 and IPv6 subnets that `RFI_TRUSTED_PROXY` trusts by default, and HSTS (`max-age=31536000`) sent by the application on an `https:` `PUBLIC_ORIGIN`.
 
 Compose does not move an existing network to other subnets. An installation whose network
 was created before the subnets were fixed (or before they changed in `.env`) needs, once,
@@ -251,7 +252,9 @@ each in its own transaction with its ledger row, and the shipped ones never chan
 (README, "Schema and migrations"). `migrate` refuses a database whose schema its
 history does not explain before writing anything, so `app` does not start on it.
 `doctor --json` is the readiness gate and reports
-`pendingMigrations`, `migrationsReady` and `schemaDrift`. `artifacts` is a dry-run by
+`pendingMigrations`, `migrationsReady` and `schemaDrift`. `doctor --efactura --json` is
+a separate e-Factura health check for monitoring (exit 1 on any entry in `problems`;
+docs/EFACTURA.md, "Submitting to ANAF"); it is not part of readiness. `artifacts` is a dry-run by
 default and now reports both invoices and proformas missing PDFs; use `--apply`
 (plus `--confirm-production` outside development) only to reconcile at most
 `--limit` documents, one successful PDF at a time.
@@ -337,11 +340,11 @@ scripts/production/restore.sh /var/backups/ro-free-invoice/ro-free-invoice-<time
   restore plan, nothing switched, no volume made.
 - `--apply` shows the archive and its time, the source, the target, the image, the
   migrations to apply and the organization, and asks for the archive name. It creates
-  a new database `<RFI_PGDATABASE>_r<time>` owned by `qwbe_owner`, runs `db-init` on
+  a new database `<RFI_PGDATABASE>_r<time>` owned by `rfi_owner`, runs `db-init` on
   it, creates the volume `<RFI_DATA_VOLUME>-r<time>`, restores in `migrate` (as
-  `qwbe_owner`; the restored ledger must equal the manifest), runs `migrate --apply`
+  `rfi_owner`; the restored ledger must equal the manifest), runs `migrate --apply`
   on the target (drift checked before and after), then `doctor` in `app` (as
-  `qwbe_app`); only when that is ready it stops `app`, writes `RFI_PGDATABASE` and
+  `rfi_app`); only when that is ready it stops `app`, writes `RFI_PGDATABASE` and
   `RFI_DATA_VOLUME` to `.env` in one atomic write (the previous copy is in
   `.local/production/`), starts the stack and checks `doctor` on the new database.
 - While a failed deploy's `recovery-required` exists, the restore first checks that
@@ -367,7 +370,7 @@ scripts/production/restore.sh /var/backups/ro-free-invoice/ro-free-invoice-<time
 
 Backup reads the database and writes only the archive; repeating it produces the same contents. The archive holds `manifest.json`, a plain `pg_dump` of the one database as `database.sql` and the `/data/artifacts` tree, with a SHA-256 per member — therefore it includes proforma records/conversion metadata, proforma artifact metadata and proforma PDF files without a separate backup command or format. `browser_sessions` keeps its definition and loses its rows, so no live cookie survives a restore.
 
-Both commands take the maintenance key EXCLUSIVE as a *try* and refuse immediately while `app` holds it SHARED: stop `app` first. Every `run` below carries `--no-deps`: `db` is already up, and without it Compose would also start the `migrate` service and change the schema of the database being backed up or restored. `restore --apply` executes `database.sql` through `psql` as the schema owner role (`qwbe_owner`, NOSUPERUSER), so it runs in the `migrate` service — only an archive you trust may be applied; a `database.sql` that pg_dump's `\restrict <key>` ... `\unrestrict <key>` does not wrap whole is refused by the dry run, `--apply` and `backup-inspect`, so psql runs none of its backslash meta-commands — and requires an **empty** target database: create a fresh one owned by `qwbe_owner`, run `db-init` on it before the restore (its grants give `qwbe_app` its rights on every object the restore creates) and point `RFI_PGDATABASE` at it. Nothing is ever dropped.
+Both commands take the maintenance key EXCLUSIVE as a *try* and refuse immediately while `app` holds it SHARED: stop `app` first. Every `run` below carries `--no-deps`: `db` is already up, and without it Compose would also start the `migrate` service and change the schema of the database being backed up or restored. `restore --apply` executes `database.sql` through `psql` as the schema owner role (`rfi_owner`, NOSUPERUSER), so it runs in the `migrate` service — only an archive you trust may be applied; a `database.sql` that pg_dump's `\restrict <key>` ... `\unrestrict <key>` does not wrap whole is refused by the dry run, `--apply` and `backup-inspect`, so psql runs none of its backslash meta-commands — and requires an **empty** target database: create a fresh one owned by `rfi_owner`, run `db-init` on it before the restore (its grants give `rfi_app` its rights on every object the restore creates) and point `RFI_PGDATABASE` at it. Nothing is ever dropped.
 
 ```bash
 # Backup — stop app first; `run --rm --no-deps app` carries the same environment and secrets
@@ -383,7 +386,7 @@ docker compose -f compose.prod.yaml start app
 # the dry-run included. Create both first:
 docker compose -f compose.prod.yaml stop app
 docker compose -f compose.prod.yaml exec db psql -U postgres -d postgres \
-  -c "CREATE DATABASE ro_free_invoice_restored OWNER qwbe_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
+  -c "CREATE DATABASE ro_free_invoice_restored OWNER rfi_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
 docker compose -f compose.prod.yaml run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored db-init
 docker volume create ro-free-invoice-data-restored
 # Inspect the archive: no database, no secret; exit 0 only when this image can restore it.
@@ -391,7 +394,7 @@ docker compose -f compose.prod.yaml run --rm --no-deps -e TMPDIR=/var/backups/st
   -v ro-free-invoice-backup-staging:/var/backups/staging -v /opt/ro-free-invoice/backups:/backup:ro migrate \
   node bin/ro-free-invoice.ts backup-inspect --input /backup/rfi-2026-08-31.tar.gz --json
 # Dry-run against that target: verifies the whole archive, writes nothing. In `migrate`
-# (qwbe_owner), staging on the staging volume: `migrate` has only a small /tmp.
+# (rfi_owner), staging on the staging volume: `migrate` has only a small /tmp.
 docker compose -f compose.prod.yaml run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored \
   -e TMPDIR=/var/backups/staging -v ro-free-invoice-backup-staging:/var/backups/staging \
   -v ro-free-invoice-data-restored:/data -v /opt/ro-free-invoice/backups:/backup:ro migrate \

@@ -257,8 +257,18 @@ void test("CLI distinguishes invalid input, guard refusal, and execution failure
     const invalid = cli(fixture, ["unknown"])
     assert.equal(invalid.status, 2)
 
-    const refused = cli(fixture, ["migrate", "--apply"], { NODE_ENV: "production" })
-    assert.equal(refused.status, 2)
+    // Every writing `--apply` carries the same guard; the input does not exist,
+    // so a guard that let restore through would fail on the archive instead.
+    const guarded = [
+      { name: "migrate", args: [] },
+      { name: "artifacts", args: [] },
+      { name: "restore", args: ["--input", join(fixture.dataDirectory, "absent.tar.gz")] },
+    ]
+    for (const { name, args } of guarded) {
+      const refused = cli(fixture, [name, ...args, "--apply"], { NODE_ENV: "production", ORGANIZATION_ID: "org-test" })
+      assert.equal(refused.status, 2, `${name}: ${refused.stdout}${refused.stderr}`)
+      assert.match(refused.stderr, new RegExp(`^${name} --apply outside development requires --confirm-production$`, "mu"))
+    }
 
     // Execution failure, PostgreSQL flavoured: the target database does not
     // exist, so the command cannot connect. `DATA_DIR` is no longer involved —

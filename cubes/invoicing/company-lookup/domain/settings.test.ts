@@ -56,3 +56,9 @@ void test("applying an update keeps, replaces or clears the key", () => {
   assert.equal(applySettingsUpdate(configured, { provider: "openapi", openapiKey: { kind: "set", key: other } }).openapiKey, other)
   assert.deepEqual(applySettingsUpdate(configured, { provider: "anaf", openapiKey: { kind: "clear" } }), { provider: "anaf" })
 })
+
+void test("settings refusals carry codes, so the browser no longer matches English prefixes", () => {
+  assert.throws(() => validateSettingsUpdate({ provider: "openapi" }, defaultSettings), { details: [{ code: "openapi_key_required", field: "openapiKey" }] })
+  assert.throws(() => validateSettingsUpdate({ provider: "x" }, defaultSettings),
+    { details: [{ code: "provider_invalid", field: "provider", params: { providers: "none, anaf, openapi" } }] })
+})

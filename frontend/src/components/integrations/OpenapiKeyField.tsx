@@ -1,5 +1,7 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
+import { ButtonRow } from "../ui/ButtonRow.tsx"
 import { Field } from "../ui/Field.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import { Input } from "../ui/Input.tsx"
 import type { OpenapiKeyEditor } from "../../hooks/use-company-lookup-settings.ts"
 import { useFocusOnReturn } from "../../hooks/use-focus-on-return.ts"
@@ -19,18 +21,18 @@ export const OpenapiKeyField = ({ settings, editor, disabled }: OpenapiKeyFieldP
   // "Renunță" and a saved replacement both close the field: the keyboard goes back to "Înlocuiește".
   const replaceButton = useFocusOnReturn<HTMLButtonElement>(!editor.editing, !disabled)
   return <div className="grid gap-3">
-  <h3>Cheia openapi.ro</h3>
-  <p className="hint">{keyStatus(settings)}</p>
-  {editor.editing ? <KeyForm editor={editor} disabled={disabled} /> : <div className="button-row">
-    <Button ref={replaceButton} className="secondary small" disabled={disabled} onClick={editor.startReplace}>
+  <h3 className="m-0 text-invoice-muted text-invoice-field font-extrabold tracking-[.1em] uppercase">Cheia openapi.ro</h3>
+  <Hint>{keyStatus(settings)}</Hint>
+  {editor.editing ? <KeyForm editor={editor} disabled={disabled} /> : <ButtonRow>
+    <Button ref={replaceButton} variant="secondary" size="sm" disabled={disabled} onClick={editor.startReplace}>
       Înlocuiește<span className="sr-only"> cheia openapi.ro</span>
     </Button>
-    <Button className="danger small" disabled={disabled} onClick={editor.clear}>
+    <Button variant="danger" size="sm" disabled={disabled} onClick={editor.clear}>
       Șterge<span className="sr-only"> cheia openapi.ro</span>
     </Button>
-  </div>}
+  </ButtonRow>}
   {settings.provider === "openapi" && !editor.editing
-    ? <p className="hint">Ștergerea cheii oprește și openapi.ro.</p>
+    ? <Hint>Ștergerea cheii oprește și openapi.ro.</Hint>
     : null}
   </div>
 }
@@ -42,9 +44,9 @@ const KeyForm = ({ editor, disabled }: { readonly editor: OpenapiKeyEditor; read
         spellCheck={false} autoFocus={editor.replacing}
         onChange={(event) => { editor.change(event.currentTarget.value) }} />
     </Field>
-    <p className="hint">Cheia se păstrează criptată pe server și nu mai poate fi afișată după salvare.</p>
-    <div className="button-row">
-      <Button className="secondary" type="submit" disabled={disabled}>{disabled ? "Se salvează…" : "Salvează cheia"}</Button>
-      {editor.replacing ? <Button className="secondary" disabled={disabled} onClick={editor.cancelReplace}>Renunță</Button> : null}
-    </div>
+    <Hint>Cheia se păstrează criptată pe server și nu mai poate fi afișată după salvare.</Hint>
+    <ButtonRow>
+      <Button variant="secondary" type="submit" disabled={disabled}>{disabled ? "Se salvează…" : "Salvează cheia"}</Button>
+      {editor.replacing ? <Button variant="secondary" disabled={disabled} onClick={editor.cancelReplace}>Renunță</Button> : null}
+    </ButtonRow>
   </form>

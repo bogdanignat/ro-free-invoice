@@ -1,7 +1,7 @@
 import { bankNameValue, ibanValue, socialCapitalValue, tradeRegistryValue } from "./issuer-legal.ts"
 import { brandTextIssue, brandTextValue, type BrandingImageDraft } from "./issuer-branding.ts"
 import { issuerSectorRequired, vatSelectionOf, type IssuerSettingsForm } from "./issuer-form.ts"
-import { isRomanianCountyCode } from "./romanian-counties.ts"
+import { isRomanianCountyCode, type RomanianCounty } from "./romanian-counties.ts"
 import { romanianCuiPattern } from "./vat-defaults.ts"
 import { vatChangeFromSelection } from "./issuer-settings-state.ts"
 import type { IssuerInput } from "./settings-client.ts"
@@ -43,6 +43,7 @@ export const FISCAL_IDENTIFIER_MAX_LENGTH = 12
 export const issuerPayload = (
   form: IssuerSettingsForm,
   image: BrandingImageDraft | null,
+  counties: ReadonlyArray<RomanianCounty>,
 ): IssuerValidation => {
   const name = form.name.trim()
   if (name === "") return issue("name", "Denumirea legală este obligatorie.")
@@ -64,7 +65,7 @@ export const issuerPayload = (
   if (city === "") return issue("city", "Localitatea este obligatorie.")
   const street = form.street.trim()
   if (street === "") return issue("street", "Strada și numărul sunt obligatorii.")
-  if (!isRomanianCountyCode(form.county)) return issue("county", "Alege județul.")
+  if (!isRomanianCountyCode(form.county, counties)) return issue("county", "Alege județul.")
   const sector = Number(form.sector)
   if (issuerSectorRequired(form) && !(Number.isInteger(sector) && sector >= 1 && sector <= 6)) {
     return issue("sector", "Adresele din București au un sector, de la 1 la 6.")

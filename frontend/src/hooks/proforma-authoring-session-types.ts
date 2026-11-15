@@ -1,6 +1,6 @@
 import type { BackgroundError } from "./invoice-authoring-session-types.ts"
 import type {
-  Customer, Issuer, ProductPreset, UnitOfMeasure, VatCatalogue, VatRate,
+  Customer, Issuer, ProductPreset, UnitOfMeasure, VatRate,
 } from "../lib/draft-models.ts"
 import type {
   BuyerMode, EditableInvoiceLine, InvoiceAuthoringForm, PartyType,
@@ -19,13 +19,14 @@ import type { RecoveryNoticeModel } from "../lib/operation-recovery-view.ts"
  */
 export interface ProformaAuthoringSessionInput {
   readonly issuer: Issuer
-  readonly vatCatalogue: VatCatalogue
   readonly customers: ReadonlyArray<Customer>
   readonly customersHasMore: boolean
   readonly customersLoadingMore: boolean
   readonly customersLoadMore: () => void
   readonly proformaSeries: ReadonlyArray<string>
   readonly unitOfMeasures: ReadonlyArray<UnitOfMeasure>
+  /** The server's limit for the remarks (`GET /api/reference-data`). */
+  readonly notesMaxLength: number
   readonly productPresets: ReadonlyArray<ProductPreset>
   readonly presetsHasMore: boolean
   readonly presetsLoadingMore: boolean
@@ -37,6 +38,8 @@ export interface ProformaAuthoringSession {
   readonly document: {
     readonly issuer: Issuer & { readonly vatRegistered: boolean }
     readonly customers: ReadonlyArray<Customer>
+    /** The customer last picked in the client field: it may be on no loaded page. */
+    readonly chosenCustomer: Customer | undefined
     readonly customersHasMore: boolean
     readonly customersLoadingMore: boolean
     readonly customersLoadMore: () => void
@@ -72,16 +75,16 @@ export interface ProformaAuthoringSession {
   readonly actions: {
     readonly changeForm: (patch: Partial<InvoiceAuthoringForm>) => void
     readonly chooseBuyerMode: (buyerMode: BuyerMode) => void
-    readonly chooseCustomer: (customerId: string) => void
+    readonly chooseCustomer: (customer: Customer) => void
     readonly chooseIssueDate: (issueDate: string) => void
     readonly chooseDueDate: (dueDate: string) => void
     readonly choosePartyType: (partyType: PartyType) => void
     readonly chooseCounty: (county: string) => void
     readonly changeFiscalIdentifier: (value: string) => void
     readonly chooseSector: (sector: string) => void
-    readonly addLine: () => void
+    readonly addLine: () => string
     readonly changeLine: (key: string, patch: Partial<EditableInvoiceLine>) => void
-    readonly choosePreset: (lineKey: string, presetId: string) => void
+    readonly choosePreset: (lineKey: string, preset: ProductPreset) => void
     readonly deleteLine: (line: EditableInvoiceLine) => void
     readonly save: () => void
     readonly replayRecovery: (record: RecoveryRecord) => void

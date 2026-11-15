@@ -6,7 +6,7 @@ import { Effect } from "effect"
 import type { EFacturaDocument } from "../../cubes/invoicing/efactura/index.ts"
 import type { DocumentKind } from "../../cubes/invoicing/documents/index.ts"
 import { EFacturaContractViolation, renderEFacturaXml } from "../../cubes/invoicing/efactura/index.ts"
-import { ValidationFailure } from "../../cubes/invoicing/index.ts"
+import { efacturaIssue, validationFailure, type ValidationFailure } from "../../cubes/invoicing/index.ts"
 
 /** An id made safe for `content-disposition`: letters, digits, `_` and `-`, at most 100, never empty. */
 export const safeFilename = (id: string, fallback: string): string => id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(0, 100) || fallback
@@ -25,7 +25,7 @@ export const renderEFactura = (
     const document = build()
     return Effect.succeed({ document, bytes: new TextEncoder().encode(renderEFacturaXml(document)) })
   } catch (error) {
-    if (error instanceof EFacturaContractViolation) return Effect.fail(new ValidationFailure({ issues: error.issues }))
+    if (error instanceof EFacturaContractViolation) return Effect.fail(validationFailure(error.issues.map(efacturaIssue)))
     throw error
   }
 })

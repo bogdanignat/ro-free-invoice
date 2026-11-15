@@ -4,7 +4,7 @@ import { ResourceNotFound, ValidationFailure, validationFailure, type InvoicingF
 import type { Clock, IdGenerator, RequestContext, TransactionalStore } from "../contracts/host.ts"
 import type { AuditEvent, BuyerSnapshot, DocumentSource, IssuerCompanySnapshot, IssuerSnapshot, PartySnapshot } from "../domain/invoice.ts"
 import type { DocumentCursor, DraftCursor, InvoicingTransaction, NameCursor, PageQuery, TransactionFailure } from "./ports.ts"
-import { cursorInvalid, limitOutOfRange } from "../issues/index.ts"
+import { cursorInvalid, invalidInput, limitOutOfRange } from "../issues/index.ts"
 
 export type { DocumentCursor, DraftCursor, NameCursor, PageQuery } from "./ports.ts"
 
@@ -20,7 +20,7 @@ export interface OperationDependencies<Transaction = InvoicingTransaction> {
 
 export const checked = <Value>(operation: () => Value): Effect.Effect<Value, ValidationFailure> => Effect.try({
   try: operation, catch: (error) => error instanceof ValidationFailure
-    ? error : new ValidationFailure({ issues: ["invalid invoicing input"] }),
+    ? error : validationFailure([invalidInput()]),
 })
 
 export const missing = (resource: string, id: string) => new ResourceNotFound({ resource, id })

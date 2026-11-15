@@ -452,6 +452,25 @@ taken into account, and it is never later than the legal one. `GET /api/invoice-
 still to resolve (not sent, rejected/refused, unknown), each marked overdue or expiring
 within one working day against today's date in Europe/Bucharest.
 
+**Monitoring from the command line.** `ro-free-invoice doctor --efactura [--json]` reads
+the same state from the database for `ORGANIZATION_ID` (read-only, no ANAF call) and is
+meant for cron or monitoring: the connection (`status`, `refreshExpiresAt`,
+`refreshExpiryWarning` within 30 days; never a token or secret), the rejected, refused
+and unknown submissions, and the documents the register marks `overdue` or `imminent`
+(the same set: not sent, rejected/refused, unknown; counts plus at most 10 document
+numbers per group). It exits 1 when `problems` is not empty, 0 otherwise (2 without
+`ORGANIZATION_ID`). The codes: `submission_rejected`, `submission_refused`,
+`submission_unknown`, `deadline_overdue`, `connection_needs_reconnect` (also a lapsed
+refresh token, or a connection made in another `ANAF_ENVIRONMENT`), and, only while
+documents are not sent or in progress, `efactura_not_configured` (plugin off or no ANAF
+client), `connection_disconnected` and `refresh_expiring`. An imminent deadline is
+reported but is not a problem. A token pair that no longer opens (rotated
+`ANAF_TOKEN_KEY_FILE`) is not seen here, since nothing is decrypted; the Settings page
+shows it. On an installation without e-Factura every issued document stays `not_sent`,
+so the command exits 1 for good (`efactura_not_configured`, `deadline_overdue`): it is
+not meant for cron there. Plain `doctor` stays the readiness check and does not look at
+e-Factura.
+
 **The CNP is personal data.** It lives only in the frozen snapshot, in the
 submitted XML and in ANAF's ZIP (which holds that XML), and those bytes are read
 only with `efactura:read` (`/xml`, `/response`). It is never in the call log

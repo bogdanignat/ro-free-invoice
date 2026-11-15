@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useAuth } from "./auth-context.ts"
 import { issuerQuery } from "./reference-queries.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
+import { NO_COUNTIES, useReferenceData } from "./use-reference-data.ts"
 import { brandingActions, useIssuerBranding, type IssuerBrandingModel } from "./use-issuer-branding.ts"
 import { useIssuerSave } from "./use-issuer-save.ts"
 import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
@@ -67,6 +68,7 @@ export const useIssuerSettings = (): IssuerSettingsModel => {
   const vatQuery = useQuery({
     queryKey: ["vat-regimes"], enabled, queryFn: ({ signal }) => clients.reference.getVatCatalogue(signal),
   })
+  const reference = useReferenceData()
   const [override, setOverride] = useState<IssuerSettingsForm | undefined>(undefined)
   const [issue, setIssue] = useState<RegistryEditorIssue<IssuerField> | undefined>(undefined)
   // A `useRef` would be the same object, but reading `.current` while rendering
@@ -80,9 +82,9 @@ export const useIssuerSettings = (): IssuerSettingsModel => {
   const issuer = issuerRead.data ?? null
   const editedBranding = useIssuerBranding(issuer?.branding ?? null, editGuard)
 
-  // The regime is read against the date in Bucharest, and derived from the stored
-  // configurations rather than the server's cached `currentVat`: one day, one
-  // answer, on both ends (`issuer-vat-baseline.ts`).
+  // The regime is the server's timeline (`issuer.vatPeriods`) read on the date in
+  // Bucharest, not the cached `currentVat`; the configurations give only its
+  // `effectiveFrom`. One day, one answer, on both ends (`issuer-vat-baseline.ts`).
   const today = todayIn(ORGANIZATION_TIME_ZONE)
   const baseline = issuerVatBaseline(issuer, today)
   const form = override ?? issuerFormOf(issuer, baseline.selection)
@@ -119,7 +121,7 @@ export const useIssuerSettings = (): IssuerSettingsModel => {
     if (imageIssue !== undefined) { setIssue({ field: "brandImage", message: imageIssue }); return }
     const vatIssue = issuerVatSubmitIssue(baseline, vatChosen)
     if (vatIssue !== undefined) { setIssue({ field: "vatRegistered", message: vatIssue }); return }
-    const validation = issuerPayload(form, branding.image)
+    const validation = issuerPayload(form, branding.image, reference.data?.counties ?? NO_COUNTIES)
     if (validation.kind === "issue") {
       setIssue({ field: validation.field, message: validation.message })
       return
@@ -131,12 +133,14 @@ export const useIssuerSettings = (): IssuerSettingsModel => {
   const load = registryLoad([
     ["issuer", { data: issuerRead.data, isPending: issuerRead.isPending, error: issuerRead.error }],
     ["vat", { data: vatQuery.data, isPending: vatQuery.isPending, error: vatQuery.error }],
+    ["reference", { data: reference.data, isPending: reference.isPending, error: reference.error }],
   ])
   return {
     load,
     retry: registryReload(load, {
       issuer: () => { void issuerRead.refetch() },
       vat: () => { void vatQuery.refetch() },
+      reference: () => { void reference.refetch() },
     }),
     form,
     sectorRequired: issuerSectorRequired(form),
@@ -144,7 +148,7 @@ export const useIssuerSettings = (): IssuerSettingsModel => {
     vatStatus: issuerVatStatus(baseline, vatSelectionOf(form), vatChosen),
     vatHistory: vatQuery.data === undefined || issuer === null
       ? []
-      : vatRegistrationHistory(issuer.vatConfigurations, vatQuery.data),
+      : vatRegistrationHistory(issuer.vatConfigurations, issuer.vatPeriods, vatQuery.data),
     branding,
     pending: save.pending,
     error: save.error,

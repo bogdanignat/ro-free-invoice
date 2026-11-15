@@ -20,11 +20,11 @@ void test("a committed transaction returns its connection and leaves nothing idl
   try {
     const store = createPostgresStore(runtime.pool)
     await Effect.runPromise(store.transaction((transaction) => transaction.addDocumentSeries({
-      organizationId: "org-1", documentType: "invoice", series: "QWBE", archived: false,
+      organizationId: "org-1", documentType: "invoice", series: "RFI", archived: false,
     })))
     const found = await Effect.runPromise(store.transaction((transaction) =>
-      transaction.findDocumentSeries("org-1", "invoice", "QWBE")))
-    assert.equal(found?.series, "QWBE")
+      transaction.findDocumentSeries("org-1", "invoice", "RFI")))
+    assert.equal(found?.series, "RFI")
     assert.equal(runtime.pool.idleCount > 0, true)
     assert.equal(await sessionCount(runtime.pool, "idle in transaction"), 0)
   } finally {
@@ -38,13 +38,13 @@ void test("a failing operation rolls back and the connection goes back to the po
     const store = createPostgresStore(runtime.pool)
     const failure = await Effect.runPromise(Effect.flip(store.transaction((transaction) =>
       Effect.flatMap(
-        transaction.addDocumentSeries({ organizationId: "org-1", documentType: "invoice", series: "QWBE", archived: false }),
+        transaction.addDocumentSeries({ organizationId: "org-1", documentType: "invoice", series: "RFI", archived: false }),
         () => Effect.fail(new PersistenceFailure({ operation: "deliberate" })),
       ))))
     assert.equal(failure instanceof PersistenceFailure, true)
     // The write inside the failed transaction is gone, so the rollback really ran.
     const found = await Effect.runPromise(store.transaction((transaction) =>
-      transaction.findDocumentSeries("org-1", "invoice", "QWBE")))
+      transaction.findDocumentSeries("org-1", "invoice", "RFI")))
     assert.equal(found, undefined)
     assert.equal(await sessionCount(runtime.pool, "idle in transaction"), 0)
   } finally {
@@ -183,10 +183,10 @@ void test("concurrent number allocations serialise on the exclusive lock, with n
   try {
     const store = createPostgresStore(runtime.pool)
     await Effect.runPromise(store.transaction((transaction) => transaction.addDocumentSeries({
-      organizationId: "org-1", documentType: "invoice", series: "QWBE", archived: false,
+      organizationId: "org-1", documentType: "invoice", series: "RFI", archived: false,
     })))
     const allocate = store.transaction((transaction) =>
-      transaction.allocateDocumentNumber("org-1", "invoice", "QWBE"))
+      transaction.allocateDocumentNumber("org-1", "invoice", "RFI"))
     const numbers = await Effect.runPromise(
       Effect.all([allocate, allocate, allocate, allocate], { concurrency: 4 }),
     )
@@ -207,7 +207,7 @@ void test("closing the runtime is idempotent and a transaction afterwards fails 
   // not turn the second call into a failure.
   await runtime.close()
   const failure = await Effect.runPromise(Effect.flip(store.transaction((transaction) =>
-    transaction.findDocumentSeries("org-1", "invoice", "QWBE"))))
+    transaction.findDocumentSeries("org-1", "invoice", "RFI"))))
   assert.equal(failure instanceof PersistenceFailure, true)
   assert.equal(failure.operation, "begin transaction")
 })
@@ -218,7 +218,7 @@ void test("a failed acquire reports the operation and carries no driver detail",
     const store = createPostgresStore(runtime.pool)
     // No schema here, so the first domain statement fails inside the transaction.
     const failure = await Effect.runPromise(Effect.flip(store.transaction((transaction) =>
-      transaction.findDocumentSeries("org-1", "invoice", "QWBE"))))
+      transaction.findDocumentSeries("org-1", "invoice", "RFI"))))
     assert.equal(failure instanceof PersistenceFailure, true)
     assert.equal(failure.operation, "find document series")
     // The mapped failure holds the operation and nothing else: no message, no

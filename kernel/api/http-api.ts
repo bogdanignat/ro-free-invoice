@@ -15,10 +15,10 @@ export { ApiAuthentication, SessionAuthentication } from "./http-api-shared.ts"
 
 export const operationNames = [
   "getIssuer", "configureIssuer", "listDocumentSeries", "addDocumentSeries", "setDocumentSeriesArchived",
-  "listUnitOfMeasures", "listVatRegimes",
+  "listUnitOfMeasures", "getReferenceData", "listVatRegimes",
   "listCustomers", "getCustomer", "createCustomer", "updateCustomer", "deleteCustomer",
   "listProductPresets", "createProductPreset", "updateProductPreset", "deleteProductPreset",
-  "listDrafts", "getDraft", "createDraft", "updateDraft", "deleteDraft",
+  "listDrafts", "previewDraftTotals", "getDraft", "createDraft", "updateDraft", "deleteDraft",
   "addDraftLine", "updateDraftLine", "deleteDraftLine", "issueDraftInvoice", "issueInvoice",
   "listPayments", "recordPayment", "reversePayment", "createCorrection", "listCorrections", "getCorrection",
   "listInvoiceRegister", "getRevenueReport", "getCollectionsReport", "listIssuedInvoices", "getIssuedInvoice", "renderInvoicePdf", "downloadInvoicePdf",
@@ -31,10 +31,10 @@ export type OperationName = typeof operationNames[number]
 
 const invoicing = HttpApiGroup.make("invoicing")
   .add(m.getIssuer).add(m.configureIssuer).add(m.listDocumentSeries).add(m.addDocumentSeries).add(m.setDocumentSeriesArchived)
-  .add(m.listUnitOfMeasures).add(m.listVatRegimes)
+  .add(m.listUnitOfMeasures).add(m.getReferenceData).add(m.listVatRegimes)
   .add(m.listCustomers).add(m.getCustomer).add(m.createCustomer).add(m.updateCustomer).add(m.deleteCustomer)
   .add(m.listProductPresets).add(m.createProductPreset).add(m.updateProductPreset).add(m.deleteProductPreset)
-  .add(d.listDrafts).add(d.getDraft).add(d.createDraft).add(d.updateDraft).add(d.deleteDraft)
+  .add(d.listDrafts).add(d.previewDraftTotals).add(d.getDraft).add(d.createDraft).add(d.updateDraft).add(d.deleteDraft)
   .add(d.addDraftLine).add(d.updateDraftLine).add(d.deleteDraftLine).add(d.issueDraftInvoice)
   .add(f.createCorrection).add(f.listCorrections).add(f.getCorrection)
   .add(f.listInvoiceRegister).add(f.getRevenueReport).add(f.listIssuedInvoices).add(f.issueInvoice).add(f.getIssuedInvoice)

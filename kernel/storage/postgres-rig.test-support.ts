@@ -164,7 +164,7 @@ export const createTestDatabase = async (label: string): Promise<string> => {
 /**
  * Gives a test database back to the cluster, and only one this rig created: the
  * name must carry the test prefix and the pattern `createTestDatabase` built it
- * with, so `qwbe_invoicing`, `postgres` or a template can never be named here.
+ * with, so `rfi_dev`, `postgres` or a template can never be named here.
  * `WITH (FORCE)` because a case that leaked a connection must not keep the
  * database alive for the rest of the run.
  *

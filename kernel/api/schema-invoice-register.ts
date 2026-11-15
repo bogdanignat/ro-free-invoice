@@ -38,7 +38,7 @@ const search = `${String(maximumRegisterSearchLength)} characters`
  * The register's filters, as any client sends them. Every one is optional and
  * none changes the order or the cursor: a cursor pages inside the filter it was
  * issued for. The refusals (a valid date, from <= to, the length of q) are the
- * cube's (`registerFilterIssues`), so a non-HTTP caller is held to them too and
+ * cube's (`registerFilterDetails`), so a non-HTTP caller is held to them too and
  * every client reads one message; `kind` stays a literal for the OpenAPI enum.
  */
 export const InvoiceRegisterQuery = Schema.Struct({

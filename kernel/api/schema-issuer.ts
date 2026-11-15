@@ -39,6 +39,11 @@ export const VatRate = Schema.Struct({
   effectiveFrom: Schema.String, effectiveTo: optionalString,
 })
 export const VatCatalogue = Schema.Struct({ rates: Schema.Array(VatRate) })
+/** One stretch of the issuer's VAT timeline; `registered: null` when its configurations form no regime (no rates then). */
+export const VatPeriod = Schema.Struct({
+  effectiveFrom: Schema.String, effectiveTo: optionalString, registered: Schema.NullOr(Schema.Boolean),
+  rates: Schema.Array(VatRate), defaultCode: Schema.NullOr(Schema.String),
+})
 export const IssuerInput = Schema.Struct({
   name: InputText, fiscalIdentifier: FiscalIdentifierInput, address: AddressInput,
   legalForm: Schema.Literal("srl", "pfa"), tradeRegistryNumber: InputText, iban: InputText,
@@ -50,7 +55,8 @@ export const Issuer = Schema.Struct({
   legalForm: Schema.Literal("srl", "pfa"), tradeRegistryNumber: Schema.String, iban: Schema.String,
   bankName: Schema.String, socialCapital: Schema.String, organizationId: Schema.String,
   defaultCurrency: Schema.String, defaultPaymentTermDays: Schema.Int,
-  vatConfigurations: Schema.Array(VatConfiguration), currentVat: Schema.NullOr(VatRegistration), branding: IssuerBranding,
+  vatConfigurations: Schema.Array(VatConfiguration), currentVat: Schema.NullOr(VatRegistration),
+  vatPeriods: Schema.Array(VatPeriod), branding: IssuerBranding,
 })
 /** The answer to `PUT /api/issuer`; `vat_registry_not_checked`: a fiscal change saved with the company-lookup plugin off. */
 export const ConfiguredIssuer = Schema.Struct({ ...Issuer.fields, warnings: Schema.Array(Schema.Literal("vat_registry_not_checked")) })

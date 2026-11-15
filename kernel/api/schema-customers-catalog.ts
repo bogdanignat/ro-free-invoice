@@ -33,3 +33,10 @@ export const ProductPreset = Schema.Struct({
   unitPrice: Schema.String, unitOfMeasure: UnitOfMeasure, preferredVatRateCode: optionalString,
 })
 export const ProductPresetPage = pageOf(ProductPreset)
+
+const County = Schema.Struct({ code: Schema.String, name: Schema.String })
+const limit = Schema.Int.pipe(Schema.positive())
+export const ReferenceData = Schema.Struct({
+  counties: Schema.Array(County),
+  textLimits: Schema.Struct({ partyName: limit, street: limit, city: limit, postalCode: limit, lineDescription: limit, documentNotes: limit }),
+}).annotations(bodyObject)

@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query"
 
 import { useAuth } from "./auth-context.ts"
 import { proformaQueryKey } from "./proforma-query-keys.ts"
-import { retryAction, type DocumentDetailModel } from "./use-document-detail.ts"
+import { documentRead, type DocumentDetailModel } from "./use-document-detail.ts"
 import { useDocumentDownload } from "./use-document-download.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { useProformaConversion, type ProformaConversionModel } from "./use-proforma-conversion.ts"
+import { useReferenceData } from "./use-reference-data.ts"
 import { documentFilename } from "../lib/browser-download.ts"
 import { projectProforma } from "../lib/proforma-projection.ts"
 import { requireCsrf } from "../lib/require-csrf.ts"
@@ -33,6 +34,7 @@ export const useProformaDetail = (id: string): ProformaDetailModel => {
     enabled: status === "authenticated",
     queryFn: ({ signal }) => clients.proformas.getProforma(id, signal),
   })
+  const reference = useReferenceData()
   const proforma = query.data
   const pdf = useDocumentDownload({
     key: "pdf",
@@ -44,10 +46,7 @@ export const useProformaDetail = (id: string): ProformaDetailModel => {
   const conversion = useProformaConversion(proforma)
   return {
     detail: {
-      view: proforma === undefined ? undefined : projectProforma(proforma),
-      isPending: query.isPending,
-      error: query.error,
-      retry: retryAction(query.error, () => { void query.refetch() }),
+      ...documentRead(query, projectProforma, reference),
       downloads: [pdf],
       reference: proforma,
     },

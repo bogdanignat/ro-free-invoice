@@ -13,10 +13,7 @@ export const cube = {
     summary: "Reading third-party UBL invoices and credit notes into a normalized document with warnings",
     required: true,
     tables: [],
-    requiresAuth: true,
-    permissions: [],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { RECEIVED_XML_LIMITS, readReceivedUbl } from "./domain/reader.ts"

@@ -1,10 +1,4 @@
-import { HttpApiGroup } from "@effect/platform"
-
-import { invoicingPermissions } from "./contracts/permissions.ts"
-
 const identity = "invoicing"
-const permissions = invoicingPermissions(identity)
-const group = HttpApiGroup.make(identity)
 
 export const cube = {
   manifest: {
@@ -14,24 +8,19 @@ export const cube = {
     tables: `document_series invoice_drafts draft_lines invoice_sequences
       issued_invoices issued_lines issued_tax_breakdown proformas proforma_lines proforma_tax_breakdown proforma_conversions
        proforma_invoice_conversions correction_documents correction_lines correction_tax_breakdown idempotency_records audit_events`.split(/\s+/),
-    requiresAuth: true,
-    // Every permission the cube defines is a permission it declares, so the
-    // manifest reads them from the one place they exist instead of repeating
-    // the list, where a new permission could be added and silently undeclared.
-    permissions: Object.values(permissions).map((name) => ({ name, roles: ["admin"] })),
   },
-  create: () => ({
-    group,
-    handlers: {},
-  }),
 }
 
 export * from "./contracts/index.ts"
 export { calculateTotals, validateFiscalDocument } from "./domain/calculation.ts"
-export { hasControlCharacters, validateVatTreatment } from "./domain/validation.ts"
+export { CIUS_TEXT_LIMITS, DOCUMENT_NOTES_MAX_LENGTH, hasControlCharacters, validateVatTreatment } from "./domain/validation.ts"
 export { maximumSearchLength } from "./domain/search.ts"
 export { unitOfMeasures } from "./items/index.ts"
 export type { IssueCode, IssueDetail } from "./issues/index.ts"
+export {
+  efacturaIssue, idempotencyKeyInvalid, invalidInput, paginationRepeated, requestNotFingerprintable, sourceFilterIncomplete,
+  spvFilterUnavailable,
+} from "./issues/index.ts"
 export { ROMANIAN_COUNTIES, addressCountyName, isRomanianCountyCode, isValidRomanianCnp, romanianCountyName } from "./parties/index.ts"
 export type { RomanianCounty } from "./parties/index.ts"
 export { createInvoicingService } from "./application/invoicing.ts"

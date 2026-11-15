@@ -1,7 +1,11 @@
+import { Checkbox } from "../ui/Checkbox.tsx"
 import { Field } from "../ui/Field.tsx"
 import { FieldIssue } from "../registry/FieldIssue.tsx"
+import { FormGrid } from "../ui/FormGrid.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import { Input } from "../ui/Input.tsx"
 import { Select } from "../ui/Select.tsx"
+import { StatusNote } from "../ui/StatusNote.tsx"
 import { ISSUER_FORM, type RegistryFieldAria } from "../../lib/registry-fields.ts"
 import type { IssuerField } from "../../lib/issuer-payload.ts"
 import type { IssuerSettingsForm } from "../../lib/issuer-form.ts"
@@ -32,7 +36,7 @@ interface IssuerVatFieldsProps {
 export const IssuerVatFields = (props: IssuerVatFieldsProps) => {
   const { form, disabled, issue, aria } = props
   return <>
-    <div className="form-grid">
+    <FormGrid>
       <Field label="Monedă implicită">
         <Select value="RON" disabled><option value="RON">Leu românesc (RON)</option></Select>
       </Field>
@@ -42,21 +46,19 @@ export const IssuerVatFields = (props: IssuerVatFieldsProps) => {
           onChange={(event) => { props.onChange({ defaultPaymentTermDays: event.currentTarget.value }) }} />
         <FieldIssue issue={issue} field="defaultPaymentTermDays" form={ISSUER_FORM} />
       </Field>
-      <label className="checkbox-label">
-        <input type="checkbox" disabled={disabled} checked={form.vatRegistered} {...aria("vatRegistered")}
-          onChange={(event) => { props.onVatRegisteredChange(event.currentTarget.checked) }} /> Plătitoare de TVA
-      </label>
+      <Checkbox disabled={disabled} checked={form.vatRegistered} {...aria("vatRegistered")}
+        onChange={(event) => { props.onVatRegisteredChange(event.currentTarget.checked) }}> Plătitoare de TVA</Checkbox>
       <FieldIssue issue={issue} field="vatRegistered" form={ISSUER_FORM} />
       <Field label="Schimbarea regimului se aplică de la" required>
         <Input required type="date" disabled={disabled} value={form.vatEffectiveFrom} {...aria("vatEffectiveFrom")}
           onChange={(event) => { props.onChange({ vatEffectiveFrom: event.currentTarget.value }) }} />
         <FieldIssue issue={issue} field="vatEffectiveFrom" form={ISSUER_FORM} />
       </Field>
-    </div>
+    </FormGrid>
     {form.vatRegistered
       ? null
-      : <p className="hint">Informațiile fiscale pentru regimul art. 310 se completează automat. Alte regimuri de scutire nu sunt încă suportate.</p>}
-    <p className="hint">Regimul TVA este ales explicit și independent de forma în care introduci CUI-ul. Pentru o firmă nouă, temeiul art. 310 nu este selectat automat.</p>
-    <p className="status-note" aria-live="polite">{props.vatStatus}</p>
+      : <Hint>Informațiile fiscale pentru regimul art. 310 se completează automat. Alte regimuri de scutire nu sunt încă suportate.</Hint>}
+    <Hint>Regimul TVA este ales explicit și independent de forma în care introduci CUI-ul. Pentru o firmă nouă, temeiul art. 310 nu este selectat automat.</Hint>
+    <StatusNote role={null} aria-live="polite">{props.vatStatus}</StatusNote>
   </>
 }

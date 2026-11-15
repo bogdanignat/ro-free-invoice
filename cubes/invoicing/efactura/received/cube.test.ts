@@ -5,9 +5,8 @@ import { cube, receivedMigrations } from "./index.ts"
 
 const statements = receivedMigrations.flatMap((migration) => migration.statements)
 
-void test("declares received as a required child of e-Factura, owning exactly the tables its baseline creates and granting efactura:receive", () => {
+void test("declares received as a required child of e-Factura, owning exactly the tables its baseline creates", () => {
   assert.equal(cube.manifest.name, "received")
-  assert.deepEqual(cube.manifest.permissions, [{ name: "efactura:receive", roles: ["admin"] }])
   assert.equal(cube.manifest.parent, "efactura")
   assert.equal(cube.manifest.required, true)
   assert.deepEqual(receivedMigrations.map(({ name }) => name), ["efactura-received-001-baseline"])

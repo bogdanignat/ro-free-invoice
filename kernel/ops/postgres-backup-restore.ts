@@ -39,7 +39,7 @@ import type { BackupSession } from "./postgres-backup-create.ts"
  *
  * ## The trust boundary, stated plainly
  *
- * `database.sql` is **executed**, as the schema owner role (qwbe_owner), NOSUPERUSER:
+ * `database.sql` is **executed**, as the schema owner role (rfi_owner), NOSUPERUSER:
  * every right on this database's schema, none on the server. Its psql meta-commands are
  * not: the dump is refused unless pg_dump's `\restrict` ... `\unrestrict` wraps all of it
  * (`postgres-backup-restrict.ts`), so psql runs no `\!`, `\copy ... PROGRAM` or `\o |cmd`.

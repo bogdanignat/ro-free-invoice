@@ -1,4 +1,5 @@
 import { EmptyState, ErrorAlert } from "../AsyncState.tsx"
+import { ListItem } from "../ui/ListItem.tsx"
 import { EFacturaErrors } from "./EFacturaErrors.tsx"
 import { EFacturaFiles } from "./EFacturaFiles.tsx"
 import type { EFacturaFilesModel } from "../../hooks/use-efactura-files.ts"
@@ -13,22 +14,18 @@ export const EFacturaHistory = ({ rows, files }: {
   {rows.length === 0
     ? <EmptyState>Documentul nu a fost trimis încă în e-Factura.</EmptyState>
     : <ol className="m-0 list-none p-0">
-      {rows.map((row) => <li key={row.id} id={row.anchorId} className="draft-item">
-        <div className="draft-item-main">
-          <strong>{row.title}</strong>
-          <small>{row.stateLine}</small>
-          {row.uploadIndex === undefined ? null : <small>Index de încărcare: {row.uploadIndex}</small>}
-          {row.replaces === undefined ? null : <small><a href={row.replaces.href}>{row.replaces.label}</a></small>}
-          {row.replacedBy === undefined ? null : <small><a href={row.replacedBy.href}>{row.replacedBy.label}</a></small>}
-          <EFacturaErrors errors={row.errors} title="Mesaje" />
-        </div>
-        {row.files
-          ? <div className="draft-item-actions">
-            <EFacturaFiles submissionId={row.id} files={files} response={row.responseLabel !== undefined}
-              xmlLabel={row.xmlLabel} responseLabel={row.responseLabel} />
-          </div>
-          : null}
-      </li>)}
+      {rows.map((row) => <ListItem as="li" key={row.id} id={row.anchorId}
+        actions={row.files
+          ? <EFacturaFiles submissionId={row.id} files={files} response={row.responseLabel !== undefined}
+            xmlLabel={row.xmlLabel} responseLabel={row.responseLabel} />
+          : undefined}>
+        <strong>{row.title}</strong>
+        <small>{row.stateLine}</small>
+        {row.uploadIndex === undefined ? null : <small>Index de încărcare: {row.uploadIndex}</small>}
+        {row.replaces === undefined ? null : <small><a href={row.replaces.href}>{row.replaces.label}</a></small>}
+        {row.replacedBy === undefined ? null : <small><a href={row.replacedBy.href}>{row.replacedBy.label}</a></small>}
+        <EFacturaErrors errors={row.errors} title="Mesaje" />
+      </ListItem>)}
     </ol>}
   {files.failure === undefined ? null : <ErrorAlert error={files.failure} />}
 </div>

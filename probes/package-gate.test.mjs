@@ -14,7 +14,7 @@ const write = (root, path, content) => {
 const withPackage = async (manifest, cubes, use) => {
   const root = mkdtempSync(join(tmpdir(), "rfi-package-gate-"))
   try {
-    write(root, "qwbe-package.json", JSON.stringify({ ...manifest, cubes: Object.keys(cubes) }))
+    write(root, "cubes.json", JSON.stringify({ ...manifest, cubes: Object.keys(cubes) }))
     for (const [path, source] of Object.entries(cubes)) {
       if (source !== undefined) write(root, `cubes/${path}/index.ts`, source)
       else mkdirSync(join(root, "cubes", path), { recursive: true })
@@ -25,24 +25,24 @@ const withPackage = async (manifest, cubes, use) => {
   }
 }
 const cubeSource = (manifest) => `export const cube = { manifest: ${JSON.stringify(manifest)} }\n`
-const pack = { name: "invoicing-pack", kind: "plugin", summary: "Invoices" }
+const pack = { summary: "Invoices" }
 
-test("accepts a plugin package whose parent and child cubes declare themselves", async () => {
+test("accepts a package whose parent and child cubes declare themselves", async () => {
   const cubes = {
     invoicing: cubeSource({ name: "invoicing", summary: "Invoices", required: true }),
     "invoicing/payments": cubeSource({ name: "payments", parent: "invoicing", summary: "Payments", required: false }),
   }
   assert.deepEqual(await withPackage(pack, cubes, inspectPackageShapes), [
-    { id: "qwbe-package.json", failures: [] },
+    { id: "cubes.json", failures: [] },
     { id: "cubes/invoicing", failures: [] },
     { id: "cubes/invoicing/payments", failures: [] },
   ])
 })
 
-test("rejects a package that is not a described plugin", async () => {
+test("rejects a package without a summary", async () => {
   const cubes = { invoicing: cubeSource({ name: "invoicing", summary: "Invoices", required: true }) }
-  const [shape] = await withPackage({ name: "", kind: "cube", summary: " " }, cubes, inspectPackageShapes)
-  assert.deepEqual(shape.failures, ["package name is required", 'package kind must be "plugin"', "package summary is required"])
+  const [shape] = await withPackage({ summary: " " }, cubes, inspectPackageShapes)
+  assert.deepEqual(shape.failures, ["package summary is required"])
 })
 
 test("rejects a cube without a public entry or without a cube manifest", async () => {

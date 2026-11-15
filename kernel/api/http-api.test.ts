@@ -20,10 +20,10 @@ const receivedRoutes = ["POST /api/efactura/received/fetches", "GET /api/efactur
 const inventory = [
   "GET /api/issuer", "PUT /api/issuer", "GET /api/document-series", "POST /api/document-series",
   "PUT /api/document-series/:documentType/:series/archived",
-  "GET /api/unit-of-measures", "GET /api/vat-regimes",
+  "GET /api/unit-of-measures", "GET /api/reference-data", "GET /api/vat-regimes",
   "GET /api/customers", "GET /api/customers/:id", "POST /api/customers", "PUT /api/customers/:id", "DELETE /api/customers/:id",
   "GET /api/product-presets", "POST /api/product-presets", "PUT /api/product-presets/:id", "DELETE /api/product-presets/:id",
-  "GET /api/drafts", "GET /api/drafts/:id", "POST /api/drafts", "PUT /api/drafts/:id", "DELETE /api/drafts/:id",
+  "GET /api/drafts", "POST /api/drafts/totals-preview", "GET /api/drafts/:id", "POST /api/drafts", "PUT /api/drafts/:id", "DELETE /api/drafts/:id",
   "POST /api/drafts/:draftId/lines", "PUT /api/drafts/:draftId/lines/:lineId", "DELETE /api/drafts/:draftId/lines/:lineId",
   "POST /api/drafts/:draftId/issue", "GET /api/invoices/:invoiceId/payments", "POST /api/invoices/:invoiceId/payments", "POST /api/invoices/:invoiceId/payments/:paymentId/reversal",
   "POST /api/invoices/:invoiceId/corrections", "GET /api/invoices/:invoiceId/corrections", "GET /api/corrections/:id",
@@ -48,15 +48,15 @@ const efacturaRoutes = ["GET /api/invoices/:id/efactura.xml", "GET /api/correcti
 const companyLookupRoutes = ["GET /api/settings/company-lookup", "PUT /api/settings/company-lookup",
   "GET /api/company-lookup/availability", "POST /api/company-lookup/lookup", "POST /api/company-lookup/search"]
 
-void test("the contract with every plugin on exposes exactly the current 76 operations", () => {
+void test("the contract with every plugin on exposes exactly the current 78 operations", () => {
   const applicationRoutes: Array<{ readonly method: string, readonly operationId: string, readonly path: string }> = []
   HttpApi.reflect(activeHttpApi(allPlugins), { onGroup() {}, onEndpoint({ endpoint }) {
     applicationRoutes.push({ method: endpoint.method, operationId: endpoint.name, path: endpoint.path })
   } })
-  assert.equal(operationNames.length, 76)
-  assert.equal(new Set(operationNames).size, 76)
-  assert.equal(applicationRoutes.length, 76)
-  assert.equal(new Set(applicationRoutes.map((route) => route.operationId)).size, 76)
+  assert.equal(operationNames.length, 78)
+  assert.equal(new Set(operationNames).size, 78)
+  assert.equal(applicationRoutes.length, 78)
+  assert.equal(new Set(applicationRoutes.map((route) => route.operationId)).size, 78)
   assert.ok(operationNames.includes("listVatRegimes"))
   assert.deepEqual(applicationRoutes.map((route) => `${route.method} ${route.path}`).sort(), inventory)
   assert.equal(applicationRoutes.some((route) => route.path === "/api"), false)
@@ -106,14 +106,14 @@ void test("every error a plugin endpoint declares is one the handler's API encod
 })
 
 void test("dueDate contracts accept absent, null, or string input and encode explicit null responses", () => {
-  const base = { customerId: "customer-1", series: "QWBE", issueDate: "2026-09-01" }
+  const base = { customerId: "customer-1", series: "RFI", issueDate: "2026-09-01" }
   assert.doesNotThrow(() => Schema.decodeUnknownSync(S.DraftInput)(base))
   assert.equal(Schema.decodeUnknownSync(S.DraftInput)({ ...base, dueDate: null }).dueDate, null)
   assert.equal(Schema.decodeUnknownSync(S.DraftInput)({ ...base, dueDate: "2026-09-15" }).dueDate, "2026-09-15")
   assert.throws(() => Schema.decodeUnknownSync(S.DraftInput)({ ...base, dueDate: 15 }))
   const draft = {
     id: "draft-1", organizationId: "org-1", sourceProformaId: null, customer: { partyType: "individual", name: "Ion", fiscalIdentifier: "",
-      vatRegistered: false, address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" } }, series: "QWBE", issueDate: "2026-09-01",
+      vatRegistered: false, address: { countryCode: "RO", city: "Iași", street: "Strada 1", county: "RO-IS" } }, series: "RFI", issueDate: "2026-09-01",
     dueDate: null, currency: "RON", notes: null, status: "proforma_issued", lines: [], vatBreakdown: [], totalExcludingVat: "0.00",
     vatTotal: "0.00", totalIncludingVat: "0.00",
   } as const
@@ -280,7 +280,7 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
     assert.ok(operation, `${method.toUpperCase()} ${path} is absent`)
     assert.deepEqual(Object.keys(operation.responses).sort(), [...new Set([...base, ...extras])].sort())
   }
-  for (const path of ["/api/document-series", "/api/unit-of-measures", "/api/vat-regimes", "/api/invoices/{invoiceId}/corrections"]) {
+  for (const path of ["/api/document-series", "/api/unit-of-measures", "/api/reference-data", "/api/vat-regimes", "/api/invoices/{invoiceId}/corrections"]) {
     expectStatuses("get", path)
   }
   for (const path of ["/api/customers", "/api/product-presets", "/api/drafts", "/api/invoice-register", "/api/invoices", "/api/proformas",
@@ -312,6 +312,9 @@ void test("OpenAPI 3.1 mirrors paths, PDF encoding, and authentication metadata"
   // Creating a draft is idempotent like issuing one, so it answers 409 too:
   // a reused key, or a key whose draft was deleted.
   for (const path of ["/api/drafts", "/api/invoices", "/api/proformas"]) expectStatuses("post", path, ["404", "409", "413"])
+  // The totals preview writes nothing: no Idempotency-Key, no 409; a missing issuer is a 404 as on save.
+  expectStatuses("post", "/api/drafts/totals-preview", ["404", "413"])
+  assert.equal(spec.paths["/api/drafts/totals-preview"]?.post?.parameters.some((parameter) => parameter.name === "idempotency-key"), false)
   for (const [method, path] of [
     ["delete", "/api/customers/{id}"], ["put", "/api/drafts/{id}"], ["delete", "/api/drafts/{id}"],
     ["post", "/api/drafts/{draftId}/lines"], ["put", "/api/drafts/{draftId}/lines/{lineId}"],
@@ -403,7 +406,7 @@ void test("Swagger materialization recreates a disposed handler after failure", 
 })
 
 void test("notes contract mirrors the runtime rules for whitespace, length, and invisible separators", () => {
-  const base = { customerId: "customer-1", series: "QWBE", issueDate: "2026-09-01" }
+  const base = { customerId: "customer-1", series: "RFI", issueDate: "2026-09-01" }
   const decode = (notes: unknown) => Schema.decodeUnknownSync(S.DraftInput)({ ...base, notes })
   assert.equal(decode(null).notes, null)
   assert.equal(decode("Linie unu\nLinie doi").notes, "Linie unu\nLinie doi")

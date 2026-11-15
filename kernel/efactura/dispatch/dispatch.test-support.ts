@@ -88,7 +88,7 @@ export const dispatchRig = async (fixture: TestFixture, grants?: ServeOptions["g
     String((body === undefined ? await issueInvoice(server.call, key) : await ok(server.call("POST", "/api/invoices", body, key), "issue"))
       .id)
   const invoiceTo = (key: string, customer: Record<string, unknown>): Promise<string> =>
-    invoice(key, { customer, series: "QWBE", issueDate, dueDate, currency: "RON", lines })
+    invoice(key, { customer, series: "RFI", issueDate, dueDate, currency: "RON", lines })
   const storno = async (invoiceId: string, key: string): Promise<string> =>
     String((await ok(server.call("POST", `/api/invoices/${invoiceId}/corrections`, { reason: "Anulare" }, key), "storno")).id)
   const submit = (id: string, kind: "invoices" | "corrections" = "invoices"): Promise<Reply> =>

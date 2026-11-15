@@ -15,6 +15,10 @@ export const conflict = (reply: Reply, code: string) => {
   assert.deepEqual([reply.status, reply.body], [409, { error: "DomainConflict", code }], code)
 }
 
+/** The codes of a refusal's `details`, in order. */
+export const codes = (reply: Reply): ReadonlyArray<unknown> =>
+  ((reply.body as { details?: ReadonlyArray<{ code: unknown }> }).details ?? []).map((detail) => detail.code)
+
 /** A queued submission turned `unknown` by hand: nothing at ANAF lists it. */
 export const unknownSubmission = async (rig: DispatchRig, key: string) => {
   const invoiceId = await rig.invoice(key)

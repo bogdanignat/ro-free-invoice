@@ -1,0 +1,32 @@
+/* Element-only rules (no class in the selector): imported into Tailwind's base layer, after preflight. */
+:root { font-family: var(--font-invoice-sans); color: var(--color-invoice-ink); background: var(--color-invoice-canvas); font-synthesis: none; }
+* { box-sizing: border-box; }
+html { min-width: 320px; background: var(--color-invoice-canvas); }
+body { min-height: 100vh; margin: 0; }
+button, input { font: inherit; }
+a { color: inherit; }
+main { min-width: 0; padding: 3rem clamp(1.25rem, 4vw, 4.5rem) 5rem; }
+#app { width: min(1280px, 100%); margin: 0 auto; }
+form { display: grid; gap: 1.1rem; }
+label { display: grid; gap: .42rem; color: var(--color-invoice-label); font-size: .76rem; font-weight: 750; }
+input { width: 100%; min-height: 2.65rem; padding: .65rem .75rem; border: 1px solid var(--color-invoice-control-border); border-radius: var(--radius-invoice-control); color: var(--color-invoice-ink); background: var(--color-invoice-surface); }
+input:hover { border-color: var(--color-invoice-control-border-hover); }
+input:focus-visible, a:focus-visible { outline: 3px solid var(--color-invoice-focus); outline-offset: 2px; box-shadow: 0 0 0 2px var(--color-invoice-primary); }
+table { width: 100%; border-collapse: collapse; font-size: .89rem; }
+th, td { padding: .7rem .75rem; border-bottom: 1px solid var(--color-invoice-border); text-align: left; vertical-align: top; }
+th { color: var(--color-invoice-label); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+td small { display: block; margin-top: .2rem; color: var(--color-invoice-muted); font-size: .76rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 680px) {
+  main { padding: 1.75rem 1rem 4rem; }
+  /* Each row becomes its own card: the column heading travels with the value in
+     `data-label`, so a 320 px screen never has to scroll a table sideways. */
+  thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  tr { display: block; padding: .6rem 0; border-bottom: 1px solid var(--color-invoice-border); }
+  td { display: grid; gap: .1rem; padding: .3rem 0; border: 0; }
+  td::before { content: attr(data-label); color: var(--color-invoice-muted); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

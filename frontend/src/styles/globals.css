@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "./theme.css";
-@import "./base.css";
-@import "./responsive.css";
-@import "./dashboard.css";
+/* The element defaults sit in Tailwind's base layer, so a utility wins over them. */
+@import "./elements.css" layer(base);
 @source "..";
+/* The legacy breakpoints are inclusive `max-width`; Tailwind's `max-*` is exclusive. */
+@custom-variant stacked (@media (max-width: 900px));
+@custom-variant narrow (@media (max-width: 680px));

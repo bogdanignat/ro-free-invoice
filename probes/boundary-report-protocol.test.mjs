@@ -50,12 +50,12 @@ test("fingerprints the inputs that decide the graph, stably and without a timest
   const second = JSON.parse(runReport("--json").stdout).provenance
   assert.deepEqual(first, second)
   assert.deepEqual(first.sources.map((source) => source.path), [
+    "cubes.json",
     "dependency-cruiser.config.cjs",
     "probes/boundary-gate-lib.mjs",
     "probes/boundary-report.mjs",
     "probes/boundary-rules.mjs",
     "probes/source-tree.mjs",
-    "qwbe-package.json",
   ])
   for (const source of first.sources) assert.match(source.sha256, /^[0-9a-f]{64}$/)
   assert.ok(!JSON.stringify(first).includes("generatedAt"))

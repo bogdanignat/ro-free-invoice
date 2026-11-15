@@ -1,5 +1,7 @@
-import { Button } from "../Button.tsx"
+import { Badge } from "../ui/Badge.tsx"
+import { Button } from "../ui/Button.tsx"
 import { EmptyState } from "../AsyncState.tsx"
+import { Table, Td, Th } from "../ui/Table.tsx"
 import { DOCUMENT_TYPE_LABELS } from "../../lib/document-series-form.ts"
 import {
   archiveActionLabel, archiveActionText, seriesKey, seriesStateLabel,
@@ -19,29 +21,27 @@ export const DocumentSeriesTable = ({ series, archiving, onToggleArchived }: {
 }) =>
   series.length === 0
     ? <EmptyState>Nu există încă serii configurate. Adaugă cel puțin o serie de factură pentru a putea crea drafturi.</EmptyState>
-    : <div className="table-wrap">
-      <table>
-        <caption className="sr-only">Seriile de documente configurate</caption>
-        <thead><tr>
-          <th scope="col">Tip document</th><th scope="col">Serie</th><th scope="col">Stare</th><th scope="col">Acțiune</th>
-        </tr></thead>
-        <tbody>
-          {series.map((item) => {
-            const busy = archiving === seriesKey(item)
-            return <tr key={seriesKey(item)}>
-              <td data-label="Tip document">{DOCUMENT_TYPE_LABELS[item.documentType]}</td>
-              <td data-label="Serie"><strong>{item.series}</strong></td>
-              <td data-label="Stare">
-                <span className={item.archived ? "badge muted" : "badge positive"}>{seriesStateLabel(item)}</span>
-              </td>
-              <td data-label="Acțiune">
-                <Button className="secondary small" aria-label={archiveActionLabel(item, busy)} aria-busy={busy}
-                  onClick={() => { onToggleArchived(item) }}>
-                  {busy ? "Se salvează…" : archiveActionText(item)}
-                </Button>
-              </td>
-            </tr>
-          })}
-        </tbody>
-      </table>
-    </div>
+    : <Table>
+      <caption className="sr-only">Seriile de documente configurate</caption>
+      <thead><tr>
+        <Th scope="col">Tip document</Th><Th scope="col">Serie</Th><Th scope="col">Stare</Th><Th scope="col">Acțiune</Th>
+      </tr></thead>
+      <tbody>
+        {series.map((item) => {
+          const busy = archiving === seriesKey(item)
+          return <tr key={seriesKey(item)}>
+            <Td label="Tip document">{DOCUMENT_TYPE_LABELS[item.documentType]}</Td>
+            <Td label="Serie"><strong>{item.series}</strong></Td>
+            <Td label="Stare">
+              <Badge tone={item.archived ? "muted" : "positive"}>{seriesStateLabel(item)}</Badge>
+            </Td>
+            <Td label="Acțiune">
+              <Button variant="secondary" size="sm" aria-label={archiveActionLabel(item, busy)} aria-busy={busy}
+                onClick={() => { onToggleArchived(item) }}>
+                {busy ? "Se salvează…" : archiveActionText(item)}
+              </Button>
+            </Td>
+          </tr>
+        })}
+      </tbody>
+    </Table>

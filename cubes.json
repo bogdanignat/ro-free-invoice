@@ -1,0 +1,25 @@
+{
+  "summary": "Romanian invoicing parent with its required child cubes and the payments, e-Factura and company-lookup plugins.",
+  "cubes": [
+    "invoicing",
+    "invoicing/catalog",
+    "invoicing/corrections",
+    "invoicing/customers",
+    "invoicing/documents",
+    "invoicing/drafts",
+    "invoicing/issuance",
+    "invoicing/issuer",
+    "invoicing/items",
+    "invoicing/money",
+    "invoicing/issues",
+    "invoicing/parties",
+    "invoicing/payments",
+    "invoicing/efactura",
+    "invoicing/efactura/connection",
+    "invoicing/efactura/submissions",
+    "invoicing/efactura/reconciliation",
+    "invoicing/efactura/received",
+    "invoicing/efactura/received-ubl",
+    "invoicing/company-lookup"
+  ]
+}

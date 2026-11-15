@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Field } from "../ui/Field.tsx"
+import { Hint } from "../ui/Hint.tsx"
 import { Input } from "../ui/Input.tsx"
 
 interface LineIdentifierFieldProps {
@@ -32,6 +33,6 @@ export const LineIdentifierField = (props: LineIdentifierFieldProps) => {
       aria-invalid={shown === null ? undefined : true} aria-describedby={shown === null ? undefined : issueId}
       onBlur={() => { setTouched(true) }} onInvalid={() => { setTouched(true) }}
       onChange={(event) => { props.onChange(event.currentTarget.value) }} />
-    {shown === null ? null : <p className="hint warning" id={issueId}>{shown}</p>}
+    {shown === null ? null : <Hint tone="warning" id={issueId}>{shown}</Hint>}
   </Field>
 }

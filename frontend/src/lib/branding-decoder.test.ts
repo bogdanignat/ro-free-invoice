@@ -18,6 +18,7 @@ const ISSUER = {
   defaultPaymentTermDays: 15,
   vatConfigurations: [],
   currentVat: null,
+  vatPeriods: [],
   branding: null,
 }
 

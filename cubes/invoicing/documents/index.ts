@@ -12,13 +12,7 @@ export const cube = {
     summary: "Immutable rendered invoice representations and artifact recovery",
     required: true,
     tables: ["invoice_artifacts", "proforma_artifacts"],
-    requiresAuth: true,
-    permissions: [
-      { name: documentsPermissions.read, roles: ["admin"] },
-      { name: documentsPermissions.render, roles: ["admin"] },
-    ],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { createArtifactService } from "./application/artifacts.ts"

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 
-import { Button } from "./Button.tsx"
+import { Button } from "./ui/Button.tsx"
+import { CardText } from "./ui/CardText.tsx"
+import { StatusNote } from "./ui/StatusNote.tsx"
 import { ApiFailure } from "../lib/api-errors.ts"
 
 interface ErrorAlertProps {
@@ -11,16 +13,19 @@ interface ErrorAlertProps {
 
 export const ErrorAlert = ({ error, onRetry }: ErrorAlertProps) => {
   const failure = error instanceof ApiFailure ? error : undefined
-  return <div className="alert" role="alert">
+  return <StatusNote tone="error" role="alert">
     <strong>Nu am putut finaliza operația.</strong>
-    <p>{failure?.message ?? (error instanceof Error ? error.message : "A apărut o eroare neașteptată.")}</p>
-    {onRetry === undefined ? null : <p><Button type="button" onClick={onRetry}>Reîncearcă</Button></p>}
-  </div>
+    <CardText>{failure?.message ?? (error instanceof Error ? error.message : "A apărut o eroare neașteptată.")}</CardText>
+    {onRetry === undefined ? null : <CardText><Button type="button" onClick={onRetry}>Reîncearcă</Button></CardText>}
+  </StatusNote>
 }
 
-export const Loading = ({ label }: { readonly label: string }) => <div className="center-state" role="status">
-  <span className="spinner" aria-hidden="true" /><p>{label}</p>
-</div>
+export const Loading = ({ label }: { readonly label: string }) =>
+  <div className="grid place-items-center min-h-[45vh] text-invoice-muted" role="status">
+    <span className="size-8 rounded-full border-3 border-invoice-border border-t-invoice-primary animate-[spin_.8s_linear_infinite]" aria-hidden="true" />
+    <CardText>{label}</CardText>
+  </div>
 
+// In a card the sentence also takes the legacy `.card p` line height.
 export const EmptyState = ({ children }: { readonly children: ReactNode }) =>
-  <p className="empty-state">{children}</p>
+  <p className="m-0 py-7 text-invoice-muted text-center in-data-[card]:leading-[1.6]">{children}</p>

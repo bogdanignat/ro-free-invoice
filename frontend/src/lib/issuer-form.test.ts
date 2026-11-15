@@ -22,6 +22,7 @@ const issuer: Issuer = {
   defaultPaymentTermDays: 30,
   vatConfigurations: [],
   currentVat: { registered: true, effectiveFrom: "2026-08-01" },
+  vatPeriods: [],
   branding: { text: "Marca", image: null },
 }
 

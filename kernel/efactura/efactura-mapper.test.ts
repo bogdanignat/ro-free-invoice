@@ -40,7 +40,7 @@ const invoice: IssuedInvoice = {
   draftId: null,
   sourceProformaId: null,
   eFacturaStatus: "not_sent",
-  series: "QWBE",
+  series: "RFI",
   number: 7,
   issueDate: "2026-09-01",
   dueDate: "2026-09-16",
@@ -72,7 +72,7 @@ const correction: CorrectionDocument = {
   organizationId: "org-1",
   originalInvoiceId: "invoice-1",
   fiscalYear: 2026,
-  series: "QWBE-STORNO",
+  series: "RFI-STORNO",
   number: 3,
   issueDate: "2026-09-20",
   issuedAt: "2026-09-20T10:00:00.000Z",
@@ -97,8 +97,8 @@ const correction: CorrectionDocument = {
 }
 
 void test("names the document exactly as the printed invoice does", () => {
-  assert.equal(documentNumber(invoice), "QWBE 7")
-  assert.equal(mapIssuedInvoice(invoice).id, "QWBE 7")
+  assert.equal(documentNumber(invoice), "RFI 7")
+  assert.equal(mapIssuedInvoice(invoice).id, "RFI 7")
 })
 
 void test("maps an issued invoice without recomputing any of its amounts", () => {
@@ -120,7 +120,7 @@ void test("states the delivery date only when it precedes the issue date (BT-72)
   assert.equal(same.actualDeliveryDate, null)
   // Pinned from the XML rendered before BT-72 existed: same-day delivery leaves the bytes untouched.
   assert.equal(createHash("sha256").update(renderEFacturaXml(same)).digest("hex"),
-    "25a17c859cf71ebf23f74989d49e829f36553a4b82012298a7955d811517ae04")
+    "55af35e9af43816b57ddfe03dbc8d92f81631404b6d6b979b1df5fd3febd325d") // T-2711: seria -> RFI
   assert.equal(mapCorrection(correction, { ...invoice, supplyDate: "2026-08-20" }).actualDeliveryDate, null)
 })
 
@@ -189,9 +189,9 @@ void test("puts a Bucharest sector where the city name belongs", () => {
 void test("maps a correction to a credit note in positive amounts", () => {
   const mapped = mapCorrection(correction, invoice)
   assert.equal(mapped.kind, "credit_note")
-  assert.equal(mapped.id, "QWBE-STORNO 3")
+  assert.equal(mapped.id, "RFI-STORNO 3")
   assert.equal(mapped.dueDate, null)
-  assert.deepEqual(mapped.precedingInvoice, { id: "QWBE 7", issueDate: "2026-09-01" })
+  assert.deepEqual(mapped.precedingInvoice, { id: "RFI 7", issueDate: "2026-09-01" })
   assert.deepEqual(mapped.notes, ["Stornare integrală: servicii nelivrate"])
   assert.equal(mapped.lineExtensionAmount, "300.00")
   assert.equal(mapped.taxAmount, "63.00")
@@ -333,7 +333,7 @@ void test("carries both the legal reference and the reason on an Article 310 cre
   const mapped = mapCorrection(article310Correction, article310Invoice)
   assert.equal(mapped.kind, "credit_note")
   assert.deepEqual(mapped.notes, [ARTICLE_310, "Stornare integrală: servicii nelivrate"])
-  assert.deepEqual(mapped.precedingInvoice, { id: "QWBE 7", issueDate: "2026-09-01" })
+  assert.deepEqual(mapped.precedingInvoice, { id: "RFI 7", issueDate: "2026-09-01" })
   assert.equal(mapped.dueDate, null)
   assert.deepEqual(mapped.taxSubtotals.map((subtotal) => [subtotal.percent, subtotal.exemptionReasonCode]),
     [[null, "VATEX-EU-O"]])

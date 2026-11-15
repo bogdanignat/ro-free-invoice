@@ -2,7 +2,7 @@ import { Effect, type Schema } from "effect"
 
 import { bucharestDay, spvDeadline, spvNeedsAction, spvState, spvUrgency } from "../../cubes/invoicing/efactura/submissions/index.ts"
 import {
-  ValidationFailure, type InvoiceRegisterFilter, type InvoiceRegisterRow, type IssuedInvoice, type IssuedInvoiceSummary, type Page,
+  spvFilterUnavailable, validationFailure, type ValidationFailure, type InvoiceRegisterFilter, type InvoiceRegisterRow, type IssuedInvoice, type IssuedInvoiceSummary, type Page,
 } from "../../cubes/invoicing/index.ts"
 import type { InvoiceRegisterPage } from "./schema-invoice-register.ts"
 import type { IssuedInvoice as IssuedInvoiceResponse, IssuedInvoicePage } from "./schema-issuance.ts"
@@ -43,5 +43,5 @@ export const eFacturaStatusView = (active: boolean, now: () => Date = () => new 
     register: (page) => ({ ...page, items: page.items.map((row) => ({ ...row, eFacturaStatus: null, spv: null })) }),
     spvFilter: (spv) => spv === undefined
       ? Effect.succeed(undefined)
-      : Effect.fail(new ValidationFailure({ issues: ["spv filter requires the e-Factura plugin"] })),
+      : Effect.fail(validationFailure([spvFilterUnavailable()])),
   }

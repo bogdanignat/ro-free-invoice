@@ -33,7 +33,7 @@ for (const plugins of combinations) {
         assert.deepEqual(list.items.map((item) => item.eFacturaStatus), [status], "list")
         const proforma = await ok(call("POST", "/api/proformas",
           { customer, proformaSeries: "PRO", issueDate, dueDate, currency: "RON", lines }, "proforma-1"), "proforma")
-        const converted = await ok(call("POST", `/api/proformas/${String(proforma.id)}/invoice`, { invoiceSeries: "QWBE" },
+        const converted = await ok(call("POST", `/api/proformas/${String(proforma.id)}/invoice`, { invoiceSeries: "RFI" },
           "convert-1"), "conversion")
         assert.equal(converted.eFacturaStatus, status, "conversion")
         const correction = await ok(call("POST", `/api/invoices/${id}/corrections`, { reason: "Anulare" }, "storno-1"), "storno")

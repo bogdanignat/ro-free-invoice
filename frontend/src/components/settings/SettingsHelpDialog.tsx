@@ -1,4 +1,5 @@
-import { Button } from "../Button.tsx"
+import { Button } from "../ui/Button.tsx"
+import { Eyebrow } from "../ui/Eyebrow.tsx"
 import { SettingsHelpIdentity } from "./SettingsHelpIdentity.tsx"
 import { SettingsHelpVat } from "./SettingsHelpVat.tsx"
 import { useHelpDialog } from "../../hooks/use-help-dialog.ts"
@@ -17,20 +18,21 @@ import { useHelpDialog } from "../../hooks/use-help-dialog.ts"
 export const SettingsHelpDialog = () => {
   const [dialog, help] = useHelpDialog()
   return <>
-    <Button className="secondary" aria-haspopup="dialog" onClick={help.open}>
+    <Button variant="secondary" aria-haspopup="dialog" onClick={help.open}>
       <span aria-hidden="true">ⓘ</span> Ajutor pentru câmpuri
     </Button>
-    <dialog ref={dialog} className="settings-help-dialog" aria-labelledby="settings-help-title"
-      onClose={help.restoreFocus}>
-      <header>
-        <div><p className="eyebrow">Ghid de completare</p>
-          <h2 id="settings-help-title">Ce înseamnă câmpurile din „Date firmă”</h2></div>
+    <dialog ref={dialog} aria-labelledby="settings-help-title" onClose={help.restoreFocus}
+      className="w-[min(46rem,92vw)] max-h-[86vh] p-0 border border-invoice-border rounded-invoice-panel text-invoice-ink bg-invoice-surface backdrop:bg-invoice-ink/45">
+      <header className="flex gap-4 items-start justify-between px-6 py-5 border-b border-invoice-border">
+        <div><Eyebrow>Ghid de completare</Eyebrow>
+          <h2 id="settings-help-title" className="mt-[.2rem] text-[1.15rem]">Ce înseamnă câmpurile din „Date firmă”</h2></div>
         <form method="dialog">
-          <button className="dialog-close" type="submit" aria-label="Închide ghidul">×</button>
+          <button type="submit" aria-label="Închide ghidul"
+            className="min-w-[2.2rem] min-h-[2.2rem] border border-invoice-control-border rounded-invoice-control text-invoice-label bg-invoice-surface text-[1.1rem] cursor-pointer hover:border-invoice-control-border-hover">×</button>
         </form>
       </header>
-      <div className="settings-help-body"><SettingsHelpIdentity /><SettingsHelpVat /></div>
-      <form className="dialog-actions" method="dialog"><Button type="submit">Am înțeles</Button></form>
+      <div className="grid gap-[1.4rem] max-h-[60vh] px-6 py-5 overflow-y-auto"><SettingsHelpIdentity /><SettingsHelpVat /></div>
+      <form className="flex justify-end px-6 py-4 border-t border-invoice-border" method="dialog"><Button type="submit">Am înțeles</Button></form>
     </dialog>
   </>
 }

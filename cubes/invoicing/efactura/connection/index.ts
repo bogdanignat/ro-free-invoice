@@ -1,5 +1,3 @@
-import { efacturaPermissions } from "./contracts/permissions.ts"
-
 /**
  * The ANAF OAuth connection of an organization: which environment it talks to,
  * the states the stored connection goes through, the single-use attempt that
@@ -9,7 +7,6 @@ import { efacturaPermissions } from "./contracts/permissions.ts"
  * the ports below. It is required inside the e-Factura plugin, so it is on
  * exactly when e-Factura is. Its grants carry the plugin's name.
  */
-const permissions = efacturaPermissions("efactura")
 export const cube = {
   manifest: {
     name: "connection",
@@ -17,10 +14,7 @@ export const cube = {
     summary: "ANAF OAuth connection of an organization: environment, token pair state and the single-use attempt",
     required: true,
     tables: ["efactura_connections", "efactura_oauth_attempts"],
-    requiresAuth: true,
-    permissions: [permissions.read, permissions.manageConnection].map((name) => ({ name, roles: ["admin"] })),
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { connectionMigrations, type ConnectionMigration } from "./contracts/migrations.ts"

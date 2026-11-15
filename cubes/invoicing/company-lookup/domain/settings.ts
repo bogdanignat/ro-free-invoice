@@ -1,6 +1,7 @@
 import { Redacted } from "effect"
 
-import { ValidationFailure } from "../../contracts/failures.ts"
+import { validationFailure } from "../../contracts/failures.ts"
+import * as issue from "../../issues/index.ts"
 
 export const LOOKUP_PROVIDERS = ["none", "anaf", "openapi"] as const
 export type LookupProvider = typeof LOOKUP_PROVIDERS[number]
@@ -42,18 +43,18 @@ const OPENAPI_KEY = /^[\x21-\x7e]{10,200}$/u
 const isProvider = (value: string): value is LookupProvider => (LOOKUP_PROVIDERS as ReadonlyArray<string>).includes(value)
 
 export const validateSettingsUpdate = (update: SettingsUpdate, current: CompanyLookupSettings): ValidatedSettingsUpdate => {
-  const issues: Array<string> = []
-  if (!isProvider(update.provider)) issues.push(`provider must be one of ${LOOKUP_PROVIDERS.join(", ")}`)
+  const issues: Array<issue.IssueDetail> = []
+  if (!isProvider(update.provider)) issues.push(issue.providerInvalid(LOOKUP_PROVIDERS.join(", ")))
   const key = update.openapiKey
-  if (key !== undefined && update.clearOpenapiKey === true) issues.push("openapiKey and clearOpenapiKey cannot be combined")
+  if (key !== undefined && update.clearOpenapiKey === true) issues.push(issue.openapiKeyConflict())
   if (key !== undefined && !OPENAPI_KEY.test(Redacted.value(key))) {
-    issues.push("openapiKey must be 10 to 200 printable ASCII characters without spaces")
+    issues.push(issue.openapiKeyInvalid())
   }
   const openapiKey: KeyChange = key !== undefined ? { kind: "set", key }
     : update.clearOpenapiKey === true ? { kind: "clear" } : { kind: "keep" }
   const keyAfter = openapiKey.kind === "set" || (openapiKey.kind === "keep" && current.openapiKey !== undefined)
-  if (update.provider === "openapi" && !keyAfter) issues.push("provider openapi requires a configured openapiKey")
-  if (issues.length > 0) throw new ValidationFailure({ issues })
+  if (update.provider === "openapi" && !keyAfter) issues.push(issue.openapiKeyRequired())
+  if (issues.length > 0) throw validationFailure(issues)
   return { provider: update.provider as LookupProvider, openapiKey }
 }
 

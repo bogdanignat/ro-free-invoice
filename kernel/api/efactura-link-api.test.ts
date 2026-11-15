@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import { cutAfter, privateBuyer } from "../efactura/dispatch/dispatch.test-support.ts"
-import { candidates, conflict, link, listCalls, withRig } from "./efactura-reconciliation.test-support.ts"
+import { candidates, codes, conflict, link, listCalls, withRig } from "./efactura-reconciliation.test-support.ts"
 
 /**
  * `POST /api/efactura/submissions/{id}/link`: an upload whose answer was lost
@@ -29,8 +29,10 @@ void test("an index ANAF lists links the unknown submission, and the dispatcher'
     [["5000000001", "FACTURA TRIMISA", false], ["5000000002", "FACTURA TRIMISA", true]], "an index another submission holds is marked")
     assert.equal(listCalls(rig).length, 1, "marking linked indexes reads local data only")
 
-    for (const body of [{ uploadIndex: "5000000001" }, { uploadIndex: "5000000001", confirmed: false }, { uploadIndex: "50-1", confirmed: true }]) {
-      assert.equal((await link(rig, id, body)).status, 400, JSON.stringify(body))
+    for (const [body, code] of [[{ uploadIndex: "5000000001" }, "invalid_input"], [{ uploadIndex: "5000000001", confirmed: false }, "upload_index_invalid"],
+      [{ uploadIndex: "50-1", confirmed: true }, "upload_index_invalid"]] as const) {
+      const refused = await link(rig, id, body)
+      assert.deepEqual([refused.status, codes(refused)], [400, [code]], JSON.stringify(body))
     }
     const asked = listCalls(rig).length
     assert.equal(asked, 1, "a refused body never reaches ANAF")

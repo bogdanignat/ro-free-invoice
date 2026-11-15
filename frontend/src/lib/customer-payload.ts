@@ -1,5 +1,5 @@
 import { customerSectorRequired, normalizeCustomerIdentifier, type CustomerForm } from "./customer-form.ts"
-import { isRomanianCountyCode } from "./romanian-counties.ts"
+import { isRomanianCountyCode, type RomanianCounty } from "./romanian-counties.ts"
 import { romanianCuiPattern } from "./vat-defaults.ts"
 import type { CustomerInput } from "./registry-client.ts"
 
@@ -55,7 +55,7 @@ const identifierIssue = (form: CustomerForm, identifier: string): CustomerValida
     : issue("fiscalIdentifier", "CUI-ul este numeric, fără prefixul RO, și nu începe cu zero.")
 }
 
-export const customerPayload = (form: CustomerForm): CustomerValidation => {
+export const customerPayload = (form: CustomerForm, counties: ReadonlyArray<RomanianCounty>): CustomerValidation => {
   const name = form.name.trim()
   if (name === "") return issue("name", "Denumirea clientului este obligatorie.")
   const fiscalIdentifier = normalizeCustomerIdentifier(form.partyType, form.fiscalIdentifier.trim())
@@ -65,7 +65,7 @@ export const customerPayload = (form: CustomerForm): CustomerValidation => {
   if (city === "") return issue("city", "Localitatea este obligatorie.")
   const street = form.street.trim()
   if (street === "") return issue("street", "Strada și numărul sunt obligatorii.")
-  if (!isRomanianCountyCode(form.county)) return issue("county", "Alege județul.")
+  if (!isRomanianCountyCode(form.county, counties)) return issue("county", "Alege județul.")
   const sector = Number(form.sector)
   if (customerSectorRequired(form) && !(Number.isInteger(sector) && sector >= 1 && sector <= 6)) {
     return issue("sector", "Adresele din București au un sector, de la 1 la 6.")

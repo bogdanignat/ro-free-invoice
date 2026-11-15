@@ -13,11 +13,10 @@ const ownerSelector = (unit, units) => {
   }
 }
 
-// The isolation unit is a top-level cube together with its child cubes, exactly as the
-// mother's `no-cube-to-cube` rule captures only the first path segment under `cubes/`
-// (QWBE `core/.dependency-cruiser.cjs`; its example plugin has `booktags/bookmarks`
-// importing `../events.ts` from the parent). Two different top-level cubes never
-// import each other; inside one tree `cubeTreeRules` below narrows what may cross.
+// The isolation unit is a top-level cube together with its child cubes, so a child
+// may import from its parent (`invoicing/payments` from `invoicing`). Two different
+// top-level cubes never import each other; inside one tree `cubeTreeRules` below
+// narrows what may cross.
 const treeRoot = (unit, units) => units
   .filter((candidate) => candidate.id === unit.id || unit.id.startsWith(`${candidate.id}/`))
   .sort((left, right) => left.id.length - right.id.length)[0]

@@ -32,7 +32,7 @@ export const DocumentDetail = ({
   eyebrow={eyebrow}
   actions={model.view === undefined ? undefined : <><DocumentDownloads actions={model.downloads} />{action}</>}
 >
-  <p className="back-link"><AppLink href={backHref}>{backLabel}</AppLink></p>
+  <p className="mb-4 text-[.85rem]"><AppLink href={backHref}>{backLabel}</AppLink></p>
   {model.downloads.map((action) => action.error === null
     ? null
     : <ErrorAlert key={action.key} error={action.error} />)}

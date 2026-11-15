@@ -2,9 +2,10 @@ import { array, boolean, integer, nullableText, object, optionalText, text, type
 import { decodeAddress, decodeUnitOfMeasure, decodeVatCategoryCode } from "./document-snapshot-decoders.ts"
 import { decodeIssuerBranding } from "./branding-decoder.ts"
 import type {
-  DocumentSeries, Issuer, ProductPreset, VatCatalogue, VatConfiguration, VatRate, VatRegistration,
+  DocumentSeries, Issuer, ProductPreset, VatCatalogue, VatConfiguration, VatPeriod, VatRate, VatRegistration,
 } from "./draft-models.ts"
 import { canonicalVatTreatment } from "./draft-decoders.ts"
+import type { RomanianCounty } from "./romanian-counties.ts"
 
 /** Decoders for the reference data an authoring session reads: registries, catalogues and the issuer profile. */
 
@@ -51,6 +52,7 @@ export const decodeIssuer: Decoder<Issuer> = (input) => {
     defaultPaymentTermDays: integer(value.defaultPaymentTermDays, "defaultPaymentTermDays"),
     vatConfigurations,
     currentVat,
+    vatPeriods: array(value.vatPeriods, decodeVatPeriod, "vatPeriods"),
     // Branding is decoded in `branding-decoder.ts`: the settings screen edits it,
     // and an answer that omits the field is a contract error, not a logo-less issuer.
     branding: decodeIssuerBranding(value.branding),
@@ -103,7 +105,59 @@ const decodeVatRate: Decoder<VatRate> = (input) => {
   return { ...configuration, kind, label: text(value.label, "label") }
 }
 
+const decodeVatPeriod: Decoder<VatPeriod> = (input) => {
+  const value = object(input)
+  const effectiveFrom = text(value.effectiveFrom, "effectiveFrom")
+  const effectiveTo = optionalText(value.effectiveTo, "effectiveTo")
+  const registered = value.registered === null ? null : boolean(value.registered, "registered")
+  const rates = array(value.rates, decodeVatRate, "rates")
+  const defaultCode = nullableText(value.defaultCode, "defaultCode")
+  // The server offers no rate for a regime it cannot name, and its default is always one it offers.
+  if (registered === null && rates.length > 0) throw new Error("invalid VAT period rates")
+  if (defaultCode === null ? rates.length > 0 : !rates.some(({ code }) => code === defaultCode)) {
+    throw new Error("invalid VAT period defaultCode")
+  }
+  return { effectiveFrom, ...(effectiveTo === undefined ? {} : { effectiveTo }), registered, rates, defaultCode }
+}
+
 export const decodeVatCatalogue: Decoder<VatCatalogue> = (input) => {
   const value = object(input)
   return { rates: array(value.rates, decodeVatRate, "rates") }
+}
+
+export interface TextLimits {
+  readonly partyName: number
+  readonly street: number
+  readonly city: number
+  readonly postalCode: number
+  readonly lineDescription: number
+  readonly documentNotes: number
+}
+
+/** The server's county list and text limits, so the forms never hold a copy of them. */
+export interface ReferenceData {
+  readonly counties: ReadonlyArray<RomanianCounty>
+  readonly textLimits: TextLimits
+}
+
+const decodeCounty: Decoder<RomanianCounty> = (input) => {
+  const value = object(input)
+  return { code: text(value.code, "code"), name: text(value.name, "name") }
+}
+
+export const decodeReferenceData: Decoder<ReferenceData> = (input) => {
+  const value = object(input)
+  const limits = object(value.textLimits)
+  const limit = (field: keyof TextLimits): number => {
+    const value = integer(limits[field], field)
+    if (value < 1) throw new Error(`invalid ${field}`)
+    return value
+  }
+  return {
+    counties: array(value.counties, decodeCounty, "counties"),
+    textLimits: {
+      partyName: limit("partyName"), street: limit("street"), city: limit("city"),
+      postalCode: limit("postalCode"), lineDescription: limit("lineDescription"), documentNotes: limit("documentNotes"),
+    },
+  }
 }

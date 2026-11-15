@@ -1,4 +1,5 @@
-import { ValidationFailure } from "../../contracts/failures.ts"
+import { validationFailure } from "../../contracts/failures.ts"
+import { barcodeInvalid, itemCodeInvalid } from "../../issues/index.ts"
 
 /** BT-155 and BT-157: copied from the product when one is chosen, absent on a line typed by hand. */
 export interface ItemIdentifiers {
@@ -13,7 +14,7 @@ export interface ItemIdentifiers {
 export const normalizeItemCode = (value: string, field: string): string => {
   const code = value.trim()
   if (code.length > 50 || !/^[!-~](?:[ -~]*[!-~])?$/.test(code)) {
-    throw new ValidationFailure({ issues: [`${field} must be 1-50 printable ASCII characters`] })
+    throw validationFailure([itemCodeInvalid(field)])
   }
   return code
 }
@@ -24,7 +25,7 @@ export const validateBarcode = (value: string, field = "barcode"): void => {
   const digits = /^(?:\d{8}|\d{12,14})$/.test(value) ? Array.from(value.padStart(14, "0"), Number) : []
   const sum = digits.reduce((total, digit, index) => total + digit * (index % 2 === 0 ? 3 : 1), 0)
   if (digits.length === 0 || sum % 10 !== 0) {
-    throw new ValidationFailure({ issues: [`${field} must be a GTIN-8, 12, 13 or 14 with a valid check digit`] })
+    throw validationFailure([barcodeInvalid(field)])
   }
 }
 

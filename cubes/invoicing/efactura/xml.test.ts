@@ -16,12 +16,12 @@ const violation = (root: XmlElement): ReadonlyArray<string> => {
 
 void test("renders a declaration, nests children and closes every element", () => {
   const xml = renderXmlDocument(element("Invoice", [
-    text("cbc:ID", "QWBE 1"),
+    text("cbc:ID", "RFI 1"),
     element("cac:Party", [text("cbc:Name", "Acme")]),
   ]))
   assert.equal(xml, `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice>
-  <cbc:ID>QWBE 1</cbc:ID>
+  <cbc:ID>RFI 1</cbc:ID>
   <cac:Party>
     <cbc:Name>Acme</cbc:Name>
   </cac:Party>
@@ -102,6 +102,6 @@ void test("omits optional elements that carry no value rather than emitting them
 })
 
 void test("renders the same bytes for the same document", () => {
-  const build = (): XmlElement => element("Invoice", [text("cbc:ID", "QWBE 1"), text("cbc:IssueDate", "2026-09-17")])
+  const build = (): XmlElement => element("Invoice", [text("cbc:ID", "RFI 1"), text("cbc:IssueDate", "2026-09-17")])
   assert.equal(renderXmlDocument(build()), renderXmlDocument(build()))
 })

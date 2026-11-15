@@ -1,8 +1,11 @@
 import type { InvoiceAuthoringSession } from "../../hooks/invoice-authoring-session-types.ts"
 import { BuyerEditor } from "./BuyerEditor.tsx"
+import { Card } from "../ui/Card.tsx"
 import { Field } from "../ui/Field.tsx"
 import { Input } from "../ui/Input.tsx"
+import { SectionHeading } from "../ui/SectionHeading.tsx"
 import { Select } from "../ui/Select.tsx"
+import { StaticField } from "../ui/StaticField.tsx"
 import { SupplyDateField } from "./SupplyDateField.tsx"
 
 /**
@@ -13,12 +16,10 @@ import { SupplyDateField } from "./SupplyDateField.tsx"
  */
 export const InvoiceAuthoringHeader = ({ session }: { readonly session: InvoiceAuthoringSession }) => {
   const { actions, document, feedback, status } = session
-  return <div className="card authoring-section">
-    <div className="section-heading"><div>
-      <h2>{document.draft === undefined ? "Document nou" : `Draft ${document.draft.series}`}</h2>
-      <p>Numărul se alocă la emitere. Totalurile sunt calculate de server la fiecare salvare.</p>
-    </div></div>
-    <div className="document-date-fields">
+  return <Card as="div" className="grid gap-4">
+    <SectionHeading title={document.draft === undefined ? "Document nou" : `Draft ${document.draft.series}`}
+      description="Numărul se alocă la emitere. Totalurile sunt calculate de server la fiecare salvare." />
+    <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
       <Field label="Serie factură" required>
         <Select required disabled={status.pending} value={document.form.series}
           aria-describedby={feedback.seriesWarning === undefined ? undefined : "invoice-series-warning"}
@@ -39,10 +40,10 @@ export const InvoiceAuthoringHeader = ({ session }: { readonly session: InvoiceA
       <SupplyDateField value={document.form.supplyDate} issueDate={document.form.issueDate}
         issue={feedback.supplyDateIssue} warning={feedback.supplyDateWarning} disabled={status.pending}
         onChange={(supplyDate) => { actions.changeForm({ supplyDate }) }} />
-      <div className="static-field"><span>Monedă</span><span className="fixed-value">RON</span></div>
+      <StaticField label="Monedă">RON</StaticField>
     </div>
     <BuyerEditor
-      form={document.form} customers={document.customers} savedBuyer={document.savedBuyer}
+      form={document.form} customers={document.customers} chosenCustomer={document.chosenCustomer} savedBuyer={document.savedBuyer}
       customersHasMore={document.customersHasMore} customersLoadingMore={document.customersLoadingMore}
       onCustomersLoadMore={document.customersLoadMore}
       disabled={status.pending} sectorRequired={document.buyerSectorRequired}
@@ -51,5 +52,5 @@ export const InvoiceAuthoringHeader = ({ session }: { readonly session: InvoiceA
       onCountyChange={actions.chooseCounty} onFiscalIdentifierChange={actions.changeFiscalIdentifier}
       onSectorChange={actions.chooseSector}
     />
-  </div>
+  </Card>
 }

@@ -1,12 +1,14 @@
 import type { InvoiceAuthoringForm, PartyType } from "../../lib/invoice-authoring-model.ts"
 import { CompanyNameField } from "../company-lookup/CompanyNameField.tsx"
 import { CompanyProposalCard } from "../company-lookup/CompanyProposalCard.tsx"
+import { Checkbox } from "../ui/Checkbox.tsx"
 import { Field } from "../ui/Field.tsx"
+import { FormGrid } from "../ui/FormGrid.tsx"
 import { Input } from "../ui/Input.tsx"
-import { CIUS_TEXT_LIMITS } from "../../lib/cius-text-limits.ts"
+import { useCounties, useTextLimits } from "../../hooks/use-reference-data.ts"
+import { SegmentedControl } from "../ui/SegmentedControl.tsx"
 import { Select } from "../ui/Select.tsx"
 import { identifierLabel } from "../../lib/document-authoring-transitions.ts"
-import { ROMANIAN_COUNTIES } from "../../lib/romanian-counties.ts"
 import { romanianCuiPattern } from "../../lib/vat-defaults.ts"
 import { oneTimeBuyerFill } from "../../lib/company-proposal-fill.ts"
 import { useCompanyLookup } from "../../hooks/use-company-lookup.ts"
@@ -24,16 +26,19 @@ interface BuyerOneTimeFieldsProps {
 
 /** The one-time (ad-hoc) buyer: a party typed on this document and never written to a registry; a company can be completed from its CUI. */
 export const BuyerOneTimeFields = (props: BuyerOneTimeFieldsProps) => {
+  const limits = useTextLimits()
+  const counties = useCounties()
   const { form, disabled, sectorRequired } = props
   const { lookup, nameRef } = useCompanyLookup(form.partyType, form.partyType === "company")
   const fiscalIdentifier = form.partyType === "company" ? form.companyTaxIdentifier : form.individualTaxIdentifier
-  return <div className="form-grid">
-    <fieldset className="segmented-fieldset span-two"><legend>Tip persoană</legend><div className="segmented-control">
-      <label><input type="radio" name="partyType" value="company" checked={form.partyType === "company"} disabled={disabled} onChange={() => { props.onPartyTypeChange("company") }} /><span>Persoană juridică (PJ)</span></label>
-      <label><input type="radio" name="partyType" value="individual" checked={form.partyType === "individual"} disabled={disabled} onChange={() => { props.onPartyTypeChange("individual") }} /><span>Persoană fizică (PF)</span></label>
-    </div></fieldset>
+  return <FormGrid>
+    <SegmentedControl legend="Tip persoană" name="partyType" className="col-span-full" value={form.partyType} onChange={props.onPartyTypeChange}
+      choices={[
+        { value: "company", label: "Persoană juridică (PJ)", disabled },
+        { value: "individual", label: "Persoană fizică (PF)", disabled },
+      ]} />
     <CompanyNameField lookup={lookup} inputRef={nameRef} label={form.partyType === "company" ? "Denumire" : "Nume complet"} value={form.name}
-      disabled={disabled} maxLength={CIUS_TEXT_LIMITS.partyName} onChange={(name) => { props.onChange({ name }) }} />
+      disabled={disabled} maxLength={limits?.partyName} onChange={(name) => { props.onChange({ name }) }} />
     <Field label={identifierLabel(form.partyType)} optional={form.partyType === "individual"} required={form.partyType === "company"}>
       <Input value={fiscalIdentifier} required={form.partyType === "company"} disabled={disabled}
         pattern={form.partyType === "company" ? romanianCuiPattern : "(?:[0-9]{13})?"} maxLength={13}
@@ -44,19 +49,21 @@ export const BuyerOneTimeFields = (props: BuyerOneTimeFieldsProps) => {
     <CompanyProposalCard lookup={lookup} vat="suggested" disabled={disabled}
       onApply={(proposal) => { props.onChange(oneTimeBuyerFill(form, proposal)) }} />
     {form.partyType === "company"
-      ? <label className="checkbox-label"><input type="checkbox" checked={form.vatRegistered} disabled={disabled} onChange={(event) => { props.onChange({ vatRegistered: event.currentTarget.checked }) }} /> Cumpărător înregistrat în scopuri de TVA</label>
+      ? <Checkbox checked={form.vatRegistered} disabled={disabled} onChange={(event) => { props.onChange({ vatRegistered: event.currentTarget.checked }) }}>
+        Cumpărător înregistrat în scopuri de TVA
+      </Checkbox>
       : null}
     <Field label="Țară"><Select value="RO" disabled><option value="RO">România (RO)</option></Select></Field>
     <Field label="Localitate" required>
-      <Input required disabled={disabled} value={form.city} maxLength={CIUS_TEXT_LIMITS.city} onChange={(event) => { props.onChange({ city: event.currentTarget.value }) }} />
+      <Input required disabled={disabled} value={form.city} maxLength={limits?.city} onChange={(event) => { props.onChange({ city: event.currentTarget.value }) }} />
     </Field>
-    <Field label="Stradă și număr" required className="span-two">
-      <Input required disabled={disabled} value={form.street} maxLength={CIUS_TEXT_LIMITS.street} onChange={(event) => { props.onChange({ street: event.currentTarget.value }) }} />
+    <Field label="Stradă și număr" required className="col-span-full">
+      <Input required disabled={disabled} value={form.street} maxLength={limits?.street} onChange={(event) => { props.onChange({ street: event.currentTarget.value }) }} />
     </Field>
     <Field label="Județ" required>
       <Select required disabled={disabled} value={form.county} onChange={(event) => { props.onCountyChange(event.currentTarget.value) }}>
         <option value="" disabled>Alege județul</option>
-        {ROMANIAN_COUNTIES.map((county) => <option key={county.code} value={county.code}>{county.name}</option>)}
+        {counties.map((county) => <option key={county.code} value={county.code}>{county.name}</option>)}
       </Select>
     </Field>
     {sectorRequired
@@ -68,7 +75,7 @@ export const BuyerOneTimeFields = (props: BuyerOneTimeFieldsProps) => {
       </Field>
       : null}
     <Field label="Cod poștal" optional>
-      <Input disabled={disabled} value={form.postalCode} maxLength={CIUS_TEXT_LIMITS.postalCode} onChange={(event) => { props.onChange({ postalCode: event.currentTarget.value }) }} />
+      <Input disabled={disabled} value={form.postalCode} maxLength={limits?.postalCode} onChange={(event) => { props.onChange({ postalCode: event.currentTarget.value }) }} />
     </Field>
-  </div>
+  </FormGrid>
 }

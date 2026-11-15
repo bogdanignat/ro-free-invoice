@@ -37,7 +37,6 @@ works, how to install and run it.
 - [Security model](#security-model)
 - [Repository layout](#repository-layout)
 - [Development](#development)
-- [Relation to QWBE](#relation-to-qwbe)
 - [Documents](#documents)
 - [License](#license)
 
@@ -134,6 +133,8 @@ a rewrite.
 - No email delivery. Delivery means PDF download.
 - No foreign issuers, foreign billing addresses or invoices in other currencies.
 - One organization per installation.
+- No accounting export yet; an export in the format accepted by SAGA is planned as a further
+  cube inside the same application.
 
 This repository is not legal or tax advice. Special VAT regimes, cross-border transactions,
 cash-register rules and sector-specific obligations must be validated with an accountant.
@@ -328,7 +329,7 @@ read-only root filesystem and a bounded `tmpfs` on `/tmp`; named volumes
 reachable only on the application network; the application publishes none either, except
 on `127.0.0.1` with `compose.loopback.yaml`; the API token and the three database passwords
 come from file-based secrets and are never in the image, the environment or the logs; the
-application connects as `qwbe_app`, which cannot change the schema or switch off a trigger,
+application connects as `rfi_app`, which cannot change the schema or switch off a trigger,
 and `migrate` as the schema owner, neither a superuser ([Database access](#database-access));
 `migrate` waits for `db-init`, `app` for `db` being healthy and `migrate` completing
 successfully; the health check hits `/health/ready`; `PUBLIC_ORIGIN`, `IMAGE_TAG` and the
@@ -338,8 +339,8 @@ For a local development setup with Docker Compose see
 [`docs/LOCAL_DEVELOPMENT.md`](./docs/LOCAL_DEVELOPMENT.md). For a bare-metal run without
 Docker: `pnpm install`, `deploy/postgres/grants.sql` run by a superuser on a PostgreSQL 16
 database that already exists (then `ALTER ROLE ... PASSWORD` for both roles), then
-`node bin/ro-free-invoice.ts migrate --apply` as `qwbe_owner` and
-`node bin/ro-free-invoice.ts serve` as `qwbe_app`, with the variables below set.
+`node bin/ro-free-invoice.ts migrate --apply` as `rfi_owner` and
+`node bin/ro-free-invoice.ts serve` as `rfi_app`, with the variables below set.
 
 ## Database access
 
@@ -349,19 +350,19 @@ start ([`deploy/postgres/grants.sql`](./deploy/postgres/grants.sql)):
 | Role | Used by | Rights |
 |---|---|---|
 | `postgres` | `db` (sets it when it creates the cluster), `db-init`, `scripts/production/restore.sh`, the test rig | the cluster's superuser; never the application |
-| `qwbe_owner` | `migrate`, `restore` | owns the database and its `public` schema (DDL and DML there); NOSUPERUSER |
-| `qwbe_app` | `app` (`serve`, `backup`, `doctor`) | DML on the tables, the sequences and the functions; CREATE on the database, for the drift replay's scratch schema (below). It cannot create anything in `public`, switch off a trigger (`ALTER TABLE ... DISABLE TRIGGER`, `session_replication_role`) or reach the server (`COPY ... TO PROGRAM`, `pg_read_file`, `ALTER SYSTEM`) |
+| `rfi_owner` | `migrate`, `restore` | owns the database and its `public` schema (DDL and DML there); NOSUPERUSER |
+| `rfi_app` | `app` (`serve`, `backup`, `doctor`) | DML on the tables, the sequences and the functions; CREATE on the database, for the drift replay's scratch schema (below). It cannot create anything in `public`, switch off a trigger (`ALTER TABLE ... DISABLE TRIGGER`, `session_replication_role`) or reach the server (`COPY ... TO PROGRAM`, `pg_read_file`, `ALTER SYSTEM`) |
 
 Before every `migrate`, the one-off `db-init` service runs
 [`deploy/postgres/db-init.sh`](./deploy/postgres/db-init.sh) on the active database, as
-the superuser: it creates the two roles when missing, makes `qwbe_owner` the owner of the
+the superuser: it creates the two roles when missing, makes `rfi_owner` the owner of the
 database, applies the grants and sets both role passwords from their files. It is
 idempotent. It runs as root in the postgres image because only root can read the 0600
 secret files there. The files are Docker secrets: the superuser's into `db`, all three
 into `db-init`, the owner's into `migrate`, the application's into `app`. None of them goes
 into `.env` or an environment variable.
 
-CREATE on the database is the one right of `qwbe_app` beyond DML. Readiness and `doctor`
+CREATE on the database is the one right of `rfi_app` beyond DML. Readiness and `doctor`
 replay the migrations into a scratch schema and roll it back, and that needs a real schema:
 in `pg_temp` the functions its triggers call are not found. The same right lets whoever
 controls the application's connection (an SQL injection, say) create and keep a schema of
@@ -419,9 +420,9 @@ You do not need a password for this. The port is not published and, inside the `
 container, `psql` connects over the local socket without one:
 
 ```bash
-# Development (compose.yaml): the database is qwbe_invoicing.
-docker compose exec db psql -U postgres -d qwbe_invoicing
-#   qwbe_invoicing=# SET ROLE qwbe_app;   -- to see exactly what the application may do
+# Development (compose.yaml): the database is rfi_dev.
+docker compose exec db psql -U postgres -d rfi_dev
+#   rfi_dev=# SET ROLE rfi_app;   -- to see exactly what the application may do
 ```
 
 In production the database is the `RFI_PGDATABASE` of `.env` (`ro_free_invoice` at install,
@@ -429,11 +430,11 @@ another one after `scripts/production/restore.sh`), on the stack of
 `docker compose -f compose.prod.yaml`.
 
 A password is needed only by a client outside the container (for example a GUI client
-through a port you publish yourself): connect as `qwbe_app`, with `.local/pg-app-password`.
+through a port you publish yourself): connect as `rfi_app`, with `.local/pg-app-password`.
 
 ### Rotate them, keeping the data
 
-`qwbe_owner` and `qwbe_app`: stop `app`, write the new file, then recreate the stack;
+`rfi_owner` and `rfi_app`: stop `app`, write the new file, then recreate the stack;
 `db-init` sets the new password before `migrate` and `app` connect with it.
 
 ```bash
@@ -468,7 +469,7 @@ replaces the file.
 In production run the same steps with `-f compose.prod.yaml` (and `--profile proxy` if you
 run Caddy) on every `docker compose` command and the paths from `PG_SUPERUSER_PASSWORD_PATH`,
 `PG_OWNER_PASSWORD_PATH` and `PG_APP_PASSWORD_PATH`; the same applies to looking at the data
-above. For `qwbe_app`:
+above. For `rfi_app`:
 
 ```bash
 cd /opt/ro-free-invoice
@@ -504,7 +505,7 @@ Everything is configured through environment variables, read once at startup.
 | `PGHOST` | `db` | PostgreSQL host |
 | `PGPORT` | `5432` | PostgreSQL port |
 | `PGDATABASE` | `ro_free_invoice` | the one database this installation owns |
-| `PGUSER` | `qwbe_app` | the database role; the Compose files set `qwbe_owner` for `migrate` and `qwbe_app` for `app` ([Database access](#database-access)) |
+| `PGUSER` | `rfi_app` | the database role; the Compose files set `rfi_owner` for `migrate` and `rfi_app` for `app` ([Database access](#database-access)) |
 | `PGPASSWORD_FILE` | none | path to the file holding that role's password; required outside development, never read from `PGPASSWORD` |
 | `NODE_ENV` | `production` | unset means `production`: `PGPASSWORD_FILE`, `PUBLIC_ORIGIN` and `RFI_UI_DIR` are required to serve, cookies are `Secure` and destructive CLI operations need `--confirm-production`. Local runs set `development` explicitly (`compose.yaml` does) |
 | `ORGANIZATION_ID` | none (`local-organization` in the Compose files) | the internal, stable id of the company this installation serves, e.g. `hint` or `ro12345678`; every record is scoped to it, the ANAF tokens included. Set it in production. Not a secret, and printed on no invoice, PDF or XML. Only an empty value is refused; use lowercase letters, digits and hyphens, no spaces. Chosen once, before the first start, and never changed: records under the old id would no longer be found, and a restore needs the same id |
@@ -525,13 +526,13 @@ Variables used only by the Compose files, in `.env`:
 | `APP_LOOPBACK_PORT` | host port on `127.0.0.1` for a reverse proxy already on the host; required by `compose.loopback.yaml`, unused otherwise |
 | `AUTH_TOKEN_PATH` | host path of the token file mounted as the secret |
 | `APP_DOMAIN` | local development only: the Warden domain in `compose.yaml`, default `invoice.test` |
-| `DATA_VOLUME_NAME` | name of the data volume in `compose.yaml`, default `qwbe-invoicing-data` (kept from before the rename) |
+| `DATA_VOLUME_NAME` | name of the data volume in `compose.yaml`, default `rfi-dev-data` |
 | `PG_SUPERUSER_PASSWORD_PATH` | host path of the `postgres` superuser's password file, mounted into `db` and `db-init` only (required with no fallback in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-superuser-password`; the preview uses `PREVIEW_PG_SUPERUSER_PASSWORD_PATH`) |
-| `PG_OWNER_PASSWORD_PATH` | host path of `qwbe_owner`'s password file, mounted into `db-init` and `migrate` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-owner-password`; the preview uses `PREVIEW_PG_OWNER_PASSWORD_PATH`) |
-| `PG_APP_PASSWORD_PATH` | host path of `qwbe_app`'s password file, mounted into `db-init` and `app` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-app-password`; the preview uses `PREVIEW_PG_APP_PASSWORD_PATH`) |
+| `PG_OWNER_PASSWORD_PATH` | host path of `rfi_owner`'s password file, mounted into `db-init` and `migrate` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-owner-password`; the preview uses `PREVIEW_PG_OWNER_PASSWORD_PATH`) |
+| `PG_APP_PASSWORD_PATH` | host path of `rfi_app`'s password file, mounted into `db-init` and `app` (required in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/pg-app-password`; the preview uses `PREVIEW_PG_APP_PASSWORD_PATH`) |
 | `COMPANY_LOOKUP_KEY_PATH` | host path of the company-lookup master key file, mounted as a secret into the application (required with no fallback in `compose.prod.yaml`; `compose.yaml` defaults to `./.local/company-lookup-key`; the preview uses `PREVIEW_COMPANY_LOOKUP_KEY_PATH`) |
-| `PG_VOLUME_NAME` | name of the cluster volume in `compose.yaml`, default `qwbe-invoicing-postgres` |
-| `BACKUP_STAGING_VOLUME_NAME` | name of the `backup`/`restore` staging volume in `compose.yaml`, default `qwbe-invoicing-backup-staging` |
+| `PG_VOLUME_NAME` | name of the cluster volume in `compose.yaml`, default `rfi-dev-postgres` |
+| `BACKUP_STAGING_VOLUME_NAME` | name of the `backup`/`restore` staging volume in `compose.yaml`, default `rfi-dev-backup-staging` |
 
 ## e-Factura with ANAF
 
@@ -625,7 +626,7 @@ applied migrations recorded. A backup whose database references a PDF missing fr
 
 `restore --input <archive>` is a dry-run that verifies the whole archive and reports the
 target. `restore --input <archive> --apply` writes the artifacts and executes
-`database.sql` through `psql` **as the schema owner role (`qwbe_owner`, NOSUPERUSER)**, so
+`database.sql` through `psql` **as the schema owner role (`rfi_owner`, NOSUPERUSER)**, so
 it runs in the `migrate` service, and only an archive you trust may be applied: the
 manifest digests prove integrity, never authenticity. A hostile archive still gets the
 owner's rights on that one database, but not a shell: `psql --file` would also run backslash
@@ -635,7 +636,7 @@ matching `\unrestrict <key>` is its last line. In between psql refuses every met
 Anything else is refused before the target is touched, by the dry run, by `--apply` and by
 `backup-inspect` alike.
 
-It requires an empty target database: create a fresh one `OWNER qwbe_owner` as `postgres`,
+It requires an empty target database: create a fresh one `OWNER rfi_owner` as `postgres`,
 run `db-init` on it (`run --rm --no-deps -e PGDATABASE=<new> db-init`) and restore into
 that; nothing is ever dropped. Outside development it also requires `--confirm-production`.
 `restore` keeps the archive's schema as it was; an archive older than the image is then
@@ -649,35 +650,6 @@ backup strategy.
 
 From a checkout of `main`, `scripts/production/deploy.sh` does the upgrade with its
 backup, rollback and restore decision ([`docs/RELEASE.md`](./docs/RELEASE.md), "Upgrade").
-
-An `.env` from an earlier release needs three new keys first (see `.env.example`):
-`RFI_PGDATABASE` (the current database, `ro_free_invoice`) and `RFI_DATA_VOLUME`
-(the current data volume, `ro-free-invoice-data`), which `compose.prod.yaml` now
-requires, and `BACKUP_DIR` (an absolute directory outside the checkout), which the
-scripts require. The three database password paths replace `PG_PASSWORD_PATH`
-([Database access](#database-access)).
-
-A cluster created before them has `qwbe` as its superuser and is not converted: `db-init`
-stops with `password authentication failed for user "postgres"`, the `db` log adds
-`Role "postgres" does not exist`, and `migrate` and `app` do not start. During development
-it is recreated:
-
-1. If the data matters, back it up **before** pulling the new release, with the old
-   checkout still in place ([Data, backup and restore](#data-backup-and-restore)): the new
-   Compose files log in as `qwbe_app`, which the old cluster does not have.
-2. Pull the new release, then in `.env` replace the `PG_PASSWORD_PATH` line with:
-   ```bash
-   PG_SUPERUSER_PASSWORD_PATH=./.local/pg-superuser-password
-   PG_OWNER_PASSWORD_PATH=./.local/pg-owner-password
-   PG_APP_PASSWORD_PATH=./.local/pg-app-password
-   ```
-   (absolute paths outside the checkout in production, as in `.env.example`).
-3. `scripts/init-secrets.sh` creates the three new files and keeps the others.
-4. `docker compose down -v` deletes the old cluster, the PDFs and the backup staging.
-   The old `pg-password` file is no longer read; delete it.
-5. `docker compose up -d --build`, then `docker compose ps -a`: `db-init` and `migrate`
-   exited 0 and `app` is healthy. `doctor --json` confirms it. A backup from step 1 is
-   restored as described in [Data, backup and restore](#data-backup-and-restore).
 
 By hand:
 
@@ -719,15 +691,19 @@ docker compose exec app sh -c 'wget -qO- --header "Host: invoice.test" \
   --header "Authorization: Bearer $(cat /run/secrets/api_token)" http://127.0.0.1:3000/api/customers'
 docker compose exec app sh -c 'wget -qO- --header "Host: invoice.test" --header "Origin: https://invoice.test" \
   --header "Authorization: Bearer $(cat /run/secrets/api_token)" --header "Content-Type: application/json" \
-  --post-data "{\"documentType\":\"invoice\",\"series\":\"QWBE\"}" http://127.0.0.1:3000/api/document-series'
+  --post-data "{\"documentType\":\"invoice\",\"series\":\"RFI\"}" http://127.0.0.1:3000/api/document-series'
 ```
 
 `GET /api` is the authenticated Swagger page (linked from Setări): without a valid
 session it redirects to `/unlock`. Its OpenAPI 3.1 document is generated from the same
 Effect `HttpApi` contract served by `HttpApiBuilder`.
 The builder handles routing, decoding and response encoding; input errors retain
-the existing `400 ValidationFailure` envelope. The server disposes its Effect
-handler on shutdown.
+the existing `400 ValidationFailure` envelope: `issues` (English text) and `details`, aligned
+1:1, each `{ code, field?, params? }` from the closed catalogue in `cubes/invoicing/issues/`.
+A body or query that does not decode is `invalid_input` on its field; an e-Factura refusal is
+`efactura_rule` with the rule id in `params.rule` (`BR-RO-120`, or a range such as `BR-O-11..14`), else `efactura_contract`. The
+browser shows the Romanian text of the code and a generic Romanian message for an unknown one.
+The server disposes its Effect handler on shutdown.
 
 | Area | Routes |
 |---|---|
@@ -736,7 +712,7 @@ handler on shutdown.
 | Series | `GET`, `POST /api/document-series`, `PUT /api/document-series/:documentType/:series/archived` |
 | Customers | `GET`, `POST /api/customers`, `GET`, `PUT`, `DELETE /api/customers/:id` |
 | Product presets | `GET`, `POST /api/product-presets`, `PUT`, `DELETE /api/product-presets/:id` |
-| Drafts | `GET`, `POST /api/drafts`, `GET`, `PUT`, `DELETE /api/drafts/:id`, lines under `/api/drafts/:id/lines` |
+| Drafts | `GET`, `POST /api/drafts`, `GET`, `PUT`, `DELETE /api/drafts/:id`, lines under `/api/drafts/:id/lines`, `POST /api/drafts/totals-preview` |
 | Issue | `POST /api/invoices`, `POST /api/drafts/:id/issue` |
 | Invoices | `GET /api/invoices`, `GET /api/invoices/:id`, `POST`, `GET /api/invoices/:id/pdf` |
 | Invoice register | `GET /api/invoice-register` — paged invoices and storno documents |
@@ -825,8 +801,8 @@ commit the lock with it. A migration:
   data (an upgrade runs only the new ones);
 - never qualifies an object with `public.`: drift is computed by replaying the applied
   history in a scratch schema;
-- needs no special privilege and has no external effect: it runs as `qwbe_owner`, and
-  the drift replay runs it again as `qwbe_app`;
+- needs no special privilege and has no external effect: it runs as `rfi_owner`, and
+  the drift replay runs it again as `rfi_app`;
 - depends only on its own scope and the scopes before it: a new install runs the scopes
   in order, so an earlier scope cannot use an object a later one creates.
 
@@ -849,8 +825,7 @@ domain and e-Factura keep two-decimal strings; the one conversion is
 `kernel/storage/postgres-money.ts`, without floating point. Quantities (four decimals)
 and VAT rates stay `TEXT`. The PDF and the UI show amounts to people as `6,600.00`
 (quantity `4,800.0000`, VAT rate `21`), through `kernel/documents/pdf-format.ts` and
-`frontend/src/lib/money.ts`; the machine format (API, XML, database, inputs) does not change. The historical probes (`probes/pg-schema-*.mjs`) and the
-SQLite captures in `kernel/parity/` describe the earlier TEXT money schema.
+`frontend/src/lib/money.ts`; the machine format (API, XML, database, inputs) does not change.
 
 Registries (`GET /api/customers`, `/api/product-presets`, `/api/drafts`, `/api/invoice-register`, `/api/invoices`, `/api/proformas`)
 are paged: the response is `{ "items": [...], "nextCursor": "..." | null }`, `?limit=` takes 1 to 200
@@ -873,13 +848,13 @@ The register filters on the server, so any client narrows it the same way: `from
 ignored — `FCT 12`, `FCT12`, `12` — or in the customer name; `%` and `_` match themselves; blank =
 no search; at most 100 characters). Without them the answer is the whole register, as before. A
 cursor pages inside the filter it was issued for. Refusals are `400 ValidationFailure` with an
-issue per field: `from must not be after to`, `from|to must be a calendar date in YYYY-MM-DD format`,
-`kind: kind must be invoice or correction`, `q must be at most 100 characters`,
-`q must not contain control characters`, `limit must be an integer between 1 and 200`.
+issue and a coded detail per field: `range_inverted` (`from must not be after to`), `date_format`
+(`from|to must be a calendar date in YYYY-MM-DD format`), `invalid_input` on `kind` or `spv`,
+`too_long` and `control_characters` on `q`, `limit_out_of_range` (`limit must be an integer between 1 and 200`).
 With the e-Factura plugin on, every row also carries `spv` (SPV group, operational deadline and
 its urgency; `null` with the plugin off) and `spv=unresolved` keeps the documents still to resolve
 in SPV (not sent, rejected/refused, unknown); with the plugin off that filter is refused with
-`spv filter requires the e-Factura plugin`. See `docs/EFACTURA.md`.
+`spv_filter_unavailable` (`spv filter requires the e-Factura plugin`). See `docs/EFACTURA.md`.
 
 Issued invoices have no `DELETE`. Mistakes are handled through correction documents, which are
 numbered in the invoice series like any other invoice (Codul fiscal art. 330). Issue dates cannot be
@@ -1016,7 +991,8 @@ The rest of the model:
 ## Repository layout
 
 ```text
-qwbe-package.json            plugin pack manifest: invoicing and its eleven child cubes
+cubes.json                   inventory of the 20 units: invoicing, its child cubes and the plugins
+gates.config.json            size gate roots and caps
 cubes/invoicing/             core: domain model, VAT arithmetic, ports, contracts, migrations, service composition
 cubes/invoicing/parties/     component: CUI, CNP, counties and sectors shared by issuer and buyers
 cubes/invoicing/items/       component: article code and GTIN rules shared by products and document lines
@@ -1031,17 +1007,23 @@ cubes/invoicing/corrections/ component: correction documents (storno)
 cubes/invoicing/documents/   component: rendered PDFs and artifact recovery
 cubes/invoicing/payments/    plugin: payment records and derived invoice payment status
 cubes/invoicing/efactura/    plugin: RO e-Factura UBL builders, CIUS-RO limits, EN 16931 validation
+cubes/invoicing/efactura/connection/     ANAF OAuth connection: environment, token pair state, attempts
+cubes/invoicing/efactura/submissions/    ANAF submissions: states, answers, polling, call budgets
+cubes/invoicing/efactura/reconciliation/ manual reconciliation of unknown submissions
+cubes/invoicing/efactura/received/       invoices received through the SPV, their archives
+cubes/invoicing/efactura/received-ubl/   reading third-party UBL invoices and credit notes
 cubes/invoicing/company-lookup/ plugin: company lookup settings, CUI/name thresholds, ANAF and openapi.ro mapping
-kernel/                      host, never packaged; config.ts and failure-log.ts at its root
+kernel/                      host, not a cube; config.ts, plugins.ts and failure-log.ts at its root
 kernel/http/                 server, security headers, readiness, API docs
 kernel/auth/                 credentials, browser session, login throttle
 kernel/api/                  authenticated endpoints: HttpApi contract, schemas, handlers, branding normalizer
 kernel/storage/              PostgreSQL store, pool and transactions, row mappers, migration runner, schema fingerprint
 kernel/documents/            PDF renderer and layout, artifact store and recovery, bundled fonts
-kernel/efactura/             host mapping from issued documents to the e-Factura cube
+kernel/efactura/             host mapping from issued documents to the e-Factura cube; ANAF client, dispatch
 kernel/company-lookup/       ANAF and openapi.ro HTTP clients, the openapi.ro key cipher, the lookup cache
+kernel/crypto/               secrets at rest (AES-256-GCM with caller-owned associated data)
+kernel/outbound/             outbound HTTP: bounded reads, no redirects
 kernel/ops/                  CLI, backup and restore
-kernel/parity/               SQLite baseline fixtures read by the PostgreSQL schema gate
 frontend/                    browser UI: Vite + TanStack Router (file routes in src/routes), built into
                              frontend/dist and served by the kernel from RFI_UI_DIR
 bin/ro-free-invoice.ts        CLI entry point, also the container command
@@ -1063,7 +1045,7 @@ TanStack Query, Tailwind CSS 4; pnpm.
 Every storage, API, HTTP, auth, ops and probe test talks to a live PostgreSQL 16 server,
 so the suite does not run on the host. It runs in the pinned verifier container, on the
 project's own `db` (started when it is down, never stopped), in throwaway databases named
-`rfi_t_<run>_…` that are dropped again; `qwbe_invoicing` is never used:
+`rfi_t_<run>_…` that are dropped again; `rfi_dev` is never used:
 
 ```bash
 scripts/verify-docker.sh install                 # dependencies into the named volumes, frozen
@@ -1077,8 +1059,8 @@ scripts/verify-docker.sh down                    # stops both rigs; removes no v
 scripts/smoke-image.sh                           # the shipped image on its own compose project
 ```
 
-The gates keep the core inside the QWBE cube contract: no host or infrastructure imports
-from `cubes/`, no imports between separate cube trees, inside the invoicing tree a child
+The gates keep the architecture rules of [`FOUNDATION.md`](./FOUNDATION.md): no host or
+infrastructure imports from `cubes/`, no imports between separate cube trees, inside the invoicing tree a child
 enters a sibling or a child only through its `index.ts` (it may use its ancestors' modules),
 no required cube imports a plugin, size caps per file and per unit, a test next to every
 cube. A change that breaks a gate is not mergeable.
@@ -1096,11 +1078,7 @@ cube. A change that breaks a gate is not mergeable.
 | `compose.preview.yaml` | the image built from the checkout, on its own cluster, secrets and volumes, at `http://invoicing-preview.localhost:3181` | developer, opt-in (`--profile preview`) |
 | `compose.verify.yaml` | verification: `pnpm verify` in the pinned Node container, on the project's `db` | `scripts/verify-docker.sh verify` |
 | `compose.test.yaml` | the fast loop: `pnpm test` on the project's `db` | `scripts/verify-docker.sh test` |
-| `compose.pg-probe.yaml` | test rig: PostgreSQL 16 server probes (`scripts/pg16-probe.sh`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
-| `compose.pg-driver-probe.yaml` | test rig: the `pg` driver probe (`probes/pg-driver-probe.mjs`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
-| `compose.pg-schema-gate.yaml` | test rig: the schema gate (`probes/pg-schema-gate.mjs`) on a throwaway cluster | by hand; `pnpm verify` does not use it |
-| `compose.pg-adapters.yaml` | test rig: the PostgreSQL adapter tests on a throwaway cluster of its own (`pnpm test` runs them too) | by hand; `pnpm verify` does not use it |
-| `compose.pg-backup.yaml` | test rig: the backup and restore tests (`pg_dump`, `psql`) on a throwaway cluster of its own (`pnpm test` runs them too) | by hand; `pnpm verify` does not use it |
+| `compose.pg-schema-gate.yaml` | test rig: the schema gate (`probes/pg-schema-gate.mjs`: migrations apply identically, object counts, every trigger refuses its write) on a throwaway cluster | by hand after a schema change; `pnpm verify` does not use it |
 
 ### UI theme and dependency policy
 
@@ -1115,25 +1093,13 @@ and MIT-licensed. Check the package's published license before adding it and rec
 in the change or pull-request notes. This is a review requirement; commercial packages,
 non-MIT packages and packages with unclear licensing are not accepted.
 
-## Relation to QWBE
-
-RO Free Invoice follows the package structure of the [QWBE](https://github.com/theZenNana/qwbe)
-platform: one plugin pack with `invoicing` as the main cube and `payments` and `efactura` as
-plugins. It keeps its own runtime, database, login and UI, and the QWBE mother installs
-nothing. A later integration would let the mother call this API from its backend under the
-contract in [`FOUNDATION.md`](./FOUNDATION.md) section 19; it is not implemented, and the
-kernel is the only way to run the product.
-
-RO CIUS XML export and ANAF e-Factura transport are in the `efactura` plugin. A further
-cube is planned inside the same application: an export in the format accepted by SAGA.
-
 ## Documents
 
 - [`docs/INSTALARE.md`](./docs/INSTALARE.md): ghidul de instalare și configurare în română.
 - [`PRODUCT.md`](./PRODUCT.md): product scope, legal boundary, capabilities, lifecycle,
   deployment, delivery phases, open decisions, references to Romanian legislation and ANAF.
-- [`FOUNDATION.md`](./FOUNDATION.md): architecture, host contracts, plugin pack, future
-  mother contract.
+- [`FOUNDATION.md`](./FOUNDATION.md): architecture, host contracts, unit inventory and
+  plugins, size and verification gates.
 - [`docs/LOCAL_DEVELOPMENT.md`](./docs/LOCAL_DEVELOPMENT.md): local setup, full route
   inventory, operational checks.
 - [`docs/RELEASE.md`](./docs/RELEASE.md): production bundle, install, upgrade, backup,

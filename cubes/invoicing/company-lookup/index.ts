@@ -1,11 +1,9 @@
-import { companyLookupPermission } from "./contracts/permissions.ts"
-
 /**
  * The company-lookup plugin: proposes a company's details from its CUI or name,
  * through ANAF or openapi.ro. The cube is pure: it holds the settings rules, the
  * query thresholds and the mapping of each provider's answer to a proposal. HTTP,
  * key encryption and the settings row are the host's, behind the ports below.
- * Administering it takes the parent's `settings.manage`, which this cube does not declare.
+ * Administering it takes the parent's `settings.manage`.
  */
 const identity = "company-lookup"
 export const cube = {
@@ -15,11 +13,7 @@ export const cube = {
     summary: "Company details proposed from ANAF or openapi.ro by CUI or name",
     required: false,
     tables: ["company_lookup_settings"],
-    requiresAuth: true,
-    // The roles that edit customers, drafts or the issuer.
-    permissions: [{ name: companyLookupPermission(identity), roles: ["admin"] }],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export * from "./contracts/index.ts"

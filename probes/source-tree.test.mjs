@@ -24,7 +24,7 @@ const withRoot = async (build, use) => {
     rmSync(root, { recursive: true, force: true })
   }
 }
-const manifest = (cubes) => JSON.stringify({ name: "invoicing-pack", kind: "plugin", summary: "Invoices", cubes })
+const manifest = (cubes) => JSON.stringify({ summary: "Invoices", cubes })
 const cube = (root, path) => write(root, `cubes/${path}/index.ts`, "export const cube = {}\n")
 const twoCubes = (root) => {
   cube(root, "invoicing")
@@ -37,7 +37,7 @@ test("lists exactly the declared cubes, children included, and not their contrac
     twoCubes(root)
     write(root, "cubes/invoicing/contracts/index.ts", 'export * from "./host.ts"\n')
     write(root, "cubes/invoicing/contracts/host.ts", "export type Host = string\nexport const hostName = \"host\"\n")
-    write(root, "qwbe-package.json", manifest(["invoicing", "invoicing/payments"]))
+    write(root, "cubes.json", manifest(["invoicing", "invoicing/payments"]))
   }, async (root) => {
     assert.deepEqual((await discoverCubeUnits(root)).map(({ id, directory }) => ({ id, directory })), [
       { id: "cubes/invoicing", directory: join(root, "cubes", "invoicing") },
@@ -47,12 +47,12 @@ test("lists exactly the declared cubes, children included, and not their contrac
 })
 
 test("refuses a repository without the package manifest", async () => {
-  await refuses(twoCubes, /qwbe-package.json must be a regular file/)
+  await refuses(twoCubes, /cubes.json must be a regular file/)
 })
 
 test("refuses a package that lists no cube", async () => {
   for (const cubes of [[], undefined, "invoicing"]) {
-    await refuses((root) => write(root, "qwbe-package.json", JSON.stringify({ name: "invoicing-pack", kind: "plugin", cubes })),
+    await refuses((root) => write(root, "cubes.json", JSON.stringify({ cubes })),
       /must list at least one cube/)
   }
 })
@@ -60,7 +60,7 @@ test("refuses a package that lists no cube", async () => {
 test("refuses a cube on disk that the package leaves out", async () => {
   await refuses((root) => {
     twoCubes(root)
-    write(root, "qwbe-package.json", manifest(["invoicing"]))
+    write(root, "cubes.json", manifest(["invoicing"]))
   }, /cubes\/invoicing\/payments declares a cube but is not listed/)
 })
 
@@ -70,7 +70,7 @@ test("refuses an unlisted cube that only re-exports its definition", async () =>
       twoCubes(root)
       write(root, "cubes/invoicing/reporting/cube.ts", "export const cube = { manifest: { name: \"reporting\" } }\n")
       write(root, "cubes/invoicing/reporting/index.ts", entry)
-      write(root, "qwbe-package.json", manifest(["invoicing", "invoicing/payments"]))
+      write(root, "cubes.json", manifest(["invoicing", "invoicing/payments"]))
     }, /cubes\/invoicing\/reporting declares a cube but is not listed/)
   }
 })
@@ -78,7 +78,7 @@ test("refuses an unlisted cube that only re-exports its definition", async () =>
 test("refuses a cube listed twice", async () => {
   await refuses((root) => {
     twoCubes(root)
-    write(root, "qwbe-package.json", manifest(["invoicing", "invoicing/payments", "invoicing"]))
+    write(root, "cubes.json", manifest(["invoicing", "invoicing/payments", "invoicing"]))
   }, /duplicate cube invoicing/)
 })
 
@@ -86,7 +86,7 @@ test("refuses paths that escape cubes/, are absolute or are not plain segments",
   for (const path of ["../kernel", "invoicing/../kernel", "/cubes/invoicing", "./invoicing", "invoicing/", "invoicing//payments", "Invoicing", "", 7]) {
     await refuses((root) => {
       twoCubes(root)
-      write(root, "qwbe-package.json", manifest(["invoicing", "invoicing/payments", path]))
+      write(root, "cubes.json", manifest(["invoicing", "invoicing/payments", path]))
     }, /invalid cube path/)
   }
 })
@@ -94,19 +94,19 @@ test("refuses paths that escape cubes/, are absolute or are not plain segments",
 test("refuses a listed cube or a manifest that is missing or reached through a symbolic link", async () => {
   await refuses((root) => {
     twoCubes(root)
-    write(root, "qwbe-package.json", manifest(["invoicing", "invoicing/payments", "invoicing/missing"]))
+    write(root, "cubes.json", manifest(["invoicing", "invoicing/payments", "invoicing/missing"]))
   }, /cubes\/invoicing\/missing is not a real directory/)
   await refuses((root) => {
     twoCubes(root)
     cube(root, "elsewhere")
     symlinkSync(join(root, "cubes", "elsewhere"), join(root, "cubes", "invoicing", "linked"))
-    write(root, "qwbe-package.json", manifest(["invoicing", "invoicing/payments", "elsewhere", "invoicing/linked"]))
+    write(root, "cubes.json", manifest(["invoicing", "invoicing/payments", "elsewhere", "invoicing/linked"]))
   }, /cubes\/invoicing\/linked is not a real directory/)
   await refuses((root) => {
     twoCubes(root)
     write(root, "elsewhere.json", manifest(["invoicing", "invoicing/payments"]))
-    symlinkSync(join(root, "elsewhere.json"), join(root, "qwbe-package.json"))
-  }, /qwbe-package.json must be a regular file/)
+    symlinkSync(join(root, "elsewhere.json"), join(root, "cubes.json"))
+  }, /cubes.json must be a regular file/)
 })
 
 // Every gate takes its units from the same discovery, so none of them may pass a
@@ -116,7 +116,7 @@ test("every cube gate fails closed without the package manifest", async () => {
     for (const name of readdirSync(probes).filter((file) => file.endsWith(".mjs"))) {
       write(root, `probes/${name}`, readFileSync(join(probes, name), "utf8"))
     }
-    write(root, "qwbe.config.json", JSON.stringify({ sizeFileRoots: [], caps: { maxCharsPerFile: 1, maxCharsPerUnit: 1, maxFilesPerUnit: 1 } }))
+    write(root, "gates.config.json", JSON.stringify({ sizeFileRoots: ["probes"], caps: { maxCodeLinesPerFile: 1, maxCodeLinesPerUnit: 1, maxFilesPerUnit: 1 } }))
     copyFileSync(join(repositoryRoot, "dependency-cruiser.config.cjs"), join(root, "dependency-cruiser.config.cjs"))
     symlinkSync(join(repositoryRoot, "node_modules"), join(root, "node_modules"))
     twoCubes(root)
@@ -124,7 +124,7 @@ test("every cube gate fails closed without the package manifest", async () => {
     for (const gate of ["package-gate.mjs", "test-gate.mjs", "size-gate.mjs", "boundary-gate.mjs"]) {
       const result = spawnSync(process.execPath, [join(root, "probes", gate), "--root", root], { encoding: "utf8" })
       assert.notEqual(result.status, 0, gate)
-      assert.match(result.stderr, /qwbe-package.json must be a regular file/, gate)
+      assert.match(result.stderr, /cubes.json must be a regular file/, gate)
     }
   })
 })

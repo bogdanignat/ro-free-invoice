@@ -33,7 +33,7 @@ its ledger explains; see README, "Schema and migrations".
 `scripts/init-secrets.sh` creates the six secret files once and keeps them on every
 later run. The database has three roles, one password each (README, [Database
 access](../README.md#database-access)): `postgres`, the superuser, for `db-init`, restore
-and the test rig; `qwbe_owner`, the schema owner, for `migrate`; `qwbe_app`, DML only, for
+and the test rig; `rfi_owner`, the schema owner, for `migrate`; `rfi_app`, DML only, for
 `app`. Before every `migrate`, `db-init` applies `deploy/postgres/grants.sql` and sets the
 two role passwords from their files. Never regenerate `.local/pg-superuser-password` after
 the cluster exists (PostgreSQL keeps the first password and `db-init` then fails with
@@ -56,9 +56,8 @@ Persistence is a PostgreSQL 16 cluster in the `db` service — a container like
 everything else here, pinned by digest, on its own named volume, with the cluster
 initialised `--locale=C --encoding=UTF8` because the schema's indexes and keyset
 cursors are written against binary text ordering. Its port is not published; only the
-application network reaches it. PostgreSQL here is a kernel choice and the
-mother's Postgres is a different database: `FOUNDATION.md` section 18 explains why
-this still does not describe mounted operation.
+application network reaches it. The database belongs to this application alone
+(`FOUNDATION.md`, "Data ownership").
 
 Boot order is enforced by Compose, not by documentation: `db` healthy → `migrate`
 completes successfully → `app` starts. `app` never migrates: it takes the maintenance
@@ -116,6 +115,7 @@ Every cube use-case is an `Effect` and has a 1:1 authenticated HTTP endpoint. Au
 - `GET|POST /api/product-presets` / `PUT|DELETE /api/product-presets/:id` — manage optional description-and-unit-price presets; selection copies values into an editable line and never creates a live product-to-invoice relation
 - `POST /api/drafts` / `GET /api/drafts` / `GET|PUT|DELETE /api/drafts/:id` — create / list / read / edit / delete drafts; creation and update require exactly one of `customerId` (saved customer) or `customer` (one-time buyer snapshot), `series` is mandatory and preconfigured as `invoice` on create and optional on update (absent keeps it, a new one must be an active invoice series), and `dueDate` may be omitted or set to `null`
 - `POST /api/drafts/:id/lines` / `PUT|DELETE /api/drafts/:id/lines/:lineId` — add / edit / remove invoice lines; manual authoring remains available without product presets
+- `POST /api/drafts/totals-preview` — totals for unsaved lines (`issueDate`, optional `supplyDate`, `lines` of `quantity`, `unitPrice`, `vatRateCode`), calculated as on save: per-line `totalExcludingVat`/`vatAmount`/`totalIncludingVat` in the order sent, plus `totalExcludingVat`, `vatTotal`, `totalIncludingVat`, `vatBreakdown`; writes nothing and takes no Idempotency-Key
 - `POST /api/drafts/:id/issue` — atomically allocate the next number and freeze the immutable invoice snapshot; issued drafts can no longer be edited or deleted
 - `POST /api/invoices` — issue an invoice atomically from complete authoring content without first persisting a draft
 - `GET /api/invoices` / `GET /api/invoices/:id` — latest 100 issued invoices / immutable issued snapshot (Effect)
@@ -326,24 +326,24 @@ docker compose run --rm --no-deps app node bin/ro-free-invoice.ts backup --outpu
 docker compose run --rm --no-deps -v $(pwd)/.local/backup:/backup app node bin/ro-free-invoice.ts backup --output /backup/rfi-backup.tar.gz --json
 
 # Restore — into a FRESH, empty database AND a fresh artifact volume, never the live
-# `qwbe_invoicing` and `/data`: restore deletes nothing, so it refuses a populated
+# `rfi_dev` and `/data`: restore deletes nothing, so it refuses a populated
 # target, the dry-run included. The archive comes from the host directory above.
-# Owned by qwbe_owner, with the grants in place before anything is restored into it.
+# Owned by rfi_owner, with the grants in place before anything is restored into it.
 docker compose exec db psql -U postgres -d postgres \
-  -c "CREATE DATABASE ro_free_invoice_restored OWNER qwbe_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
-docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored db-init
-docker volume create ro-free-invoice-data-restored
+  -c "CREATE DATABASE rfi_dev_restored OWNER rfi_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'"
+docker compose run --rm --no-deps -e PGDATABASE=rfi_dev_restored db-init
+docker volume create rfi-dev-data-restored
 # Dry-run restore — validates the whole archive and reports the target, writing nothing.
-# In `migrate`: database.sql runs as the schema owner (qwbe_owner), staging on the staging volume.
-docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored \
-  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-qwbe-invoicing-backup-staging}:/var/backups/staging \
-  -v ro-free-invoice-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
+# In `migrate`: database.sql runs as the schema owner (rfi_owner), staging on the staging volume.
+docker compose run --rm --no-deps -e PGDATABASE=rfi_dev_restored \
+  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-rfi-dev-backup-staging}:/var/backups/staging \
+  -v rfi-dev-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
   node bin/ro-free-invoice.ts restore --input /backup/rfi-backup.tar.gz --json
 
 # Apply restore; outside development it also requires --confirm-production
-docker compose run --rm --no-deps -e PGDATABASE=ro_free_invoice_restored \
-  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-qwbe-invoicing-backup-staging}:/var/backups/staging \
-  -v ro-free-invoice-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
+docker compose run --rm --no-deps -e PGDATABASE=rfi_dev_restored \
+  -e TMPDIR=/var/backups/staging -v ${BACKUP_STAGING_VOLUME_NAME:-rfi-dev-backup-staging}:/var/backups/staging \
+  -v rfi-dev-data-restored:/data -v $(pwd)/.local/backup:/backup:ro migrate \
   node bin/ro-free-invoice.ts restore --input /backup/rfi-backup.tar.gz --apply --json
 
 docker compose start app
@@ -375,7 +375,7 @@ Artifacts are copied first and the SQL goes in last as one
 `psql --single-transaction` transaction, so the commit is the only point after which
 rows can reference PDFs. A failure before it leaves an empty database.
 
-`database.sql` is **executed** by `psql` as the schema owner role (`qwbe_owner`), and the
+`database.sql` is **executed** by `psql` as the schema owner role (`rfi_owner`), and the
 archive's checksums live inside the archive: they prove integrity, never authenticity. Its
 backslash meta-commands are not: a dump that pg_dump's `\restrict <key>` ... `\unrestrict <key>`
 does not wrap whole is refused (dry run, `--apply` and `backup-inspect`), so psql runs it in

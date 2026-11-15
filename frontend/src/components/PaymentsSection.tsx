@@ -1,8 +1,16 @@
-import { Button } from "./Button.tsx"
+import { Badge } from "./ui/Badge.tsx"
+import { Button } from "./ui/Button.tsx"
+import { ButtonRow } from "./ui/ButtonRow.tsx"
+import { Card } from "./ui/Card.tsx"
 import { EmptyState, ErrorAlert, Loading } from "./AsyncState.tsx"
+import { FactList } from "./ui/FactList.tsx"
 import { Field } from "./ui/Field.tsx"
+import { FormGrid } from "./ui/FormGrid.tsx"
 import { Input } from "./ui/Input.tsx"
+import { ListItem } from "./ui/ListItem.tsx"
+import { SectionHeading } from "./ui/SectionHeading.tsx"
 import { Select } from "./ui/Select.tsx"
+import { StatusNote } from "./ui/StatusNote.tsx"
 import { Textarea } from "./ui/Textarea.tsx"
 import type { InvoicePaymentsModel } from "../hooks/invoice-payments-query.ts"
 import { ORGANIZATION_TIME_ZONE, todayIn } from "../lib/format.ts"
@@ -17,58 +25,44 @@ import { OVERPAID_NOTE, PAYMENT_METHODS } from "../lib/payment-state.ts"
  */
 export const PaymentsSection = ({ payments }: { readonly payments: InvoicePaymentsModel }) => {
   const { view } = payments
-  return <section className="card">
-    <div className="section-heading">
-      <div>
-        <p className="eyebrow">Încasări</p>
-        <h2>Plăți</h2>
-      </div>
-      {view === undefined
-        ? null
-        : <span className={`badge ${view.statusTone}`}>{view.statusLabel}</span>}
-    </div>
+  return <Card>
+    <SectionHeading eyebrow="Încasări" title="Plăți"
+      aside={view === undefined ? undefined : <Badge tone={view.statusTone}>{view.statusLabel}</Badge>} />
     {view === undefined
       ? payments.isPending
         ? <Loading label="Se încarcă plățile…" />
         : <ErrorAlert error={payments.error} onRetry={payments.retry} />
       : <>
-        <dl className="payment-totals">
-          <div><dt>Încasat</dt><dd>{view.paid}</dd></div>
-          <div><dt>Stornat</dt><dd>{view.credited}</dd></div>
-          <div><dt>Rămas</dt><dd>{view.remaining}</dd></div>
-        </dl>
-        {payments.notice === undefined ? null : <p className="status-note" role="status">{payments.notice}</p>}
+        <FactList layout="payments" items={[
+          { label: "Încasat", value: view.paid }, { label: "Stornat", value: view.credited }, { label: "Rămas", value: view.remaining },
+        ]} />
+        {payments.notice === undefined ? null : <StatusNote>{payments.notice}</StatusNote>}
         {payments.error === null || payments.error === undefined
           ? null
           : <ErrorAlert error={payments.error} onRetry={payments.retry} />}
         {view.rows.length === 0
           ? <EmptyState>Nu există plăți înregistrate.</EmptyState>
           : <div>
-            {view.rows.map((row) => <div className={row.isReversal ? "draft-item reversal" : "draft-item"} key={row.id}>
-              <div className="draft-item-main">
-                <strong>{row.amount}</strong>
-                <small>{row.caption}</small>
-                {row.reference === undefined ? null : <small>{row.reference}</small>}
-                {row.note === undefined ? null : <small>{row.note}</small>}
-              </div>
-              {row.canReverse
-                ? <div className="draft-item-actions">
-                  <Button className="secondary small" aria-label={row.reverseLabel} disabled={payments.pending} onClick={() => { payments.reverse(row.id) }}>
-                    Anulează
-                  </Button>
-                </div>
-                : null}
-            </div>)}
+            {view.rows.map((row) => <ListItem key={row.id} muted={row.isReversal} actions={row.canReverse
+              ? <Button variant="secondary" size="sm" aria-label={row.reverseLabel} disabled={payments.pending} onClick={() => { payments.reverse(row.id) }}>
+                Anulează
+              </Button>
+              : undefined}>
+              <strong>{row.amount}</strong>
+              <small>{row.caption}</small>
+              {row.reference === undefined ? null : <small>{row.reference}</small>}
+              {row.note === undefined ? null : <small>{row.note}</small>}
+            </ListItem>)}
           </div>}
         {view.isOverpaid
-          ? <p className="status-note warning">{OVERPAID_NOTE}</p>
+          ? <StatusNote tone="warning" role={null}>{OVERPAID_NOTE}</StatusNote>
           : null}
-        {view.closedNote === undefined ? null : <p className="status-note">{view.closedNote}</p>}
+        {view.closedNote === undefined ? null : <StatusNote role={null}>{view.closedNote}</StatusNote>}
         {view.canRecordPayment
           ? <details>
             <summary>Înregistrează o plată</summary>
-            <form className="form-card" key={view.formKey} onSubmit={(event) => { event.preventDefault(); payments.record(new FormData(event.currentTarget)) }}>
-              <div className="form-grid">
+            <form className="grid gap-5" key={view.formKey} onSubmit={(event) => { event.preventDefault(); payments.record(new FormData(event.currentTarget)) }}>
+              <FormGrid>
                 <Field label="Sumă" required>
                   <Input name="amount" inputMode="decimal" defaultValue={view.remainingAmount} required />
                 </Field>
@@ -83,18 +77,18 @@ export const PaymentsSection = ({ payments }: { readonly payments: InvoicePaymen
                 <Field label="Referință" optional>
                   <Input name="externalReference" />
                 </Field>
-                <Field label="Notă" optional className="span-two">
+                <Field label="Notă" optional className="col-span-full">
                   <Textarea name="note" rows={2} />
                 </Field>
-              </div>
-              <div className="button-row">
+              </FormGrid>
+              <ButtonRow>
                 <Button type="submit" disabled={payments.pending}>{payments.pending ? "Se salvează…" : "Salvează plata"}</Button>
-              </div>
+              </ButtonRow>
             </form>
           </details>
           : view.isOverpaid || view.closedNote !== undefined
             ? null
-            : <p className="status-note">Soldul facturii este închis; nu mai sunt necesare plăți.</p>}
+            : <StatusNote role={null}>Soldul facturii este închis; nu mai sunt necesare plăți.</StatusNote>}
       </>}
-  </section>
+  </Card>
 }

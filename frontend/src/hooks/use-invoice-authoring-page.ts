@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useAuth } from "./auth-context.ts"
 import { documentSeriesQuery, issuerQuery } from "./reference-queries.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
+import { useReferenceData } from "./use-reference-data.ts"
 import { useAuthoringPagedList } from "./use-authoring-paged-list.ts"
 import type { InvoiceAuthoringPageState } from "./invoice-authoring-page-types.ts"
 import type { BackgroundError } from "./invoice-authoring-session-types.ts"
@@ -33,17 +34,13 @@ export const useInvoiceAuthoringPage = (id: string | undefined): InvoiceAuthorin
   const clients = useInvoicingClients()
   const enabled = status === "authenticated"
   const issuer = useQuery(issuerQuery(clients.reference, enabled))
-  const vatCatalogue = useQuery({
-    queryKey: ["vat-regimes"],
-    enabled,
-    queryFn: ({ signal }) => clients.reference.getVatCatalogue(signal),
-  })
   const series = useQuery(documentSeriesQuery(clients.reference, enabled))
   const unitOfMeasures = useQuery({
     queryKey: ["unit-of-measures"],
     enabled,
     queryFn: ({ signal }) => clients.reference.listUnitOfMeasures(signal),
   })
+  const reference = useReferenceData()
   const customers = useAuthoringPagedList<Customer>(["customers"], (page, signal) => clients.reference.listCustomers(page, signal))
   const presets = useAuthoringPagedList<ProductPreset>(["product-presets"], (page, signal) => clients.reference.listProductPresets(page, signal))
   // A reference list that fails is background, not blocking: the form stays
@@ -78,55 +75,56 @@ export const useInvoiceAuthoringPage = (id: string | undefined): InvoiceAuthorin
     }
   }
   const issuerData = issuer.data
-  const catalogueData = vatCatalogue.data
   const seriesData = series.data
   const unitsData = unitOfMeasures.data
+  const referenceData = reference.data
   const requiredPending = (issuerData === undefined && issuer.isPending)
-    || (catalogueData === undefined && vatCatalogue.isPending)
     || (seriesData === undefined && series.isPending)
     || (unitsData === undefined && unitOfMeasures.isPending)
+    || (referenceData === undefined && reference.isPending)
     || (id === undefined && customers.items === undefined && customers.isPending)
   if (requiredPending) return { kind: "loading" }
   const blockingError = issuerData === undefined
     ? issuer.error
-    : catalogueData === undefined
-      ? vatCatalogue.error
-      : seriesData === undefined
-        ? series.error
-        : unitsData === undefined
-          ? unitOfMeasures.error
+    : seriesData === undefined
+      ? series.error
+      : unitsData === undefined
+        ? unitOfMeasures.error
+        : referenceData === undefined
+          ? reference.error
           : id !== undefined && draft.data === undefined
             ? draft.error
             : null
   if (blockingError !== null) {
     const retry = () => {
       if (issuerData === undefined) void issuer.refetch()
-      if (catalogueData === undefined) void vatCatalogue.refetch()
       if (seriesData === undefined) void series.refetch()
       if (unitsData === undefined) void unitOfMeasures.refetch()
+      if (referenceData === undefined) void reference.refetch()
       if (id !== undefined && draft.data === undefined) void draft.refetch()
     }
     return { kind: "error", error: normalizedFailure(blockingError), retry }
   }
   if (issuerData == null) return { kind: "issuer-required" }
-  if (catalogueData === undefined) return { kind: "vat-catalogue-empty" }
   const seriesOptions = authoringSeriesOptions(seriesData ?? [], "invoice")
   // A saved draft still opens when no series is active: it can be read, edited or deleted, only not issued.
   if (seriesOptions.length === 0 && id === undefined) return { kind: "invoice-series-required" }
   if ((unitsData ?? []).length === 0) return { kind: "unit-catalogue-empty" }
   if (id !== undefined && draft.data === undefined) return { kind: "draft-missing" }
+  // Answered or failed above; a read still disabled (signed out) has nothing to show yet.
+  if (referenceData === undefined) return { kind: "loading" }
   return {
     kind: "ready",
     sessionKey: draft.data?.id ?? "new",
     initialDraft: draft.data,
     issuer: issuerData,
-    vatCatalogue: catalogueData,
     customers: customers.items ?? [],
     customersHasMore: customers.hasMore,
     customersLoadingMore: customers.loadingMore,
     customersLoadMore: customers.loadMore,
     invoiceSeries: seriesOptions,
     unitOfMeasures: unitsData ?? [],
+    notesMaxLength: referenceData.textLimits.documentNotes,
     productPresets: presets.items ?? [],
     presetsHasMore: presets.hasMore,
     presetsLoadingMore: presets.loadingMore,

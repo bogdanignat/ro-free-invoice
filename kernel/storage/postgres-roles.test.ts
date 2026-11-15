@@ -21,16 +21,16 @@ import { resetFingerprintCache, schemaDrift } from "./postgres-schema-fingerprin
 
 /**
  * deploy/postgres/grants.sql, the very file db-init runs, in the order production runs it:
- * on an empty database, before `migrate` creates the schema as qwbe_owner. qwbe_app's
- * rights then come from the default privileges alone. As qwbe_app the application runs
+ * on an empty database, before `migrate` creates the schema as rfi_owner. rfi_app's
+ * rights then come from the default privileges alone. As rfi_app the application runs
  * (readiness with its drift replay, the session, an issued invoice) and everything that
  * would switch off the fiscal guards or reach the server is refused. Last, restore.sh's
- * order: a new database, grants.sql, the dump loaded as qwbe_owner, then `migrate` with a
+ * order: a new database, grants.sql, the dump loaded as rfi_owner, then `migrate` with a
  * migration the dump does not have (an archive older than the image).
  */
 const grants = readFileSync(new URL("../../deploy/postgres/grants.sql", import.meta.url), "utf8")
 
-type Role = "qwbe_owner" | "qwbe_app"
+type Role = "rfi_owner" | "rfi_app"
 interface Login { readonly role: Role; readonly user: string; readonly password: string }
 
 /**
@@ -38,8 +38,8 @@ interface Login { readonly role: Role; readonly user: string; readonly password:
  * Each logs in already acting as its role (`SET role` on the login), so what it creates is the role's.
  */
 const withLogins = async (fixture: TestFixture, use: (owner: Login, app: Login) => Promise<void>): Promise<void> => {
-  const [owner, app] = (["qwbe_owner", "qwbe_app"] as const).map((role) =>
-    ({ role, user: `${fixture.database}_${role.slice(5)}`, password: randomBytes(24).toString("hex") }))
+  const [owner, app] = (["rfi_owner", "rfi_app"] as const).map((role) =>
+    ({ role, user: `${fixture.database}_${role.slice(4)}`, password: randomBytes(24).toString("hex") }))
   if (owner === undefined || app === undefined) throw new Error("two logins")
   const created: Array<string> = []
   try {
@@ -65,10 +65,10 @@ const scalar = async (pool: Pool, text: string): Promise<unknown> =>
 const owners = `SELECT string_agg(DISTINCT pg_get_userbyid(c.relowner), ',') FROM pg_class c
   JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public'`
 const withoutAppRights = `SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-  WHERE n.nspname = 'public' AND ((c.relkind = 'r' AND NOT (has_table_privilege('qwbe_app', c.oid, 'SELECT')
-    AND has_table_privilege('qwbe_app', c.oid, 'INSERT') AND has_table_privilege('qwbe_app', c.oid, 'UPDATE')
-    AND has_table_privilege('qwbe_app', c.oid, 'DELETE')))
-  OR (c.relkind = 'S' AND NOT has_sequence_privilege('qwbe_app', c.oid, 'USAGE')))`
+  WHERE n.nspname = 'public' AND ((c.relkind = 'r' AND NOT (has_table_privilege('rfi_app', c.oid, 'SELECT')
+    AND has_table_privilege('rfi_app', c.oid, 'INSERT') AND has_table_privilege('rfi_app', c.oid, 'UPDATE')
+    AND has_table_privilege('rfi_app', c.oid, 'DELETE')))
+  OR (c.relkind = 'S' AND NOT has_sequence_privilege('rfi_app', c.oid, 'USAGE')))`
 
 const sqlState = async (pool: Pool, statement: string): Promise<string> => {
   try {
@@ -92,7 +92,7 @@ const migrateAsOwner = async (owner: Login, database: string): Promise<void> => 
       "ALTER SYSTEM SET log_statement = 'all'",
       `CREATE ROLE ${database}_intruder`,
       `CREATE DATABASE ${database}_intruder`,
-      "GRANT qwbe_owner TO qwbe_app",
+      "GRANT rfi_owner TO rfi_app",
     ]) assert.equal(await sqlState(pool, statement), "42501", statement)
   } finally {
     await pool.end()
@@ -114,8 +114,8 @@ const newer: SchemaMigration = {
 }
 
 /**
- * restore.sh's `migrate` after the load: qwbe_owner applies the newer migration, with no
- * GRANT after it, and qwbe_app gets DML on the new table, the sequence and the function
+ * restore.sh's `migrate` after the load: rfi_owner applies the newer migration, with no
+ * GRANT after it, and rfi_app gets DML on the new table, the sequence and the function
  * from the default privileges alone, and no DDL on them.
  */
 const migrateRestored = async (target: string, owner: Login, app: Login): Promise<void> => {
@@ -131,9 +131,9 @@ const migrateRestored = async (target: string, owner: Login, app: Login): Promis
     assert.equal((await applyMigrations(asOwner)).changed, 1)
     assert.deepEqual(await schemaDrift(asOwner), [])
     assert.equal(await scalar(asOwner, `SELECT count(*)::int FROM ${ledgerTable} WHERE name = '${newer.name}'`), 1)
-    assert.equal(await scalar(asApp, owners), "qwbe_owner")
-    assert.equal(await scalar(asApp, withoutAppRights), 0, "the migrated objects carry qwbe_app's rights")
-    assert.equal(await scalar(asApp, "SELECT has_function_privilege('qwbe_app', 'roles_test_count()', 'EXECUTE')"), true)
+    assert.equal(await scalar(asApp, owners), "rfi_owner")
+    assert.equal(await scalar(asApp, withoutAppRights), 0, "the migrated objects carry rfi_app's rights")
+    assert.equal(await scalar(asApp, "SELECT has_function_privilege('rfi_app', 'roles_test_count()', 'EXECUTE')"), true)
     await asApp.query("INSERT INTO roles_test_notes(body) VALUES ('after the restore')")
     assert.equal(await scalar(asApp, "SELECT roles_test_count()"), "1")
     for (const statement of [
@@ -149,7 +149,7 @@ const migrateRestored = async (target: string, owner: Login, app: Login): Promis
   }
 }
 
-/** restore.sh's order: a new database, grants.sql, the dump loaded as qwbe_owner, then `migrate`. */
+/** restore.sh's order: a new database, grants.sql, the dump loaded as rfi_owner, then `migrate`. */
 const restoreAsOwner = async (dump: string, owner: Login, app: Login, invoiceId: string): Promise<void> => {
   const target = await createTestDatabase("pg_roles_target")
   const superuser = createQueryPool(testSettings(target))
@@ -165,8 +165,8 @@ const restoreAsOwner = async (dump: string, owner: Login, app: Login, invoiceId:
   assert.equal(loaded.status, 0, loaded.stderr)
   const { pool } = actingAs(app, target)
   try {
-    assert.equal(await scalar(pool, owners), "qwbe_owner")
-    assert.equal(await scalar(pool, withoutAppRights), 0, "the restored objects carry qwbe_app's rights")
+    assert.equal(await scalar(pool, owners), "rfi_owner")
+    assert.equal(await scalar(pool, withoutAppRights), 0, "the restored objects carry rfi_app's rights")
     assert.equal(await scalar(pool, "SELECT count(*)::int FROM issued_invoices"), 1)
     await assert.rejects(pool.query("UPDATE issued_invoices SET series = series WHERE id = $1", [invoiceId]), /immutable/u)
   } finally {
@@ -175,13 +175,13 @@ const restoreAsOwner = async (dump: string, owner: Login, app: Login, invoiceId:
   await migrateRestored(target, owner, app)
 }
 
-/** The application as qwbe_app, the backup it reads, and what CREATE on the database still leaves it. Answers the invoice it issued. */
+/** The application as rfi_app, the backup it reads, and what CREATE on the database still leaves it. Answers the invoice it issued. */
 const runAsApplication = async (fixture: TestFixture, app: Login, dump: string): Promise<string> => {
   const { settings, pool } = actingAs(app, fixture.database)
   const application: TestFixture = { ...fixture, settings, pool,
     config: (overrides = {}) => fixture.config({ pgSettings: settings, ...overrides }) }
   try {
-    // Readiness answers 200 only once the drift replay (CREATE SCHEMA scratch, ROLLBACK) passed as qwbe_app.
+    // Readiness answers 200 only once the drift replay (CREATE SCHEMA scratch, ROLLBACK) passed as rfi_app.
     const server = await serve(application, allPlugins)
     let invoiceId: string
     try {
@@ -201,7 +201,7 @@ const runAsApplication = async (fixture: TestFixture, app: Login, dump: string):
     ]) assert.equal(await sqlState(pool, statement), "42501", statement)
     await assert.rejects(pool.query("UPDATE issued_invoices SET series = series WHERE id = $1", [invoiceId]), /immutable/u)
 
-    // The backup reads as qwbe_app, with the flags backup uses.
+    // The backup reads as rfi_app, with the flags backup uses.
     await dumpDatabase(settings, dump, 60_000)
 
     // CREATE on the database still allows a schema of its own, outside `public`, and a
@@ -226,21 +226,21 @@ const runAsApplication = async (fixture: TestFixture, app: Login, dump: string):
   }
 }
 
-void test("grants.sql, then migrate as qwbe_owner: qwbe_app runs the application on default privileges alone and cannot switch off the fiscal guards; a restored older schema migrates the same way",
+void test("grants.sql, then migrate as rfi_owner: rfi_app runs the application on default privileges alone and cannot switch off the fiscal guards; a restored older schema migrates the same way",
   () => withEmpty("pg_roles", async (fixture) => {
     // Twice: db-init runs it before every migrate, so it has to converge.
     await fixture.sql.exec(grants)
     await fixture.sql.exec(grants)
     const roles = await fixture.sql.query(`SELECT rolname, rolsuper, rolinherit, rolcreatedb, rolcreaterole, rolcanlogin
-      FROM pg_roles WHERE rolname IN ('qwbe_owner', 'qwbe_app') ORDER BY rolname`)
-    assert.deepEqual(roles, ["qwbe_app", "qwbe_owner"].map((rolname) => ({ rolname, rolsuper: false, rolinherit: false,
+      FROM pg_roles WHERE rolname IN ('rfi_owner', 'rfi_app') ORDER BY rolname`)
+    assert.deepEqual(roles, ["rfi_app", "rfi_owner"].map((rolname) => ({ rolname, rolsuper: false, rolinherit: false,
       rolcreatedb: false, rolcreaterole: false, rolcanlogin: true })))
     assert.equal(await fixture.sql.scalar("SELECT pg_get_userbyid(datdba) FROM pg_database WHERE datname = current_database()"),
-      "qwbe_owner")
+      "rfi_owner")
 
     await withLogins(fixture, async (owner, app) => {
       await migrateAsOwner(owner, fixture.database)
-      assert.equal(await scalar(fixture.pool, owners), "qwbe_owner")
+      assert.equal(await scalar(fixture.pool, owners), "rfi_owner")
       assert.equal(await scalar(fixture.pool, withoutAppRights), 0, "no GRANT ran after the objects existed")
 
       const dump = join(fixture.dataDirectory, "database.sql")

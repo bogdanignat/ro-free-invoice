@@ -1,5 +1,3 @@
-import { efacturaPermissions } from "../connection/index.ts"
-
 /**
  * Submissions of issued documents to ANAF e-Factura: the fiscal and archive
  * states with every transition they allow, the reading of ANAF's answers, the
@@ -18,10 +16,7 @@ export const cube = {
       "efactura_submissions", "efactura_resubmissions", "efactura_submission_attempts", "efactura_responses",
       "efactura_dispatcher_epoch", "efactura_message_budgets", "efactura_rate_limits",
     ],
-    requiresAuth: true,
-    permissions: [{ name: efacturaPermissions("efactura").submit, roles: ["admin"] }],
   },
-  create: () => ({ handlers: {} }),
 }
 
 export { submissionsMigrations, type SubmissionsMigration } from "./contracts/migrations.ts"

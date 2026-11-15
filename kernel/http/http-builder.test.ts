@@ -45,12 +45,17 @@ void test("the materialized application contract serves routes and stable transp
 
       const invalid = await call("/api/customers", "POST", JSON.stringify({ name: 1, address: { city: null } }))
       assert.equal(invalid.status, 400)
-      const invalidBody = await invalid.json() as { readonly error: string, readonly issues: ReadonlyArray<string> }
+      const invalidBody = await invalid.json() as {
+        readonly error: string, readonly issues: ReadonlyArray<string>, readonly details: ReadonlyArray<{ code: string, field?: string }>
+      }
       assert.equal(invalidBody.error, "ValidationFailure")
       assert.ok(invalidBody.issues.length > 1)
+      // A decoding refusal keeps Effect's text in `issues` and names the field, coded, in `details`.
+      assert.equal(invalidBody.details.length, invalidBody.issues.length)
+      assert.deepEqual(invalidBody.details.find(({ field }) => field === "name"), { code: "invalid_input", field: "name" })
 
       assert.deepEqual(await (await call("/api/invoices?limit=1&limit=2")).json(), {
-        error: "ValidationFailure", issues: ["limit and cursor must be supplied at most once"],
+        error: "ValidationFailure", issues: ["limit and cursor must be supplied at most once"], details: [{ code: "pagination_repeated" }],
       })
       assert.deepEqual(await (await call("/api/not-a-route")).json(), { error: "not_found" })
       assert.deepEqual(await (await call("/api/invoices/missing", "DELETE")).json(), { error: "method_not_allowed" })

@@ -1,6 +1,6 @@
 import {
   decodeCustomerPage, decodeDocumentSeriesList, decodeIssuer, decodeProductPresetPage,
-  decodeUnitOfMeasures, decodeVatCatalogue,
+  decodeReferenceData, decodeUnitOfMeasures, decodeVatCatalogue, type ReferenceData,
 } from "./authoring-reference-decoders.ts"
 import { decodeCustomer } from "./registry-decoders.ts"
 import { encoded, paged } from "./client-paths.ts"
@@ -25,10 +25,17 @@ export interface AuthoringReferenceClient {
   readonly listDocumentSeries: (signal: AbortSignal) => Promise<ReadonlyArray<DocumentSeries>>
   readonly listUnitOfMeasures: (signal: AbortSignal) => Promise<ReadonlyArray<UnitOfMeasure>>
   readonly getVatCatalogue: (signal: AbortSignal) => Promise<VatCatalogue>
+  /** The cube's county list and text limits: the forms offer and cap what the server accepts. */
+  readonly getReferenceData: (signal: AbortSignal) => Promise<ReferenceData>
   readonly listCustomers: (page: PageRequest | undefined, signal: AbortSignal) => Promise<Page<Customer>>
   readonly getCustomer: (id: string, signal: AbortSignal) => Promise<Customer>
   readonly listProductPresets: (page: PageRequest | undefined, signal: AbortSignal) => Promise<Page<ProductPreset>>
+  /** The first page matching `q` (the server trims it and refuses more than 100 characters). */
+  readonly searchCustomers: (q: string, signal: AbortSignal) => Promise<Page<Customer>>
+  readonly searchProductPresets: (q: string, signal: AbortSignal) => Promise<Page<ProductPreset>>
 }
+
+const searched = (path: string, q: string): string => `${path}?${new URLSearchParams({ q }).toString()}`
 
 export const createAuthoringReferenceClient = (transport: BrowserTransport): AuthoringReferenceClient => ({
   getIssuer: async (signal) => {
@@ -45,10 +52,16 @@ export const createAuthoringReferenceClient = (transport: BrowserTransport): Aut
     decodeUnitOfMeasures(await transport.json("/api/unit-of-measures", { signal })),
   getVatCatalogue: async (signal) =>
     decodeVatCatalogue(await transport.json("/api/vat-regimes", { signal })),
+  getReferenceData: async (signal) =>
+    decodeReferenceData(await transport.json("/api/reference-data", { signal })),
   listCustomers: async (page, signal) =>
     decodeCustomerPage(await transport.json(paged("/api/customers", page), { signal })),
   getCustomer: async (id, signal) =>
     decodeCustomer(await transport.json(`/api/customers/${encoded(id)}`, { signal })),
   listProductPresets: async (page, signal) =>
     decodeProductPresetPage(await transport.json(paged("/api/product-presets", page), { signal })),
+  searchCustomers: async (q, signal) =>
+    decodeCustomerPage(await transport.json(searched("/api/customers", q), { signal })),
+  searchProductPresets: async (q, signal) =>
+    decodeProductPresetPage(await transport.json(searched("/api/product-presets", q), { signal })),
 })

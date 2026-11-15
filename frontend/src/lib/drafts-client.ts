@@ -1,5 +1,6 @@
 import { decodeDeleted, decodeDraft, decodeDraftPage } from "./draft-decoders.ts"
 import { decodeIssuedInvoice } from "./document-snapshot-decoders.ts"
+import { decodeTotalsPreview, type TotalsPreview, type TotalsPreviewInput } from "./draft-totals-preview.ts"
 import { encoded, paged } from "./client-paths.ts"
 import { readableWrite } from "./unreadable-answer.ts"
 import type { BrowserTransport } from "./browser-transport.ts"
@@ -37,6 +38,8 @@ export interface DraftsClient {
   readonly issueDraft: (csrfToken: string, id: string, idempotencyKey: string) => Promise<IssuedInvoice>
   readonly issueInvoice: (csrfToken: string, body: AuthoringDocumentInput, idempotencyKey: string) => Promise<IssuedInvoice>
   readonly replayInvoiceIssuance: (csrfToken: string, body: unknown, idempotencyKey: string) => Promise<IssuedInvoice>
+  /** Writes nothing, so it carries no idempotency key and skips `readableWrite`: a lost answer is simply asked again. */
+  readonly previewDraftTotals: (csrfToken: string, body: TotalsPreviewInput, signal?: AbortSignal) => Promise<TotalsPreview>
 }
 
 interface WriteOptions {
@@ -77,5 +80,7 @@ export const createDraftsClient = (transport: BrowserTransport): DraftsClient =>
       write(`/api/drafts/${encoded(id)}/issue`, { csrfToken, method: "POST", idempotencyKey }, decodeIssuedInvoice),
     issueInvoice: (csrfToken, body, idempotencyKey) => postInvoice(csrfToken, body, idempotencyKey),
     replayInvoiceIssuance: postInvoice,
+    previewDraftTotals: async (csrfToken, body, signal) => decodeTotalsPreview(await transport.json("/api/drafts/totals-preview",
+      { csrfToken, method: "POST", body, ...(signal === undefined ? {} : { signal }) })),
   }
 }

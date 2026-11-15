@@ -46,7 +46,10 @@ Comenzile rulează din directorul repository-ului.
      cale și fără `/` la final;
    - `ORGANIZATION_ID`: id-ul intern al firmei (litere mici, cifre, cratimă, ex.
      `ro12345678`), ales o dată, înainte de primul start, și neschimbat apoi;
-   - `RFI_IMAGE=ro-free-invoice` și `IMAGE_TAG=local` rămân așa pentru imaginea de la pasul 5.
+   - `RFI_IMAGE=ro-free-invoice` și `IMAGE_TAG=local` rămân așa pentru imaginea de la pasul 5;
+   - `RFI_PGDATABASE` și `RFI_DATA_VOLUME` rămân la valorile din `.env.example` (le schimbă doar
+     `restore.sh`); `BACKUP_DIR`, cerut de scripturile din `scripts/production/`, e un director
+     absolut în afara checkout-ului, creat de tine (comanda e în `.env.example`).
 3. Alege intrarea HTTPS și scrie-o tot în `.env`, ca să nu repeți `-f`/`--profile`
    (restul ghidului presupune asta):
    - **a) Caddy-ul inclus:** `COMPOSE_FILE=compose.prod.yaml` și `COMPOSE_PROFILES=proxy`.
@@ -92,8 +95,8 @@ Comenzile rulează din directorul repository-ului.
    producție căile pot sta în afara repository-ului; cele relative se rezolvă față de `.env`.
 
    Trei roluri, câte o parolă ([Database access](../README.md#database-access)): `postgres`,
-   superuserul clusterului, doar pentru `db-init` și restaurare; `qwbe_owner`, proprietarul
-   schemei, pentru `migrate`; `qwbe_app`, doar citire și scriere de date, pentru `app`. Niciunul
+   superuserul clusterului, doar pentru `db-init` și restaurare; `rfi_owner`, proprietarul
+   schemei, pentru `migrate`; `rfi_app`, doar citire și scriere de date, pentru `app`. Niciunul
    dintre ultimele două nu e superuser, așa că o injecție SQL nu poate opri triggerele care
    păstrează facturile emise neschimbate.
 
@@ -277,8 +280,7 @@ staging-ul de backup: nu e niciodată un pas de actualizare sau de backup.
 | Simptom | Cauză și rezolvare |
 |---|---|
 | `bind source path does not exist: .../pg-superuser-password` (sau alt secret) la `up` | lipsește un fișier secret: rulează `scripts/init-secrets.sh` și `up` din nou; clusterul nu a fost creat, nu ai ce șterge |
-| `password authentication failed for user "postgres"` în logul `db-init`, iar `docker compose logs db` arată `Role "postgres" does not exist` | clusterul e dinaintea rolurilor separate, cu superuserul `qwbe`, și nu se convertește: urmează pașii din [Upgrading](../README.md#upgrading) (backup cu checkout-ul vechi dacă datele contează, cele trei linii noi în `.env`, `scripts/init-secrets.sh`, `docker compose down -v`, `up -d`) |
-| `password authentication failed` în logul `db-init`, fără `Role ... does not exist` în logul `db` | parola superuserului a fost regenerată după primul start; pune la loc fișierul vechi sau urmează [rotirea parolelor](../README.md#rotate-them-keeping-the-data) |
+| `password authentication failed` în logul `db-init` | parola superuserului a fost regenerată după primul start; pune la loc fișierul vechi sau urmează [rotirea parolelor](../README.md#rotate-them-keeping-the-data) |
 | `migrate` iese cu `schema does not match the migration contract (...): the schema is not the one its migration history explains; inspect the named objects, or restore a backup` | drift de migrare: schema bazei nu e cea explicată de migrările aplicate (un obiect schimbat de mână, un rând șters din ledger). Upgrade-ul normal aplică doar migrările noi și nu dă drift. Verifică obiectele numite în mesaj sau restaurează un backup; o bază de dezvoltare se poate și recrea (README, [API](../README.md#api), „Schema and migrations”) |
 | `Pool overlaps with other one on this address space` la `up` | un subnet al rețelei e deja folosit pe server: pune alt `/24` în `RFI_NETWORK_SUBNET` sau alt `/64` în `RFI_NETWORK_SUBNET_IPV6` |
 | la `up`, o eroare despre IPv6 la crearea rețelei | serverul nu are IPv6: adaugă `compose.ipv4-only.yaml` la `COMPOSE_FILE`, apoi `docker compose down` (fără `-v`) și `up -d` |

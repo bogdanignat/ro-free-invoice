@@ -16,6 +16,7 @@ export const masterDataEndpoints = {
   setDocumentSeriesArchived: invoicingBase(notFound(validation(body(HttpApiEndpoint.put("setDocumentSeriesArchived")`/document-series/${documentType}/${series}/archived`
     .setPayload(I.DocumentSeriesArchivedInput).addSuccess(I.DocumentSeries))))),
   listUnitOfMeasures: invoicingBase(HttpApiEndpoint.get("listUnitOfMeasures", "/unit-of-measures").addSuccess(Schema.Array(UnitOfMeasure))),
+  getReferenceData: invoicingBase(HttpApiEndpoint.get("getReferenceData", "/reference-data").addSuccess(C.ReferenceData)),
   listVatRegimes: invoicingBase(validation(HttpApiEndpoint.get("listVatRegimes", "/vat-regimes").addSuccess(I.VatCatalogue))),
   listCustomers: invoicingBase(validation(HttpApiEndpoint.get("listCustomers", "/customers").setUrlParams(C.SearchPageQuery).addSuccess(C.CustomerPage))),
   getCustomer: invoicingBase(notFound(HttpApiEndpoint.get("getCustomer")`/customers/${id}`.addSuccess(C.Customer))),

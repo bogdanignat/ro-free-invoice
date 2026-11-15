@@ -3,7 +3,9 @@ import { useRef, useState } from "react"
 
 import { useAuth } from "./auth-context.ts"
 import { efacturaCandidatesQuery } from "./efactura-queries.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { SESSION_CLOSED } from "./use-registry-writes.ts"
+import { confirmWhile, type ConfirmOptions } from "../lib/confirm-controller.ts"
 import type { EFacturaClient } from "../lib/efactura-client.ts"
 import { efacturaFailure } from "../lib/efactura-feedback.ts"
 import { candidatesView, linkConfirm, RESUBMIT_CONFIRM, type CandidatesView } from "../lib/efactura-history.ts"
@@ -47,9 +49,26 @@ export const useEFacturaReconciliation = (
     onError: onMoved,
     onSettled: () => { inFlight.current = false },
   })
+  const confirm = useConfirm()
+  const latestSubmissionId = useLatest(submissionId)
+  // The answer counts only for the submission it was asked about, still unknown and with no write in flight.
+  const confirmed = (id: string, message: string, options: ConfirmOptions): Promise<boolean> =>
+    confirmWhile(() => !inFlight.current && latestSubmissionId.current === id, () => confirm(message, options))
   const start = (send: (token: string) => Promise<EFacturaSubmission>): void => {
     inFlight.current = true
     write.mutate(send)
+  }
+  const link = async (uploadIndex: string): Promise<void> => {
+    if (submissionId === undefined) return
+    if (await confirmed(submissionId, linkConfirm(uploadIndex), { confirmLabel: "Leagă" })) {
+      start((token) => client.link(token, submissionId, uploadIndex))
+    }
+  }
+  const resubmit = async (): Promise<void> => {
+    if (submissionId === undefined) return
+    if (await confirmed(submissionId, RESUBMIT_CONFIRM, { confirmLabel: "Retrimite", tone: "danger" })) {
+      start((token) => client.resubmit(token, submissionId))
+    }
   }
   const data = asked === undefined ? undefined : read.data
   return {
@@ -65,13 +84,7 @@ export const useEFacturaReconciliation = (
     goTo: (page) => { if (submissionId !== undefined) setSearch({ id: submissionId, page }) },
     pending: write.isPending,
     failure: efacturaFailure(write.error),
-    link: (uploadIndex) => {
-      if (submissionId === undefined || inFlight.current || !window.confirm(linkConfirm(uploadIndex))) return
-      start((token) => client.link(token, submissionId, uploadIndex))
-    },
-    resubmit: () => {
-      if (submissionId === undefined || inFlight.current || !window.confirm(RESUBMIT_CONFIRM)) return
-      start((token) => client.resubmit(token, submissionId))
-    },
+    link: (uploadIndex) => { void link(uploadIndex) },
+    resubmit: () => { void resubmit() },
   }
 }

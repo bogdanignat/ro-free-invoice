@@ -5,16 +5,15 @@ import * as cubeMoney from "../cubes/invoicing/money/index.ts"
 import { negateDecimal } from "../cubes/invoicing/corrections/index.ts"
 import { characterCount, normalizeSpace } from "../cubes/invoicing/efactura/decimals.ts"
 import { ROMANIAN_COUNTIES, addressCountyName } from "../cubes/invoicing/index.ts"
-import { CIUS_TEXT_LIMITS, ciusTextLength, validateVatTreatment } from "../cubes/invoicing/domain/validation.ts"
+import { ciusTextLength, validateVatTreatment } from "../cubes/invoicing/domain/validation.ts"
 import { normalizeIssuerDetails, validateIssuerForIssuance } from "../cubes/invoicing/issuer/index.ts"
 import { romanianVatRates } from "../cubes/invoicing/issuer/domain/vat-catalogue.ts"
-import { CIUS_TEXT_LIMITS as FRONTEND_CIUS_TEXT_LIMITS } from "../frontend/src/lib/cius-text-limits.ts"
 import { canonicalVatTreatment } from "../frontend/src/lib/draft-decoders.ts"
 import * as pdfFormat from "../kernel/documents/pdf-format.ts"
 import { issuerIssuanceWarning } from "../frontend/src/lib/invoice-authoring-workflow.ts"
 import { socialCapitalValue } from "../frontend/src/lib/issuer-legal.ts"
 import * as frontendMoney from "../frontend/src/lib/money.ts"
-import { ROMANIAN_COUNTIES as FRONTEND_COUNTIES, addressCountyName as frontendAddressCountyName } from "../frontend/src/lib/romanian-counties.ts"
+import { addressCountyName as frontendAddressCountyName } from "../frontend/src/lib/romanian-counties.ts"
 import { vatTreatmentLabel } from "../frontend/src/lib/vat-snapshots.ts"
 import { normalizeItemCode, validateBarcode } from "../cubes/invoicing/items/index.ts"
 import { barcodeIssue, itemCodeIssue } from "../frontend/src/lib/item-identifiers.ts"
@@ -24,27 +23,19 @@ import { issueMessages } from "../frontend/src/lib/issue-messages.ts"
 // The frontend mirrors these rules instead of importing the cube. Nothing else
 // notices when one side changes alone (T-1651), so this probe holds them equal.
 
-void test("the frontend county list is the cube's, code and name, in the same order", () => {
-  assert.deepEqual(FRONTEND_COUNTIES, ROMANIAN_COUNTIES)
-})
-
 void test("the browser leaves the county out of an address exactly when the PDF does", () => {
   const cities = [...ROMANIAN_COUNTIES.map((county) => county.name), "Bucuresti", "BISTRITA NASAUD", "Satu  Mare", "Cluj-Napoca", "RO-XX", ""]
   for (const code of ROMANIAN_COUNTIES.map((county) => county.code)) {
     for (const city of cities) {
-      assert.equal(frontendAddressCountyName(city, code), addressCountyName(city, code), `${city} @ ${code}`)
+      assert.equal(frontendAddressCountyName(city, code, ROMANIAN_COUNTIES), addressCountyName(city, code), `${city} @ ${code}`)
     }
   }
   // The one difference, kept on purpose: an unknown code (never valid in a party)
   // is left off the PDF, while the document view shows it as stored (T-1400).
   for (const city of cities) {
     assert.equal(addressCountyName(city, "RO-XX"), undefined, city)
-    assert.equal(frontendAddressCountyName(city, "RO-XX"), city === "RO-XX" ? undefined : "RO-XX", city)
+    assert.equal(frontendAddressCountyName(city, "RO-XX", ROMANIAN_COUNTIES), city === "RO-XX" ? undefined : "RO-XX", city)
   }
-})
-
-void test("the frontend text limits are the cube's CIUS-RO limits", () => {
-  assert.deepEqual(FRONTEND_CIUS_TEXT_LIMITS, CIUS_TEXT_LIMITS)
 })
 
 void test("the cube counts a text the way the e-Factura export counts it", () => {

@@ -23,7 +23,7 @@ const transaction: PaymentsTransaction = {
   }),
   aggregateCollections: (organizationId) => Effect.succeed({ months: [], collected: organizationId === "org-1" ? "12.00" : "0.00" }),
   listCollectionInvoices: (organizationId) => Effect.succeed(organizationId === invoice.organizationId ? [{
-    id: invoice.id, series: "QWBE", number: 1, issueDate: "2026-09-01", dueDate: invoice.dueDate,
+    id: invoice.id, series: "RFI", number: 1, issueDate: "2026-09-01", dueDate: invoice.dueDate,
     customer: { name: "Client SRL" }, totalIncludingVat: invoice.totalIncludingVat, paidAmount: "12.00", creditedAmount: "0.00",
   }] : []),
 }
@@ -39,7 +39,7 @@ const service = (organizationId = "org-1", permissionsList: ReadonlyArray<string
   })
 }
 
-void test("publishes an authenticated payment cube", () => {
+void test("publishes payments as an optional plugin of invoicing", () => {
   assert.equal(cube.manifest.name, "payments")
   assert.equal(cube.manifest.parent, "invoicing")
   assert.equal(cube.manifest.required, false)

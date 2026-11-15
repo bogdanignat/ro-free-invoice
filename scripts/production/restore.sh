@@ -131,12 +131,12 @@ psql_db() { compose exec -T db psql -v ON_ERROR_STOP=1 -U postgres -d "$1" -tAc 
 
 create_database() {
   [[ -z "$(psql_db postgres "SELECT 1 FROM pg_database WHERE datname = '$TARGET_DB'")" ]] || die "database $TARGET_DB exists"
-  psql_db postgres "CREATE DATABASE $TARGET_DB OWNER qwbe_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'" >/dev/null
+  psql_db postgres "CREATE DATABASE $TARGET_DB OWNER rfi_owner TEMPLATE template0 LC_COLLATE 'C' LC_CTYPE 'C' ENCODING 'UTF8'" >/dev/null
   say "created database $TARGET_DB"
 }
 
 # The roles' grants (deploy/postgres/grants.sql) before the archive is loaded, so every
-# object it creates as qwbe_owner gets qwbe_app's rights as it is made.
+# object it creates as rfi_owner gets rfi_app's rights as it is made.
 grant_target() {
   compose run --rm --no-deps -T -e "PGDATABASE=$TARGET_DB" db-init >/dev/null || die "the grants on $TARGET_DB failed"
 }
@@ -153,7 +153,7 @@ create_volume() {
 # The CLI on the target (TARGET_DATA: the mount of /data), with the installed image.
 on_target() { compose run --rm --no-deps -T -e "PGDATABASE=$TARGET_DB" -v "$TARGET_DATA" "$@"; }
 
-# database.sql is executed as the schema owner: `migrate` holds qwbe_owner's secret.
+# database.sql is executed as the schema owner: `migrate` holds rfi_owner's secret.
 restore_on_target() {
   with_archive -e "PGDATABASE=$TARGET_DB" -v "$TARGET_DATA" migrate \
     node bin/ro-free-invoice.ts restore --input "/backup/$NAME" "$@"
@@ -163,7 +163,7 @@ restore_on_target() {
 # writing and checks it again after.
 migrate_target() { on_target migrate node bin/ro-free-invoice.ts migrate --apply --confirm-production --json; }
 
-# What the application will see: `doctor` as qwbe_app, in `app`.
+# What the application will see: `doctor` as rfi_app, in `app`.
 doctor_on_target() { on_target app node bin/ro-free-invoice.ts doctor --json; }
 
 # The dry-run's database goes again, once confirmed empty; its /data was an empty

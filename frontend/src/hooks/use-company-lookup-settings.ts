@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient }
 import { useState } from "react"
 
 import { useAuth } from "./auth-context.ts"
+import { useConfirm, useLatest } from "./use-confirm.ts"
 import { useInvoicingClients } from "./use-invoicing-clients.ts"
 import { companyLookupQueryKeys, type CompanyLookupClient } from "../lib/company-lookup-client.ts"
 import { companyLookupFailureMessage, integrationsLoad, type IntegrationsLoad } from "../lib/company-lookup-feedback.ts"
@@ -67,6 +68,7 @@ export const useCompanyLookupSettings = (): CompanyLookupSettingsModel => {
   const [keyField, setKeyField] = useState<KeyField>(EMPTY_KEY_FIELD)
   const [issue, setIssue] = useState<string | undefined>(undefined)
   const [notice, setNotice] = useState<string | undefined>(undefined)
+  const confirm = useConfirm()
 
   // The variables carry the key: `gcTime: 0` drops the settled mutation from the
   // cache, and the answer keeps only what `onSuccess` needs, never the input.
@@ -96,6 +98,12 @@ export const useCompanyLookupSettings = (): CompanyLookupSettingsModel => {
     if (change.kind === "issue") setIssue(change.message)
     if (change.kind === "save") write.mutate(change)
   }
+  // `apply` of the latest render rechecks the settings and the pending write after the dialog.
+  const latestApply = useLatest(apply)
+  const clear = async (): Promise<void> => {
+    if (settings === undefined) return
+    if (await confirm(keyClearConfirm(settings), { confirmLabel: "Șterge cheia", tone: "danger" })) latestApply.current(keyClear)
+  }
 
   return {
     load,
@@ -113,10 +121,7 @@ export const useCompanyLookupSettings = (): CompanyLookupSettingsModel => {
       startReplace: () => { setNotice(undefined); setKeyField({ draft: "", replacing: true }) },
       cancelReplace: () => { setIssue(undefined); write.reset(); setKeyField(EMPTY_KEY_FIELD) },
       save: () => { apply((current) => keySave(current, keyField.draft)) },
-      clear: () => {
-        if (settings === undefined || !window.confirm(keyClearConfirm(settings))) return
-        apply(keyClear)
-      },
+      clear: () => { void clear() },
     },
   }
 }

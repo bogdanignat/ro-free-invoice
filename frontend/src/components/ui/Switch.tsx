@@ -1,6 +1,9 @@
 import { useId, type ComponentPropsWithRef, type ReactNode } from "react"
 
-type SwitchProps = Omit<ComponentPropsWithRef<"input">, "type" | "role" | "aria-describedby"> & {
+import { Checkbox } from "./Checkbox.tsx"
+import { Hint } from "./Hint.tsx"
+
+type SwitchProps = Omit<ComponentPropsWithRef<"input">, "type" | "role" | "aria-describedby" | "className"> & {
   readonly label: ReactNode
   readonly description?: ReactNode
 }
@@ -12,10 +15,7 @@ type SwitchProps = Omit<ComponentPropsWithRef<"input">, "type" | "role" | "aria-
 export const Switch = ({ label, description, ...props }: SwitchProps) => {
   const descriptionId = useId()
   return <div className="grid gap-1">
-    <label className="checkbox-label">
-      <input {...props} type="checkbox" role="switch" aria-describedby={description === undefined ? undefined : descriptionId} />
-      {label}
-    </label>
-    {description === undefined ? null : <p className="hint" id={descriptionId}>{description}</p>}
+    <Checkbox {...props} role="switch" aria-describedby={description === undefined ? undefined : descriptionId}>{label}</Checkbox>
+    {description === undefined ? null : <Hint id={descriptionId}>{description}</Hint>}
   </div>
 }

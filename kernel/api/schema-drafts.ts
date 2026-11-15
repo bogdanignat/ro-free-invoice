@@ -44,3 +44,13 @@ export const UpdateDraftInput = Schema.Struct({
   ...BuyerSelection.fields, source: optional(Schema.NullOr(DocumentSourceInput)), series: optionalInput, issueDate: InputText,
   dueDate: optionalNullableInput, supplyDate: optionalNullableInput, notes: optionalNullableNotes,
 }).annotations(bodyObject).pipe(requireBuyer)
+// The preview reads only what decides the totals; a full draft line is accepted and its other fields ignored.
+const TotalsPreviewLineInput = Schema.Struct({ quantity: InputText, unitPrice: InputText, vatRateCode: InputText }).annotations(bodyObject)
+export const TotalsPreviewInput = Schema.Struct({
+  issueDate: InputText, supplyDate: optionalNullableInput, lines: linesOf(TotalsPreviewLineInput),
+}).annotations(bodyObject)
+const LineTotals = Schema.Struct({ totalExcludingVat: Schema.String, vatAmount: Schema.String, totalIncludingVat: Schema.String })
+export const TotalsPreview = Schema.Struct({
+  lines: Schema.Array(LineTotals), vatBreakdown: Schema.Array(VatBreakdown), totalExcludingVat: Schema.String,
+  vatTotal: Schema.String, totalIncludingVat: Schema.String,
+})

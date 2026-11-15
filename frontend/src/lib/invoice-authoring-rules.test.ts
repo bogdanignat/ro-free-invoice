@@ -8,12 +8,13 @@ import {
 import { draftDeletionState, invoiceDueDateIssue } from "./invoice-authoring-workflow.ts"
 import { DERIVED_DRAFT_DELETE_REFUSED } from "./draft-save-types.ts"
 import { authoringSeriesOptions } from "./document-authoring-options.ts"
-import { documentNotesIssue, documentNotesMaxLength } from "./invoice-notes-validation.ts"
+import { documentNotesIssue } from "./invoice-notes-validation.ts"
 import { positiveInvoiceRequiresDueDate } from "./invoice-positive-total.ts"
 import { formFromDraft } from "./document-authoring-transitions.ts"
-import { defaultVatCode, issuerVatRegistrationOn, presetVatCode, vatRatesForIssuer } from "./vat-defaults.ts"
-import { hasStaleDraftTax, staleDraftLineIds } from "./vat-snapshots.ts"
-import type { DraftInvoice, Issuer, VatCatalogue, VatConfiguration, VatRate } from "./draft-models.ts"
+import { periodOn, presetVatCode } from "./vat-defaults.ts"
+import { hasStaleDraftTax, issuerForIssueDate, staleDraftLineIds } from "./vat-snapshots.ts"
+import { vatPeriod } from "./vat-periods.test-support.ts"
+import type { DraftInvoice, Issuer, VatCatalogue, VatConfiguration, VatPeriod, VatRate } from "./draft-models.ts"
 import type { InvoiceAuthoringForm } from "./invoice-authoring-model.ts"
 
 const unit = { code: "C62", name: "unitate" }
@@ -32,13 +33,25 @@ const configuration = (code: string, rate: string, vatCategoryCode: "S" | "O", f
   effectiveFrom: from, ...(to === undefined ? {} : { effectiveTo: to }),
 })
 
-const issuer = (configurations: ReadonlyArray<VatConfiguration>): Issuer => ({
+const issuer = (configurations: ReadonlyArray<VatConfiguration>, periods: ReadonlyArray<VatPeriod>): Issuer => ({
   organizationId: "org", name: "Beta", fiscalIdentifier: "321",
   address: { countryCode: "RO", city: "B", street: "s", county: "RO-B", sector: 1 },
   legalForm: "srl", tradeRegistryNumber: "J40/1/2020", iban: "RO00XXXX0000000000", bankName: "Banca",
   socialCapital: "100.00", defaultCurrency: "RON", defaultPaymentTermDays: 14,
-  vatConfigurations: configurations, currentVat: null, branding: null,
+  vatConfigurations: configurations, currentVat: null, vatPeriods: periods, branding: null,
 })
+
+const [standardRate, reducedRate, nonVatRate] = catalogue().rates as [VatRate, VatRate, VatRate]
+
+// Registered up to 30 June 2026, under Article 310 from 1 July.
+const switching = (): Issuer => issuer([
+  configuration("RO_STANDARD", "21.00", "S", "2026-01-01", "2026-06-30"),
+  configuration("RO_REDUCED", "9.00", "S", "2026-01-01", "2026-06-30"),
+  configuration("RO_NON_VAT", "0.00", "O", "2026-07-01"),
+], [
+  vatPeriod("2026-01-01", "2026-06-30", true, [standardRate, reducedRate]),
+  vatPeriod("2026-07-01", undefined, false, [nonVatRate]),
+])
 
 const draftLine = (vatRateCode: string, vatRate: string, id: string): DraftInvoice["lines"][number] => ({
   id, description: "Consultanță", quantity: "1", unitPrice: "100.00", unitOfMeasure: unit,
@@ -195,41 +208,51 @@ void test("a screen offers the series of the document it authors, never the othe
 })
 
 void test("notes validation mirrors the server rules", () => {
-  assert.equal(documentNotesIssue("text simplu"), null)
-  assert.ok(documentNotesIssue("tab\taici") !== null)
-  assert.ok(documentNotesIssue("a".repeat(documentNotesMaxLength + 1)) !== null)
+  assert.equal(documentNotesIssue("text simplu", 300), null)
+  assert.ok(documentNotesIssue("tab\taici", 300) !== null)
+  assert.ok(documentNotesIssue("a".repeat(301), 300) !== null)
+  assert.equal(documentNotesIssue("a".repeat(300), 300), null)
 })
 
 void test("the effective VAT rates follow the issuer's registrations on the document date", () => {
-  const registered = issuer([configuration("RO_STANDARD", "21.00", "S", "2026-01-01")])
-  const nonVat = issuer([configuration("RO_NON_VAT", "0.00", "O", "2026-01-01")])
-  const switching = issuer([
-    configuration("RO_STANDARD", "21.00", "S", "2026-01-01", "2026-06-30"),
-    configuration("RO_NON_VAT", "0.00", "O", "2026-07-01"),
-  ])
-  assert.equal(issuerVatRegistrationOn(registered, "2026-05-05"), true)
-  assert.equal(issuerVatRegistrationOn(nonVat, "2026-05-05"), false)
-  const taxes = vatRatesForIssuer(catalogue(), switching, "2026-08-08")
-  assert.deepEqual(taxes.map((rate: VatRate) => rate.code), ["RO_NON_VAT"])
-  assert.equal(defaultVatCode(catalogue(), switching, "2026-05-05"), "RO_STANDARD")
+  const registered = issuer([configuration("RO_STANDARD", "21.00", "S", "2026-01-01")],
+    [vatPeriod("2026-01-01", undefined, true, [standardRate])])
+  const nonVat = issuer([configuration("RO_NON_VAT", "0.00", "O", "2026-01-01")],
+    [vatPeriod("2026-01-01", undefined, false, [nonVatRate])])
+  assert.equal(issuerForIssueDate(registered, "2026-05-05").vatRegistered, true)
+  assert.equal(issuerForIssueDate(nonVat, "2026-05-05").vatRegistered, false)
+  assert.equal(issuerForIssueDate(switching(), "2026-05-05").vatRegistered, true)
+  assert.equal(issuerForIssueDate(switching(), "2026-08-08").vatRegistered, false)
+  // Without a preference a line gets the period's default.
+  assert.equal(presetVatCode(undefined, periodOn(switching().vatPeriods, "2026-05-05")), "RO_STANDARD")
+  assert.equal(presetVatCode(undefined, periodOn(switching().vatPeriods, "2026-08-08")), "RO_NON_VAT")
   // A product's preferred rate wins only while the issuer can charge it.
-  assert.equal(presetVatCode("RO_REDUCED", catalogue(), switching, "2026-05-05"), "RO_REDUCED")
-  assert.equal(presetVatCode("RO_REDUCED", catalogue(), switching, "2026-08-08"), "RO_NON_VAT")
+  assert.equal(presetVatCode("RO_REDUCED", periodOn(switching().vatPeriods, "2026-05-05")), "RO_REDUCED")
+  assert.equal(presetVatCode("RO_REDUCED", periodOn(switching().vatPeriods, "2026-08-08")), "RO_NON_VAT")
 })
 
 void test("lines saved under a rate the issuer can no longer charge are stale until re-saved", () => {
-  const switching = issuer([
-    configuration("RO_STANDARD", "21.00", "S", "2026-01-01", "2026-06-30"),
-    configuration("RO_NON_VAT", "0.00", "O", "2026-07-01"),
-  ])
   const draft = draftOf({
     issueDate: "2026-08-08",
     lines: [draftLine("RO_STANDARD", "21.00", "line-1"), draftLine("RO_NON_VAT", "0.00", "line-2")],
   })
-  assert.equal(hasStaleDraftTax(draft.issueDate, draft.lines, catalogue(), switching), true)
-  assert.deepEqual(staleDraftLineIds(draft.issueDate, draft.lines, catalogue(), switching), ["line-1"])
+  assert.equal(hasStaleDraftTax(draft.issueDate, draft.lines, switching()), true)
+  assert.deepEqual(staleDraftLineIds(draft.issueDate, draft.lines, switching()), ["line-1"])
   const sameDate = draftOf({ issueDate: "2026-05-05", lines: [draftLine("RO_STANDARD", "21.00", "line-1")] })
-  assert.equal(hasStaleDraftTax(sameDate.issueDate, sameDate.lines, catalogue(), switching), false)
+  assert.equal(hasStaleDraftTax(sameDate.issueDate, sameDate.lines, switching()), false)
+})
+
+void test("a period the server reports with no regime offers no rate, so every line is stale", () => {
+  const inconsistent = issuer([
+    configuration("RO_STANDARD", "21.00", "S", "2026-01-01"),
+    configuration("RO_NON_VAT", "0.00", "O", "2026-01-01"),
+  ], [vatPeriod("2026-01-01", undefined, null)])
+  const lines = [draftLine("RO_STANDARD", "21.00", "line-1"), draftLine("RO_NON_VAT", "0.00", "line-2")]
+  assert.deepEqual(periodOn(inconsistent.vatPeriods, "2026-05-05")?.rates, [])
+  assert.equal(presetVatCode("RO_STANDARD", periodOn(inconsistent.vatPeriods, "2026-05-05")), "")
+  assert.equal(issuerForIssueDate(inconsistent, "2026-05-05").vatRegistered, false)
+  assert.equal(hasStaleDraftTax("2026-05-05", lines, inconsistent), true)
+  assert.deepEqual(staleDraftLineIds("2026-05-05", lines, inconsistent), ["line-1", "line-2"])
 })
 
 void test("the due-date issue names the requirement without blocking a draft save", () => {
