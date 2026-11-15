@@ -51,11 +51,21 @@ const poolIsClean = async (runtime: TestRuntime): Promise<void> => {
     const { rows } = await runtime.pool.query<{ readonly one: number }>("SELECT 1 AS one")
     assert.equal(rows[0]?.one, 1)
   }
-  const { rows } = await runtime.pool.query<{ readonly count: string }>(
-    "SELECT count(*) AS count FROM pg_stat_activity"
-    + " WHERE datname = current_database() AND state = 'idle in transaction'",
-  )
-  assert.equal(rows[0]?.count, "0", "no connection may be left inside a transaction")
+  // `client.release(err)` closes the client socket at once, but the server ends that
+  // backend asynchronously, so on a slow runner `pg_stat_activity` can still list it
+  // as `idle in transaction` for a moment. Poll up to 5 s; a backend that really
+  // stays in a transaction never reaches 0 and still fails.
+  const deadline = Date.now() + 5_000
+  let count: string
+  do {
+    const { rows } = await runtime.pool.query<{ readonly count: string }>(
+      "SELECT count(*) AS count FROM pg_stat_activity"
+      + " WHERE datname = current_database() AND state = 'idle in transaction'",
+    )
+    count = rows[0]?.count ?? ""
+    if (count !== "0") await new Promise((resolve) => setTimeout(resolve, 100))
+  } while (count !== "0" && Date.now() < deadline)
+  assert.equal(count, "0", "no connection may be left inside a transaction")
 }
 
 const scopeFixture = [
