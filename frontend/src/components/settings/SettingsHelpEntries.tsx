@@ -1,13 +1,11 @@
 import type { ReactNode } from "react"
 
 /** One topic of the field guide: a small-caps title over its terms, and an optional closing note. */
-export const HelpSection = ({ title, className, note, children }: {
+export const HelpSection = ({ title, note, children }: {
   readonly title: string
-  /** A hook for the section, never its look. */
-  readonly className?: string
   readonly note?: ReactNode
   readonly children: ReactNode
-}) => <section className={className}>
+}) => <section>
   <h3 className="mb-2 text-invoice-muted text-[.84rem] font-extrabold tracking-invoice-caps uppercase">{title}</h3>
   <dl className="grid gap-[.8rem] m-0">{children}</dl>
   {note === undefined ? null : <p className="mt-[.9rem] text-invoice-muted text-[.8rem] leading-[1.55]">{note}</p>}

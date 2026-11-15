@@ -1,3 +1,4 @@
+import { Checkbox } from "../ui/Checkbox.tsx"
 import { CompanyNameField } from "../company-lookup/CompanyNameField.tsx"
 import { CompanyProposalCard } from "../company-lookup/CompanyProposalCard.tsx"
 import { Field } from "../ui/Field.tsx"
@@ -51,9 +52,8 @@ export const CustomerIdentityFields = (props: CustomerIdentityFieldsProps) => {
     <CompanyProposalCard lookup={lookup} vat="suggested" disabled={disabled}
       onApply={(proposal) => { props.onChange(customerFill(form, proposal)) }} />
     {company
-      ? <label className="flex gap-2 items-center text-[.85rem] font-semibold">
-        <input className="w-auto min-h-0" type="checkbox" checked={form.vatRegistered} disabled={disabled}
-        onChange={(event) => { props.onChange({ vatRegistered: event.currentTarget.checked }) }} /> Client înregistrat în scopuri de TVA</label>
+      ? <Checkbox checked={form.vatRegistered} disabled={disabled}
+        onChange={(event) => { props.onChange({ vatRegistered: event.currentTarget.checked }) }}> Client înregistrat în scopuri de TVA</Checkbox>
       : null}
   </>
 }

@@ -1,5 +1,6 @@
 import { useId, type ComponentPropsWithRef, type ReactNode } from "react"
 
+import { Checkbox } from "./Checkbox.tsx"
 import { Hint } from "./Hint.tsx"
 
 type SwitchProps = Omit<ComponentPropsWithRef<"input">, "type" | "role" | "aria-describedby" | "className"> & {
@@ -14,10 +15,7 @@ type SwitchProps = Omit<ComponentPropsWithRef<"input">, "type" | "role" | "aria-
 export const Switch = ({ label, description, ...props }: SwitchProps) => {
   const descriptionId = useId()
   return <div className="grid gap-1">
-    <label className="flex gap-2 items-center text-[.85rem] font-semibold">
-      <input {...props} className="w-auto min-h-0" type="checkbox" role="switch" aria-describedby={description === undefined ? undefined : descriptionId} />
-      {label}
-    </label>
+    <Checkbox {...props} role="switch" aria-describedby={description === undefined ? undefined : descriptionId}>{label}</Checkbox>
     {description === undefined ? null : <Hint id={descriptionId}>{description}</Hint>}
   </div>
 }

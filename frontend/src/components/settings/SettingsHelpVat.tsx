@@ -6,7 +6,7 @@ import { HelpItem, HelpSection } from "./SettingsHelpEntries.tsx"
  * operation actually falls under is a fiscal judgement, not a setting.
  */
 export const SettingsHelpVat = () => <>
-  <HelpSection className="settings-help-vat" title="Configurația TVA">
+  <HelpSection title="Configurația TVA">
     <HelpItem term="Plătitoare de TVA">Regimul este ales explicit din această bifă. Forma în care introduci CUI-ul nu îl schimbă.</HelpItem>
     <HelpItem term="Cote și cod TVA">Nu se completează aici: alegerea regimului scrie configurația standard, iar renunțarea scrie scutirea conform art. 310.</HelpItem>
     <HelpItem term="Schimbarea regimului se aplică de la" highlight>Configurația este aleasă după <strong>data emiterii facturii</strong>, nu după ziua în care salvezi setările. O poți programa din timp: vechea cotă rămâne valabilă până în ziua precedentă. Facturile deja emise nu se modifică, iar liniile existente într-un draft își păstrează cota și primesc un avertisment.</HelpItem>

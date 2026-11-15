@@ -1,4 +1,5 @@
 import { Button } from "../ui/Button.tsx"
+import { CardText } from "../ui/CardText.tsx"
 import { Hint } from "../ui/Hint.tsx"
 import type { CompanyLookupModel } from "../../hooks/use-company-lookup.ts"
 import { useCounties } from "../../hooks/use-reference-data.ts"
@@ -31,7 +32,7 @@ export const CompanyProposalCard = ({ lookup, vat, disabled, onApply }: CompanyP
   const address = proposalAddressReference(proposal)
   return <section className="col-span-full grid gap-2 rounded-invoice-control border border-invoice-border bg-invoice-primary-soft p-3"
     aria-label="Firmă găsită">
-    <p className="m-0 font-bold text-invoice-ink in-data-[card]:leading-[1.6]" role="status">{proposalHeadline(proposal, counties)}</p>
+    <CardText tone="title" role="status">{proposalHeadline(proposal, counties)}</CardText>
     {proposalWarnings(proposal).map((warning) => <Hint key={warning} tone="warning">{warning}</Hint>)}
     <Hint>{proposalVatLine(proposal, vat)}</Hint>
     {address === undefined ? null : <Hint>{address}</Hint>}

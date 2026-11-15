@@ -2,6 +2,7 @@ import { Badge } from "../ui/Badge.tsx"
 import { Button } from "../ui/Button.tsx"
 import { ButtonRow } from "../ui/ButtonRow.tsx"
 import { Card } from "../ui/Card.tsx"
+import { CardText } from "../ui/CardText.tsx"
 import { ErrorAlert } from "../AsyncState.tsx"
 import { Hint } from "../ui/Hint.tsx"
 import { SectionHeading } from "../ui/SectionHeading.tsx"
@@ -26,7 +27,7 @@ export const EFacturaCard = ({ model }: { readonly model: EFacturaConnectionMode
     {view === undefined
       ? model.isPending ? <Hint role="status">Se încarcă conexiunea ANAF…</Hint> : <ErrorAlert error={model.error} onRetry={model.retry} />
       : <>
-        <p className="m-0 text-invoice-muted leading-[1.6]"><Badge tone={view.tone}>{view.statusLabel}</Badge></p>
+        <CardText><Badge tone={view.tone}>{view.statusLabel}</Badge></CardText>
         <Hint>{view.explanation}</Hint>
         {view.facts.length === 0 ? null : <dl className="flex flex-wrap gap-x-8 gap-y-[.6rem] m-0">
           {view.facts.map((fact) => <div key={fact.label}>

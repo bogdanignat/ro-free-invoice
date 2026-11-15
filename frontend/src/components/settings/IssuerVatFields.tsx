@@ -1,3 +1,4 @@
+import { Checkbox } from "../ui/Checkbox.tsx"
 import { Field } from "../ui/Field.tsx"
 import { FieldIssue } from "../registry/FieldIssue.tsx"
 import { FormGrid } from "../ui/FormGrid.tsx"
@@ -45,10 +46,8 @@ export const IssuerVatFields = (props: IssuerVatFieldsProps) => {
           onChange={(event) => { props.onChange({ defaultPaymentTermDays: event.currentTarget.value }) }} />
         <FieldIssue issue={issue} field="defaultPaymentTermDays" form={ISSUER_FORM} />
       </Field>
-      <label className="flex gap-2 items-center text-[.85rem] font-semibold">
-        <input className="w-auto min-h-0" type="checkbox" disabled={disabled} checked={form.vatRegistered} {...aria("vatRegistered")}
-          onChange={(event) => { props.onVatRegisteredChange(event.currentTarget.checked) }} /> Plătitoare de TVA
-      </label>
+      <Checkbox disabled={disabled} checked={form.vatRegistered} {...aria("vatRegistered")}
+        onChange={(event) => { props.onVatRegisteredChange(event.currentTarget.checked) }}> Plătitoare de TVA</Checkbox>
       <FieldIssue issue={issue} field="vatRegistered" form={ISSUER_FORM} />
       <Field label="Schimbarea regimului se aplică de la" required>
         <Input required type="date" disabled={disabled} value={form.vatEffectiveFrom} {...aria("vatEffectiveFrom")}
